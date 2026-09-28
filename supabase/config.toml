@@ -1,0 +1,36 @@
+# Config mínima; o Supabase CLI completa o resto com os valores padrão.
+project_id = "deolhonacidade"
+
+[api]
+port = 54321
+
+[db]
+port = 54322
+major_version = 17
+
+[studio]
+port = 54323
+
+[local_smtp]
+# Caixa de e-mail falsa para ler o código de login em desenvolvimento
+enabled = true
+port = 54324
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000"]
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+otp_length = 6
+
+# O app pede o código de 6 dígitos (não usa o link), então os e-mails mostram {{ .Token }}.
+# No projeto em produção, copie este template em Authentication > Email Templates.
+[auth.email.template.magic_link]
+subject = "Seu código: {{ .Token }}"
+content_path = "./supabase/templates/codigo-login.html"
+
+[auth.email.template.confirmation]
+subject = "Seu código: {{ .Token }}"
+content_path = "./supabase/templates/codigo-login.html"
