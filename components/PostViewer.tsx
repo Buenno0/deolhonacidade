@@ -5,6 +5,7 @@ import { getSupabase } from "@/lib/supabase/client";
 import { recordInteraction } from "@/lib/interactions";
 import { CATEGORIES, severityVar } from "@/lib/categories";
 import { photoUrl } from "@/lib/media";
+import { levelName } from "@/lib/progress";
 import { countdown, distance, formatDistance, remaining, timeAgo, type PostFeature } from "@/lib/posts";
 import { CategoryIcon, ChevronIcon, CloseIcon, FlagIcon } from "./ui/icons";
 import { Button, IconButton } from "./ui";
@@ -164,6 +165,10 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
         <div className="mx-auto max-w-lg">
           {p.caption && <p className="mb-3 font-display text-xl font-semibold leading-snug">{p.caption}</p>}
           <p className="rotulo flex flex-wrap gap-x-3 gap-y-1">
+            <span className="text-ink">
+              {p.author_nickname ? `@${p.author_nickname} · ` : ""}
+              {levelName(p.author_level ?? 1)}
+            </span>
             <span>{timeAgo(p.created_at, now)}</span>
             <span>
               some em <span className="num text-ink">{countdown(p.expires_at, now)}</span>
@@ -190,7 +195,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
             />
           </div>
           <div className="mt-3 flex items-center justify-between">
-            <ShareButton post={p} />
+            <ShareButton post={p} onShared={onChanged} />
             <Button
               variant="perigo"
               onClick={() => report(p.id)}

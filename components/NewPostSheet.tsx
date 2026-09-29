@@ -18,10 +18,12 @@ type Props = {
   // Respondendo a um "Alguém aí?": a pergunta aparece no topo
   request?: { id: string; question: string } | null;
   onClose: () => void;
+  // Tentou postar de fora da cidade: o Home mostra o aviso de fora da área
+  onOutOfArea?: (at: [number, number]) => void;
   onPosted: (id: string, at: [number, number], accuracy: number) => void;
 };
 
-export default function NewPostSheet({ request, onClose, onPosted }: Props) {
+export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted }: Props) {
   const [photo, setPhoto] = useState<File | null>(null);
   const [category, setCategory] = useState<Category | null>(null);
   const [caption, setCaption] = useState("");
@@ -54,7 +56,9 @@ export default function NewPostSheet({ request, onClose, onPosted }: Props) {
       );
       onPosted(id, [position.lng, position.lat], position.accuracy);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Não foi possível publicar");
+      const message = e instanceof Error ? e.message : "Não foi possível publicar";
+      if (onOutOfArea && /dentro da cidade/.test(message)) return onOutOfArea([position.lng, position.lat]);
+      setError(message);
       setStep(null);
     }
   }

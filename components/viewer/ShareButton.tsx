@@ -10,7 +10,7 @@ import { ChatIcon, CheckIcon, LinkIcon, ShareIcon } from "../ui/icons";
 
 // Compartilhar: no celular abre a folha nativa (WhatsApp incluso); no
 // computador mostra WhatsApp e Copiar link. O link /p/<id> tem prévia com a foto.
-export default function ShareButton({ post }: { post: PostProperties }) {
+export default function ShareButton({ post, onShared }: { post: PostProperties; onShared?: () => void }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const url = `${window.location.origin}/p/${post.id}`;
@@ -18,6 +18,8 @@ export default function ShareButton({ post }: { post: PostProperties }) {
 
   async function share() {
     recordInteraction(post.id, "share");
+    // dá tempo do banco contar antes de conferir conquistas
+    setTimeout(() => onShared?.(), 800);
     if (navigator.share) {
       try {
         await navigator.share({ title: "De Olho na Cidade", text, url });

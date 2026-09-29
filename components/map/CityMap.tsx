@@ -16,6 +16,7 @@ import { severityVar } from "@/lib/categories";
 import { thumbUrl, photoUrl } from "@/lib/media";
 import { buildMapStyle, mapTone, type MapType } from "@/lib/map/style";
 import { isFresh, remaining, type PostFeature, type PostProperties, type RequestFeature } from "@/lib/posts";
+import { KIND_LABEL, LANDMARK_MIN_ZOOM, landmarkSvg, type Landmark } from "@/lib/landmarks";
 import type { Theme } from "@/lib/theme";
 
 setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
@@ -45,8 +46,13 @@ type Props = {
   onSelect: (id: string) => void;
   onSelectMany: (ids: string[]) => void;
   onSelectRequest: (id: string) => void;
+  landmarks: Landmark[];
+  activeLandmark: string | null;
+  onSelectLandmark: (id: string) => void;
   onMove?: (center: [number, number]) => void;
 };
+
+
 
 // Calor: âmbar → óxido → vermelho, transparente onde não há nada
 const HEAT_COLOR = [
@@ -163,6 +169,9 @@ export default function CityMap({
   onSelect,
   onSelectMany,
   onSelectRequest,
+  landmarks,
+  activeLandmark,
+  onSelectLandmark,
   onMove,
 }: Props) {
   const container = useRef<HTMLDivElement>(null);
@@ -172,13 +181,14 @@ export default function CityMap({
   const byTime = useRef(new Map<number, PostProperties>());
   // Ids já vistos: um post que chega depois disso "pousa" com animação
   const known = useRef<Set<string> | null>(null);
-  const latest = useRef({ posts, activeId, theme, mapType, heat, onSelect, onSelectMany, onSelectRequest, onMove });
+  const latest = useRef({ posts, activeId, theme, mapType, heat, onSelect, onSelectMany, onSelectRequest, onSelectLandmark, onMove });
+  const landmarkMarkers = useRef(new Map<string, Marker>());
   const requestMarkers = useRef(new Map<string, Marker>());
   const syncRef = useRef<() => void>(() => {});
   const userMarker = useRef<Marker | null>(null);
 
   useEffect(() => {
-    latest.current = { posts, activeId, theme, mapType, heat, onSelect, onSelectMany, onSelectRequest, onMove };
+    latest.current = { posts, activeId, theme, mapType, heat, onSelect, onSelectMany, onSelectRequest, onSelectLandmark, onMove };
   });
 
   // Cria o mapa uma vez
@@ -333,6 +343,53 @@ export default function CityMap({
     m.setLayoutProperty("heat-history", "visibility", heat.history ? "visible" : "none");
     m.getSource<GeoJSONSource>("heat-history")?.setData(heat.history ?? EMPTY);
   }, [heat]);
+
+  // Marcos da cidade: placas fixas, escondidas com o mapa longe
+  useEffect(() => {
+    const markerMap = landmarkMarkers.current;
+    let cleanupZoom: (() => void) | undefined;
+    const place = (mm: MapLibreMap) => {
+      for (const l of landmarks) {
+        if (markerMap.has(l.id)) continue;
+        const el = document.createElement("button");
+        el.type = "button";
+        el.className = "marco";
+        el.setAttribute("aria-label", `${KIND_LABEL[l.kind]}: ${l.name}`);
+        el.title = l.name;
+        el.innerHTML = landmarkSvg(l.kind);
+        if (l.heritage) el.dataset.tombado = "sim";
+        el.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          latest.current.onSelectLandmark(l.id);
+        });
+        markerMap.set(l.id, new Marker({ element: el, anchor: "bottom", offset: [0, -6] }).setLngLat([l.lng, l.lat]).addTo(mm));
+      }
+      const byZoom = () => {
+        const show = mm.getZoom() >= LANDMARK_MIN_ZOOM;
+        for (const m of markerMap.values()) m.getElement().style.display = show ? "" : "none";
+      };
+      byZoom();
+      mm.on("zoom", byZoom);
+      cleanupZoom = () => mm.off("zoom", byZoom);
+    };
+    let t: ReturnType<typeof setInterval> | undefined;
+    if (map.current) place(map.current);
+    else
+      t = setInterval(() => {
+        if (map.current) {
+          clearInterval(t);
+          place(map.current);
+        }
+      }, 300);
+    return () => {
+      clearInterval(t);
+      cleanupZoom?.();
+    };
+  }, [landmarks]);
+
+  useEffect(() => {
+    for (const [id, m] of landmarkMarkers.current) m.getElement().dataset.ativo = id === activeLandmark ? "sim" : "nao";
+  }, [activeLandmark]);
 
   // "Alguém aí?": um balão por pedido aberto (são poucos, sem agrupamento)
   useEffect(() => {

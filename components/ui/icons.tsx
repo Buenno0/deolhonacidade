@@ -146,6 +146,33 @@ export const UserIcon = (p: P) => (
     <path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
   </Icon>
 );
+// Marcos da cidade
+export const ChurchIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M12 2v5M10 4h4" />
+    <path d="M5 21V12l7-5 7 5v9" />
+    <path d="M3 21h18M10 21v-4a2 2 0 0 1 4 0v4" />
+  </Icon>
+);
+export const StatueIcon = (p: P) => (
+  <Icon {...p}>
+    <circle cx="12" cy="5" r="2" />
+    <path d="M9 9h6l-1 6h-4L9 9zM10 15l-1 3M14 15l1 3" />
+    <path d="M6 21h12M7 18h10v3H7z" />
+  </Icon>
+);
+export const MonumentIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M12 2l2 4v12h-4V6l2-4z" />
+    <path d="M6 21h12M8 18h8v3H8z" />
+  </Icon>
+);
+export const LandmarkIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M4 21V10M20 21V10M2 10h20L12 3 2 10z" />
+    <path d="M8 21v-7M12 21v-7M16 21v-7M2 21h20" />
+  </Icon>
+);
 export const ChevronIcon = (p: P) => (
   <Icon {...p}>
     <path d="m9 6 6 6-6 6" />

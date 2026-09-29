@@ -15,6 +15,8 @@ export type PostProperties = {
   request_id: string | null;
   view_count: number;
   share_count: number;
+  author_level?: number;
+  author_nickname?: string | null;
 };
 
 export type PostsCollection = GeoJSON.FeatureCollection<GeoJSON.Point, PostProperties>;

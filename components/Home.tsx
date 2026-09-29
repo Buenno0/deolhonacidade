@@ -12,12 +12,18 @@ import { formatDistance, type PostFeature, type PostsCollection, type RequestFea
 import { useTheme } from "@/lib/theme";
 import { useMapType } from "@/lib/mapType";
 import AccountSheet from "./AccountSheet";
+import AchievementOverlay, { type Celebration } from "./AchievementOverlay";
+import type { Progress } from "@/lib/progress";
 import AlertsSheet from "./AlertsSheet";
 import AskPanel from "./AskPanel";
 import AuthSheet from "./AuthSheet";
 import LiveStrip from "./LiveStrip";
 import MapTypePicker, { type HeatMode } from "./MapTypePicker";
+import LandmarkSheet from "./LandmarkSheet";
 import NewPostSheet from "./NewPostSheet";
+import type { Landmark } from "@/lib/landmarks";
+import OutOfArea from "./OutOfArea";
+import { dismiss, locateCity, silentPosition, wasDismissed, type NearestCity } from "@/lib/cityCheck";
 import PostViewer from "./PostViewer";
 import RequestSheet from "./RequestSheet";
 import TrendsView from "./TrendsView";
@@ -48,6 +54,7 @@ type Panel =
   | { kind: "request"; id: string }
   | { kind: "alerts" }
   | { kind: "account" }
+  | { kind: "landmark"; id: string }
   | null;
 
 type Toast = { text: string; postId?: string };
@@ -74,6 +81,7 @@ export default function Home() {
   const params = useSearchParams();
   const [posts, setPosts] = useState<PostFeature[] | null>(null);
   const [requests, setRequests] = useState<RequestFeature[]>([]);
+  const [landmarks, setLandmarks] = useState<Landmark[]>([]);
   const [filter, setFilter] = useState<Category | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [termsUserId, setTermsUserId] = useState<string | null>(null);
@@ -88,6 +96,11 @@ export default function Home() {
   const [heatMode, setHeatMode] = useState<HeatMode>("off");
   const [heatHistory, setHeatHistory] = useState<GeoJSON.FeatureCollection | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
+  const [progress, setProgress] = useState<Progress | null>(null);
+  const [celebrations, setCelebrations] = useState<Celebration[]>([]);
+  // O que já foi festejado nesta visita (duas buscas seguidas não repetem a festa)
+  const celebrated = useRef(new Set<string>());
+  const [outside, setOutside] = useState<{ nearest: NearestCity; from: [number, number] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const ownPosts = useRef(new Set<string>());
   const knownIds = useRef<Set<string> | null>(null);
@@ -148,6 +161,11 @@ export default function Home() {
     [],
   );
 
+  // Marcos: fixos, carregados uma vez
+  useEffect(() => {
+    supabase.rpc("city_landmarks", { p_city_id: CITY.id }).then(({ data }) => setLandmarks((data as Landmark[]) ?? []));
+  }, [supabase]);
+
   useEffect(() => {
     loadPosts();
     loadRequests();
@@ -165,6 +183,63 @@ export default function Home() {
       supabase.removeChannel(channel);
     };
   }, [supabase, loadPosts, loadRequests]);
+
+  // Progresso (XP, nível, conquistas). Conquista nova ou nível novo viram festa.
+  const refreshProgress = useCallback(
+    (userId: string) =>
+      supabase.rpc("my_progress").then(({ data }) => {
+        if (!data) return;
+        const p = data as Progress;
+        setProgress(p);
+        const fresh = (key: string) => !celebrated.current.has(key) && Boolean(celebrated.current.add(key));
+        const queue: Celebration[] = p.badges
+          .filter((b) => !b.seen && fresh(`${b.badge}:${b.tier}`))
+          .map((b) => ({ kind: "badge", badge: b.badge, tier: b.tier }));
+        const key = `deolho-nivel-${userId}`;
+        let stored: number | null = null;
+        try {
+          stored = Number(localStorage.getItem(key)) || null;
+          localStorage.setItem(key, String(p.level));
+        } catch {
+          // sem armazenamento: não comemora nível, só conquista
+        }
+        if (stored && p.level > stored && fresh(`nivel:${p.level}`)) queue.push({ kind: "level", level: p.level });
+        if (queue.length) {
+          setCelebrations((q) => [...q, ...queue]);
+          supabase.rpc("mark_badges_seen");
+        }
+      }),
+    [supabase],
+  );
+  const refreshMine = () => session && refreshProgress(session.user.id);
+
+  useEffect(() => {
+    if (!session) return;
+    Promise.resolve().then(() => refreshProgress(session.user.id));
+  }, [session, refreshProgress]);
+
+  // Abriu o app longe da cidade? Só confere se a localização já foi liberada antes
+  useEffect(() => {
+    if (wasDismissed()) return;
+    silentPosition().then(async (p) => {
+      if (!p) return;
+      const at: [number, number] = [p.coords.longitude, p.coords.latitude];
+      const r = await locateCity(at[1], at[0]);
+      if (r && r.inside === null) setOutside({ nearest: r.nearest, from: at });
+    });
+  }, []);
+
+  // Onde a pessoa está, e o que fazer se for fora de uma cidade atendida
+  const handlePosition = useCallback(async (at: [number, number], fly: boolean) => {
+    const r = await locateCity(at[1], at[0]);
+    if (r && r.inside === null) {
+      setOutside({ nearest: r.nearest, from: at });
+      return false;
+    }
+    setUserPos(at);
+    if (fly) setFocus(at);
+    return true;
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -241,11 +316,7 @@ export default function Home() {
 
   function locate() {
     navigator.geolocation?.getCurrentPosition(
-      (p) => {
-        const at: [number, number] = [p.coords.longitude, p.coords.latitude];
-        setUserPos(at);
-        setFocus(at);
-      },
+      (p) => handlePosition([p.coords.longitude, p.coords.latitude], true),
       () => setToast({ text: "Não foi possível obter sua localização" }),
       { enableHighAccuracy: true, timeout: 15_000, maximumAge: 30_000 },
     );
@@ -276,6 +347,13 @@ export default function Home() {
         onSelect={(id) => openViewer(id)}
         onSelectMany={(ids) => openViewer(ids[0], ids)}
         onSelectRequest={(id) => setPanel({ kind: "request", id })}
+        landmarks={landmarks}
+        activeLandmark={panel?.kind === "landmark" ? panel.id : null}
+        onSelectLandmark={(id) => {
+          const l = landmarks.find((x) => x.id === id);
+          if (l) setFocus([l.lng, l.lat]);
+          setPanel({ kind: "landmark", id });
+        }}
         onMove={(c) => (center.current = c)}
       />
 
@@ -431,6 +509,7 @@ export default function Home() {
               onCreated={(id, at) => {
                 setAsking(false);
                 setToast({ text: "Pergunta no mapa por 2h · avisamos quem está perto" });
+                refreshMine();
                 setFocus(at);
                 loadRequests();
                 setPanel({ kind: "request", id });
@@ -454,6 +533,25 @@ export default function Home() {
             </div>
           </div>
         </footer>
+      )}
+
+      {outside && !panel && (
+        <div className="absolute inset-x-0 bottom-0 z-20 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <OutOfArea
+            nearest={outside.nearest}
+            from={outside.from}
+            onClose={() => {
+              dismiss();
+              setOutside(null);
+            }}
+            onGo={() => {
+              dismiss();
+              setTab("mapa");
+              setFocus([outside.nearest.lng, outside.nearest.lat]);
+              setOutside(null);
+            }}
+          />
+        </div>
       )}
 
       {toast && (
@@ -487,7 +585,10 @@ export default function Home() {
             setActiveId(null);
           }}
           onNeedLogin={() => needLogin(null)}
-          onChanged={loadPosts}
+          onChanged={() => {
+            loadPosts();
+            refreshMine();
+          }}
         />
       )}
       {panel?.kind === "request" && openRequest && (
@@ -501,6 +602,23 @@ export default function Home() {
           onOpenAnswer={(postId) => openViewer(postId, answersOf(openRequest.properties.id).map((f) => f.properties.id))}
         />
       )}
+      {panel?.kind === "landmark" &&
+        (() => {
+          const l = landmarks.find((x) => x.id === panel.id);
+          return l ? (
+            <LandmarkSheet
+              landmark={l}
+              posts={posts ?? []}
+              onClose={() => setPanel(null)}
+              onOpenPost={(id, ids) => openViewer(id, ids)}
+              onPostHere={startPost}
+              onAskHere={() => {
+                setFocus([l.lng, l.lat]);
+                startAsk();
+              }}
+            />
+          ) : null;
+        })()}
       {panel?.kind === "alerts" && (
         <AlertsSheet
           getMapCenter={() => center.current}
@@ -514,11 +632,14 @@ export default function Home() {
       {panel?.kind === "account" && session && (
         <AccountSheet
           session={session}
+          progress={progress}
+          onProgressChanged={refreshMine}
           onClose={() => setPanel(null)}
           onChanged={loadPosts}
           onSignedOut={(text) => {
             setPanel(null);
             setSession(null);
+            setProgress(null);
             setTermsUserId(null);
             setIsAdmin(false);
             setToast({ text });
@@ -547,6 +668,10 @@ export default function Home() {
         <NewPostSheet
           request={panel.request}
           onClose={() => setPanel(null)}
+          onOutOfArea={(at) => {
+            setPanel(null);
+            handlePosition(at, false);
+          }}
           onPosted={(id, at, accuracy) => {
             ownPosts.current.add(id);
             setPanel(null);
@@ -555,6 +680,18 @@ export default function Home() {
             setFocus(at);
             loadPosts();
             loadRequests();
+            refreshMine();
+          }}
+        />
+      )}
+      {celebrations.length > 0 && (
+        <AchievementOverlay
+          item={celebrations[0]}
+          remaining={celebrations.length - 1}
+          onNext={() => setCelebrations((q) => q.slice(1))}
+          onSeeAll={() => {
+            setCelebrations([]);
+            setPanel({ kind: "account" });
           }}
         />
       )}

@@ -18,6 +18,8 @@ Mapa de Itapetininga/SP onde as pessoas postam uma foto do que está acontecendo
 - **Trends:** a aba ao lado do mapa, com os posts no ar ordenados por "em alta" (engajamento que perde força com o tempo), "mais vistos" ou "mais confirmados".
 - **Conta:** meus posts dos últimos 7 dias com as métricas, apagar post, sair e excluir a conta (LGPD).
 - **Captcha invisível no login** (Cloudflare Turnstile), contra contas em massa.
+- **Gamificação:** XP por ajudar (post confirmado +10, resposta rápida a pedido +15, ajudar a derrubar post falso +5; postar só +5; post escondido −30; teto de 150 XP/dia), seis níveis (Curioso → Lenda de Itapetininga), conquistas de primeira vez e em bronze/prata/ouro, sequência de dias, celebração animada e apelido público opcional. Tudo concedido pelo banco.
+- **Fora da área:** quem abre o app longe de uma cidade atendida vê a distância até a mais próxima, um botão para ir até lá e "Quero o De Olho na minha cidade" (interesse anônimo por região de ~10 km).
 - **Moderação:** `/admin` para contas com `is_admin`, com a fila de denúncias, esconder, restaurar e banir.
 
 Para colocar no ar, veja [DEPLOY.md](DEPLOY.md).

@@ -211,6 +211,105 @@ body {
   text-align: center;
 }
 
+/* ---------- conquista ----------
+   A exceção deliberada do app: celebrar é o conteúdo desse momento.
+   Anel 900ms, entrada 520ms, faíscas 700ms. Movimento reduzido: tudo parado. */
+.medalha-anel {
+  animation: medalha-fecha 900ms cubic-bezier(0.4, 0, 0.2, 1) 200ms forwards;
+}
+@keyframes medalha-fecha {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.conquista-entra {
+  animation: conquista-entra 520ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+@keyframes conquista-entra {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(12px);
+  }
+}
+.faisca {
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  animation: faisca 700ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+@keyframes faisca {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--ang)) translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--ang)) translateY(calc(var(--dist) * -1)) scale(0.4);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .medalha-anel {
+    stroke-dashoffset: 0;
+  }
+  .faisca {
+    display: none;
+  }
+}
+
+/* Marco da cidade: o único marcador que não some. Sólido em ouro (o pin é a
+   foto, o pedido é tracejado), com o desenho em basalto e uma ponta que
+   aponta o lugar. Patrimônio tombado ganha uma estrela no canto. Como o pin,
+   vive na sala escura: o ouro e o basalto são os mesmos nos dois temas. */
+.marco {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #d29a44;
+  color: #1a1206;
+  border: 2px solid #0c0a08;
+  box-shadow: 0 0 0 2px #d29a44;
+  cursor: pointer;
+  transition: transform 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.marco::after {
+  /* a ponta */
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  width: 12px;
+  height: 12px;
+  background: #d29a44;
+  border-right: 2px solid #0c0a08;
+  border-bottom: 2px solid #0c0a08;
+  transform: translateX(-50%) rotate(45deg);
+  border-radius: 0 0 3px 0;
+}
+.marco[data-tombado="sim"]::before {
+  /* a estrela do tombamento */
+  content: "★";
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: #0c0a08;
+  color: #d29a44;
+  border: 2px solid #d29a44;
+  font-size: 11px;
+  line-height: 1;
+}
+.marco:hover,
+.marco[data-ativo="sim"] {
+  transform: scale(1.12);
+  z-index: 2;
+}
+
 /* Você está aqui: ponto de acento com halo. */
 .voce {
   width: 16px;

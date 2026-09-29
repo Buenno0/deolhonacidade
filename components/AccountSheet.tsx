@@ -6,7 +6,9 @@ import { getSupabase } from "@/lib/supabase/client";
 import { CATEGORIES, type Category } from "@/lib/categories";
 import { photoUrl, thumbUrl } from "@/lib/media";
 import { timeAgo, timeLeftShort } from "@/lib/posts";
+import ProgressCard from "./ProgressCard";
 import Sheet from "./Sheet";
+import type { Progress } from "@/lib/progress";
 import { Button, Spinner, cx } from "./ui";
 import { CategoryIcon, CheckIcon, EyeIcon } from "./ui/icons";
 
@@ -29,9 +31,16 @@ const STATUS = {
   expired: { label: "sumiu", tone: "text-muted" },
 };
 
-type Props = { session: Session; onClose: () => void; onSignedOut: (text: string) => void; onChanged: () => void };
+type Props = {
+  session: Session;
+  progress: Progress | null;
+  onClose: () => void;
+  onSignedOut: (text: string) => void;
+  onChanged: () => void;
+  onProgressChanged: () => void;
+};
 
-export default function AccountSheet({ session, onClose, onSignedOut, onChanged }: Props) {
+export default function AccountSheet({ session, progress, onClose, onSignedOut, onChanged, onProgressChanged }: Props) {
   const supabase = getSupabase();
   const [posts, setPosts] = useState<MyPost[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -82,6 +91,8 @@ export default function AccountSheet({ session, onClose, onSignedOut, onChanged 
   return (
     <Sheet eyebrow="Conta" title={session.user.email ?? "Minha conta"} onClose={onClose}>
       <div className="flex flex-col gap-5">
+        {progress ? <ProgressCard progress={progress} onChanged={onProgressChanged} /> : <Spinner />}
+
         <section>
           <p className="rotulo mb-2">Meus posts · últimos 7 dias</p>
           {posts === null ? (
