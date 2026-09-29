@@ -91,11 +91,9 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
   }, []);
-  useEffect(() => {
-    if (held) pressAt.current = Date.now();
-  }, [held]);
   function tapGo(delta: number) {
-    if (Date.now() - pressAt.current > 300) return; // foi um segurar, não um toque
+    // Segurou mais de meio segundo: era para pausar, não para navegar
+    if (pressAt.current && Date.now() - pressAt.current > 500) return;
     if (delta > 0 && index === posts.length - 1) return;
     if (delta < 0 && index === 0) return setRound((r) => r + 1); // recomeça o primeiro
     go(delta);
@@ -269,15 +267,19 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
 
         {/* Toque: esquerda volta, direita avança; segurar pausa */}
         <div
-          className="absolute inset-x-0 top-24 bottom-[42%] flex"
-          onPointerDown={() => setHeld(true)}
+          className="absolute inset-x-0 top-20 bottom-[34%] flex"
+          onPointerDown={() => {
+            // na hora do toque (não num efeito depois): o clique chega antes
+            pressAt.current = Date.now();
+            setHeld(true);
+          }}
           onPointerUp={() => setHeld(false)}
           onPointerCancel={() => setHeld(false)}
           onPointerLeave={() => setHeld(false)}
           onContextMenu={(e) => e.preventDefault()}
         >
-          <button type="button" aria-label="Story anterior" className="h-full w-1/3 cursor-w-resize" onClick={() => tapGo(-1)} />
-          <button type="button" aria-label="Próximo story" className="h-full flex-1 cursor-e-resize" onClick={() => tapGo(1)} />
+          <button type="button" aria-label="Story anterior" className="h-full w-2/5 cursor-w-resize [-webkit-tap-highlight-color:transparent]" onClick={() => tapGo(-1)} />
+          <button type="button" aria-label="Próximo story" className="h-full flex-1 cursor-e-resize [-webkit-tap-highlight-color:transparent]" onClick={() => tapGo(1)} />
         </div>
 
         {/* Topo: barras (uma por post; a atual enche e passa sozinha) e cabeçalho */}
