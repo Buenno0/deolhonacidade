@@ -70,7 +70,27 @@ const toPosition = (p: GeolocationPosition): Position => ({
   accuracy: p.coords.accuracy,
   at: Date.now(),
 });
+// O navegador do iPhone não guarda a permissão do site entre visitas (a
+// Permissions API segue dizendo "prompt"). Depois que a localização funcionou
+// uma vez, o app pede direto, sem o botão dele: só a pergunta do navegador.
+const WORKED_KEY = "deolho-localizacao-ok";
+export function locationWorkedBefore() {
+  try {
+    return localStorage.getItem(WORKED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+function markWorked() {
+  try {
+    localStorage.setItem(WORKED_KEY, "1");
+  } catch {
+    // sem armazenamento: o botão volta na próxima visita
+  }
+}
+
 function remember(p: Position) {
+  markWorked();
   if (!last || p.accuracy <= last.accuracy || p.at - last.at > 30_000) last = p;
   for (const l of listeners) l(last);
 }
@@ -148,7 +168,7 @@ export function useLocation(): LocationState {
     permissionState().then((state) => {
       if (stopped) return;
       // Sem permissão ainda (ou sem como saber): espera o toque em "Permitir"
-      if (state !== "granted" && !tapped.current) {
+      if (state !== "granted" && !tapped.current && (state === "denied" || !locationWorkedBefore())) {
         setNeedsTap(true);
         if (state === "denied") setError(deniedHelp());
         return;

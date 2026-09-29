@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabase/client";
 import { waitPublished } from "@/lib/posting";
-import { permissionState } from "@/lib/useLocation";
+import { locationWorkedBefore, permissionState } from "@/lib/useLocation";
 import { CITY } from "@/lib/city";
 import { ALL_CATEGORY_KEYS, CATEGORIES, type Category } from "@/lib/categories";
 import { formatDistance, trendingRanks, type PostFeature, type PostsCollection, type RequestFeature } from "@/lib/posts";
@@ -427,7 +427,7 @@ export default function Home() {
       // Câmera direto só com a localização já liberada. Sem ela, o formulário
       // abre primeiro e pede a localização num toque (com a câmera aberta, o
       // iPhone nega sem perguntar e guarda a negativa até recarregar)
-      if (geoGranted.current && camera.current) {
+      if ((geoGranted.current || locationWorkedBefore()) && camera.current) {
         camera.current.value = "";
         camera.current.click();
       } else setPanel({ kind: "new", request: null });
