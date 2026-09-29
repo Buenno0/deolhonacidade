@@ -240,29 +240,29 @@ body {
 .story-blur-base {
   position: absolute;
   inset: auto 0 0 0;
-  height: 58%;
+  height: 42%;
   pointer-events: none;
-  -webkit-backdrop-filter: blur(26px) saturate(1.3);
-  backdrop-filter: blur(26px) saturate(1.3);
-  background: linear-gradient(to top, rgb(12 10 8 / 0.74), rgb(12 10 8 / 0.28) 60%, rgb(12 10 8 / 0));
-  -webkit-mask-image: linear-gradient(to top, #000 45%, transparent);
-  mask-image: linear-gradient(to top, #000 45%, transparent);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
+  backdrop-filter: blur(10px) saturate(1.1);
+  background: linear-gradient(to top, rgb(12 10 8 / 0.62), rgb(12 10 8 / 0.3) 55%, rgb(12 10 8 / 0));
+  -webkit-mask-image: linear-gradient(to top, #000 30%, rgb(0 0 0 / 0.6) 60%, transparent);
+  mask-image: linear-gradient(to top, #000 30%, rgb(0 0 0 / 0.6) 60%, transparent);
 }
 .story-blur-topo {
   position: absolute;
   inset: 0 0 auto 0;
-  height: 150px;
+  height: 110px;
   pointer-events: none;
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
-  background: linear-gradient(to bottom, rgb(12 10 8 / 0.55), rgb(12 10 8 / 0));
-  -webkit-mask-image: linear-gradient(to bottom, #000 30%, transparent);
-  mask-image: linear-gradient(to bottom, #000 30%, transparent);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  background: linear-gradient(to bottom, rgb(12 10 8 / 0.45), rgb(12 10 8 / 0));
+  -webkit-mask-image: linear-gradient(to bottom, #000 25%, transparent);
+  mask-image: linear-gradient(to bottom, #000 25%, transparent);
 }
 .story-vidro {
-  background: rgb(12 10 8 / 0.38);
-  -webkit-backdrop-filter: blur(22px) saturate(1.4);
-  backdrop-filter: blur(22px) saturate(1.4);
+  background: rgb(12 10 8 / 0.42);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
   border: 1px solid rgb(244 239 228 / 0.14);
 }
 .story-pill {

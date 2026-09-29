@@ -182,8 +182,8 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
               <CategoryIcon category={p.category} />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">{promo ? (p.business_name ?? cat.label) : cat.label}</p>
-              <p className="rotulo text-ink/80">
+              <p className="truncate text-sm font-semibold [text-shadow:0_1px_6px_rgb(0_0_0/0.6)]">{promo ? (p.business_name ?? cat.label) : cat.label}</p>
+              <p className="rotulo text-ink/85 [text-shadow:0_1px_6px_rgb(0_0_0/0.7)]">
                 {archive ? (
                   <>
                     registrado em <span className="num text-ink">{registered(p.created_at)}</span>
@@ -207,7 +207,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
         </div>
 
         {/* Base: tags, legenda, dados e ações, sobre o desfoque */}
-        <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3.5 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           {(promo || rank || fresh || archive) && (
             <div className="flex flex-wrap gap-2">
               {promo && <Tag kind="divulgacao" />}
@@ -217,9 +217,9 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
             </div>
           )}
           {p.caption && (
-            <p className="font-display text-[26px] font-bold leading-[31px] [text-shadow:0_1px_12px_rgb(0_0_0/0.35)]">{p.caption}</p>
+            <p className="font-display text-2xl font-bold leading-tight [text-shadow:0_1px_10px_rgb(0_0_0/0.55)]">{p.caption}</p>
           )}
-          {meta.length > 0 && <p className="rotulo text-ink/80">{meta.join(" · ")}</p>}
+          {meta.length > 0 && <p className="rotulo text-ink/85 [text-shadow:0_1px_6px_rgb(0_0_0/0.6)]">{meta.join(" · ")}</p>}
 
           {promo ? (
             <div className="flex flex-wrap gap-2">
