@@ -15,8 +15,34 @@ export type LocationState = {
   retry: () => void;
 };
 
+// Negado sem nem perguntar quase sempre é o aparelho: no iPhone, cada
+// navegador tem a própria permissão de localização, e sem ela nenhum site pede.
+export function deniedHelp() {
+  const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
+  const ios = /iPhone|iPad|iPod/.test(ua);
+  const app = /CriOS/.test(ua)
+    ? "Chrome"
+    : /FxiOS/.test(ua)
+      ? "Firefox"
+      : /EdgiOS/.test(ua)
+        ? "Edge"
+        : /DuckDuckGo/.test(ua)
+          ? "DuckDuckGo"
+          : /OPT\//.test(ua)
+            ? "Opera"
+            : "brave" in navigator
+              ? "Brave"
+              : null;
+  if (ios && app) return `A localização está bloqueada para o ${app}. No iPhone: Ajustes > ${app} > Localização > Ao Usar o App. Depois, toque em Tentar de novo.`;
+  if (ios)
+    return "A localização está bloqueada. No iPhone: Ajustes > Privacidade e Segurança > Serviços de Localização > Sites do Safari > Ao Usar o App. No site, toque em aA > Ajustes do Site > Localização > Perguntar.";
+  if (/Android/.test(ua))
+    return "A localização está bloqueada. Toque no cadeado ao lado do endereço > Permissões > Localização > Permitir, e confira se a localização do aparelho está ligada.";
+  return "A localização está bloqueada. Libere para este site no cadeado ao lado do endereço e confira se o sistema permite a localização para o navegador.";
+}
+
 const MESSAGES: Record<number, string> = {
-  1: "O navegador bloqueou a localização. Libere para este site e confira se o próprio navegador tem permissão nos ajustes do aparelho (no iPhone: Ajustes > Privacidade > Serviços de Localização > Safari).",
+  1: "",
   2: "Não foi possível descobrir onde você está. Confira se os Serviços de Localização do aparelho estão ligados.",
 };
 const STALL_MS = 12_000;
@@ -96,7 +122,7 @@ export function useLocation(): LocationState {
         (e) => {
           // Timeout não é fatal: o prazo acima decide quando oferecer ajuda
           if (e.code === e.TIMEOUT) return;
-          if (!hasFix.current) setError(MESSAGES[e.code] ?? "Não foi possível obter sua localização.");
+          if (!hasFix.current) setError(e.code === 1 ? deniedHelp() : (MESSAGES[e.code] ?? "Não foi possível obter sua localização."));
         },
         { enableHighAccuracy: true, maximumAge: 30_000, timeout: 20_000 },
       );
@@ -106,7 +132,7 @@ export function useLocation(): LocationState {
     permissionState().then((state) => {
       if (stopped) return;
       if (state === "denied") {
-        setError(MESSAGES[1]);
+        setError(deniedHelp());
         return;
       }
       // Com a página escondida (câmera aberta), espera ela voltar

@@ -87,7 +87,7 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
 
   const locationLine = geoError ? (
     <span className="text-danger">
-      {preview ? "Localização bloqueada. Libere para este site nos ajustes do navegador." : geoError}{" "}
+      {geoError}{" "}
       <button type="button" onClick={retry} className="font-medium underline underline-offset-2">
         Tentar de novo
       </button>
