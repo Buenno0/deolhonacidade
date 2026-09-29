@@ -1,320 +1,237 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-import { BUSINESS_STATUS, type Business } from "@/lib/business";
+import { useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase/client";
-import { CATEGORIES, type Category } from "@/lib/categories";
-import { photoUrl } from "@/lib/media";
-import { timeAgo } from "@/lib/posts";
-import Mark from "@/components/ui/Mark";
-import { Button, EmptyState, Spinner, cx } from "@/components/ui";
+import { CATEGORIES } from "@/lib/categories";
+import { levelName } from "@/lib/progress";
+import { download, toCsv, today } from "@/lib/admin/csv";
+import { fmt, pct, plural, type DayPoint, type Overview } from "@/lib/admin/types";
+import { useAdmin } from "@/components/admin/context";
+import Stat from "@/components/admin/Stat";
+import Columns from "@/components/admin/Columns";
+import Bars from "@/components/admin/Bars";
+import { Button, Chip, EmptyState, Spinner, cx } from "@/components/ui";
 import { CategoryIcon } from "@/components/ui/icons";
 
-type QueuePost = {
-  id: string;
-  user_id: string;
-  status: "pending" | "published" | "hidden" | "expired";
-  category: Category;
-  caption: string | null;
-  photo_path: string;
-  created_at: string;
-  expires_at: string;
-  report_count: number;
-  deny_count: number;
-  confirm_count: number;
-  moderation: { provider?: string; approved?: boolean; labels?: { name: string; confidence: number }[] } | null;
-  reasons: string[] | null;
-  author_posts: number;
-  author_banned: boolean;
-};
-type QueueRequest = {
-  id: string;
-  user_id: string;
-  status: "open" | "hidden" | "expired";
-  question: string;
-  created_at: string;
-  report_count: number;
-  answer_count: number;
-  author_banned: boolean;
-};
+const PERIODS = [7, 30, 90] as const;
+const SERIES: { key: keyof Omit<DayPoint, "day">; label: string; unit: string }[] = [
+  { key: "active", label: "Contas ativas", unit: "contas" },
+  { key: "posts", label: "Posts", unit: "posts" },
+  { key: "signups", label: "Cadastros", unit: "cadastros" },
+  { key: "votes", label: "Votos", unit: "votos" },
+  { key: "requests", label: "Pedidos de foto", unit: "pedidos" },
+];
 
-const STATUS: Record<string, { label: string; tone: string }> = {
-  pending: { label: "pendente", tone: "text-muted" },
-  published: { label: "no ar", tone: "text-ok" },
-  hidden: { label: "escondido", tone: "text-danger" },
-  expired: { label: "vencido", tone: "text-muted" },
-  open: { label: "aberto", tone: "text-ok" },
-};
+const dayFmt = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "UTC" });
+const weekday = new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short", timeZone: "UTC" });
 
-// Moderação: o que foi denunciado, escondido ou negado nas últimas 48h.
-// Só abre para contas com profiles.is_admin; o banco confere em cada ação.
-type AdminBusiness = Business & { owner_email: string | null; posts: number };
+function Card({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
+  return (
+    <section className={cx("rounded-2xl border border-line bg-surface p-4", className)}>
+      <h2 className="rotulo mb-4">{title}</h2>
+      {children}
+    </section>
+  );
+}
 
-export default function Admin() {
+export default function VisaoGeral() {
   const supabase = getSupabase();
-  const [state, setState] = useState<"carregando" | "sem-login" | "negado" | "ok">("carregando");
-  const [posts, setPosts] = useState<QueuePost[]>([]);
-  const [requests, setRequests] = useState<QueueRequest[]>([]);
-  const [businesses, setBusinesses] = useState<AdminBusiness[]>([]);
-  const [busy, setBusy] = useState<string | null>(null);
+  const { counts } = useAdmin();
+  const [days, setDays] = useState<(typeof PERIODS)[number]>(30);
+  const [series, setSeries] = useState<(typeof SERIES)[number]["key"]>("active");
+  const [data, setData] = useState<Overview | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [now] = useState(() => Date.now());
-
-  const load = useCallback(async () => {
-    const { data: session } = await supabase.auth.getSession();
-    if (!session.session) return setState("sem-login");
-    const { data, error } = await supabase.rpc("admin_queue");
-    if (error) return setState("negado");
-    setPosts(data.posts);
-    setRequests(data.requests);
-    const { data: list } = await supabase.rpc("admin_businesses", { p_status: null });
-    // Pendentes primeiro
-    setBusinesses(((list as AdminBusiness[]) ?? []).sort((a, b) => Number(b.status === "pending") - Number(a.status === "pending")));
-    setState("ok");
-  }, [supabase]);
 
   useEffect(() => {
-    Promise.resolve().then(load);
-  }, [load]);
+    let alive = true;
+    Promise.resolve().then(async () => {
+      setLoading(true);
+      const { data, error } = await supabase.rpc("admin_overview", { p_days: days });
+      if (!alive) return;
+      if (error) setError(error.message);
+      else setData(data as Overview);
+      setLoading(false);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [supabase, days]);
 
-  async function act(key: string, fn: string, args: Record<string, unknown>, confirmText?: string) {
-    if (confirmText && !confirm(confirmText)) return;
-    setBusy(key);
-    setError(null);
-    const { error } = await supabase.rpc(fn, args);
-    if (error) setError(error.message);
-    await load();
-    setBusy(null);
+  if (!data) {
+    return error ? (
+      <EmptyState title="Não deu para carregar as métricas">{error}</EmptyState>
+    ) : (
+      <div className="mt-16 flex justify-center">
+        <Spinner />
+      </div>
+    );
+  }
+
+  const t = data.totals;
+  const m = data.moderation;
+  const s = SERIES.find((x) => x.key === series)!;
+  const queue = counts ? counts.posts + counts.requests + counts.businesses : 0;
+
+  function exportCsv() {
+    download(
+      `de-olho-metricas-${data!.days}d-${today()}.csv`,
+      toCsv(data!.series, [
+        { key: "day", label: "dia" },
+        { key: "signups", label: "cadastros" },
+        { key: "active", label: "contas ativas" },
+        { key: "posts", label: "posts" },
+        { key: "votes", label: "votos" },
+        { key: "requests", label: "pedidos de foto" },
+      ]),
+    );
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-4 pb-16 pt-6 sm:px-6">
-      <header className="flex items-center gap-3">
-        <Mark size={36} className="shrink-0" />
-        <div className="flex-1">
-          <p className="rotulo">moderação</p>
-          <h1 className="font-display text-2xl font-bold">Fila de revisão</h1>
-        </div>
-        <Link href="/" className="rotulo text-accent">
-          ← mapa
+    // Recarregando: mantém o quadro anterior, mais apagado, sem pular
+    <div className={cx("flex flex-col gap-4 transition-opacity", loading && "opacity-60")}>
+      <div className="flex flex-wrap items-center gap-2">
+        {PERIODS.map((p) => (
+          <Chip key={p} active={days === p} onClick={() => setDays(p)}>
+            {p} dias
+          </Chip>
+        ))}
+        {loading && <Spinner />}
+        <Button variant="fantasma" className="ml-auto px-3 py-1.5 text-xs" onClick={exportCsv}>
+          Exportar CSV
+        </Button>
+      </div>
+
+      {queue > 0 && (
+        <Link
+          href="/admin/moderacao"
+          className="flex items-center justify-between rounded-xl border border-accent bg-surface px-4 py-3 text-sm hover:bg-elev"
+        >
+          <span>
+            <strong className="font-semibold">{queue}</strong> {queue === 1 ? "item espera" : "itens esperam"} a moderação
+            {counts!.businesses > 0 && ` · ${counts!.businesses} estabelecimento${counts!.businesses > 1 ? "s" : ""} em análise`}
+          </span>
+          <span className="rotulo text-accent">revisar →</span>
         </Link>
-      </header>
+      )}
 
-      {state === "carregando" && (
-        <div className="mt-16 flex justify-center">
-          <Spinner />
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Stat label="Usuários" value={fmt(t.users)} hint={`+${fmt(t.users_new_7d)} nos últimos 7 dias`} />
+        <Stat
+          label="Contas ativas"
+          value={fmt(data.active.d7)}
+          hint={`${fmt(data.active.d1)} hoje · ${fmt(data.active.d30)} em 30 dias`}
+        />
+        <Stat label="No ar agora" value={fmt(t.live_now)} hint={plural(t.requests_open, "pedido de foto aberto", "pedidos de foto abertos")} />
+        <Stat label={`Posts em ${data.days} dias`} value={fmt(t.posts_period)} hint={`${fmt(t.posts_all)} desde o início`} />
+        <Stat label={`Cadastros em ${data.days} dias`} value={fmt(t.users_new_period)} hint={`${fmt(t.no_terms)} sem aceitar os termos`} />
+        <Stat
+          label="Recusa automática"
+          value={pct(m.auto_rejected, m.finalized)}
+          hint={`${fmt(m.auto_rejected)} de ${plural(m.finalized, "foto", "fotos")}`}
+          tone={m.finalized && m.auto_rejected / m.finalized > 0.1 ? "warn" : undefined}
+        />
+        <Stat
+          label="Denúncias"
+          value={fmt(m.post_reports + m.request_reports)}
+          hint={`${plural(m.hidden_by_admin, "escondido", "escondidos")} · ${plural(m.bans, "banimento", "banimentos")}`}
+          tone={m.post_reports + m.request_reports > 0 ? "danger" : undefined}
+        />
+        <Stat
+          label="Pedidos respondidos"
+          value={pct(data.requests.answered, data.requests.total)}
+          hint={`${fmt(data.requests.answered)} de ${plural(data.requests.total, "pedido", "pedidos")}`}
+        />
+      </div>
+
+      <Card title={`${s.label} por dia`}>
+        <div className="mb-4 flex flex-wrap gap-2">
+          {SERIES.map((x) => (
+            <Chip key={x.key} active={series === x.key} onClick={() => setSeries(x.key)}>
+              {x.label}
+            </Chip>
+          ))}
         </div>
-      )}
-      {state === "sem-login" && (
-        <div className="mt-10">
-          <EmptyState title="Entre para moderar" action={<Link href="/" className="text-accent underline">Ir ao mapa e entrar</Link>} />
-        </div>
-      )}
-      {state === "negado" && (
-        <div className="mt-10">
-          <EmptyState title="Acesso restrito">Esta conta não faz parte da moderação.</EmptyState>
-        </div>
-      )}
+        <Columns
+          unit={s.unit}
+          columns={data.series.map((d) => ({
+            key: d.day,
+            tick: dayFmt.format(new Date(d.day)),
+            tip: weekday.format(new Date(d.day)),
+            value: d[series],
+          }))}
+        />
+        {series === "active" && (
+          <p className="mt-3 text-xs text-muted">
+            Conta ativa é a que fez algo: postou, votou, pediu foto ou denunciou. Quem só abre o mapa não fica registrado.
+          </p>
+        )}
+      </Card>
 
-      {state === "ok" && (
-        <>
-          {error && <p className="mt-4 text-sm text-danger">{error}</p>}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card title={`Posts por categoria · ${data.days} dias`}>
+          <Bars
+            bars={data.by_category.map((c) => ({
+              key: c.category,
+              label: (
+                <span className="inline-flex items-center gap-1.5">
+                  <CategoryIcon category={c.category} /> {CATEGORIES[c.category]?.label ?? c.category}
+                </span>
+              ),
+              value: c.n,
+            }))}
+          />
+        </Card>
+        <Card title={`Posts por hora do dia · ${data.days} dias`}>
+          <Columns
+            unit="posts"
+            height={120}
+            columns={data.by_hour.map((n, h) => ({ key: String(h), tick: `${h}h`, tip: `das ${h}h às ${h + 1}h`, value: n }))}
+          />
+        </Card>
+      </div>
 
-          <section className="mt-8">
-            <h2 className="rotulo mb-3">
-              Estabelecimentos · {businesses.filter((b) => b.status === "pending").length} em análise
-            </h2>
-            {businesses.length === 0 ? (
-              <EmptyState title="Nenhum pedido de estabelecimento" />
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {businesses.map((b) => (
-                  <li key={b.id} className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-3">
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span className="inline-flex items-center gap-1.5 text-sm font-medium">
-                        <CategoryIcon category="estabelecimento" /> {b.name}
-                      </span>
-                      <span className={cx("rotulo", BUSINESS_STATUS[b.status].tone)}>{BUSINESS_STATUS[b.status].label}</span>
-                      <span className="rotulo">{timeAgo(b.created_at)}</span>
-                    </div>
-                    <p className="text-sm text-muted">
-                      {[b.segment, b.address].filter(Boolean).join(" · ")}
-                    </p>
-                    <p className="rotulo flex flex-wrap gap-x-3">
-                      {b.owner_email && <span>{b.owner_email}</span>}
-                      {b.whatsapp && <span>WhatsApp {b.whatsapp}</span>}
-                      {b.instagram && <span>{b.instagram}</span>}
-                      <span>{b.posts} divulgações</span>
-                      <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${b.lat},${b.lng}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-accent"
-                      >
-                        ver o ponto
-                      </a>
-                    </p>
-                    {b.review_note && <p className="text-xs text-muted">Nota: {b.review_note}</p>}
-                    <div className="flex flex-wrap gap-2">
-                      {b.status !== "approved" && (
-                        <Button
-                          variant="secundario"
-                          className="px-3 py-1.5 text-xs"
-                          disabled={busy !== null}
-                          onClick={() => act(b.id, "admin_review_business", { p_id: b.id, p_status: "approved", p_note: null })}
-                        >
-                          Aprovar
-                        </Button>
-                      )}
-                      {b.status === "pending" && (
-                        <Button
-                          variant="perigo"
-                          className="px-3 py-1.5 text-xs"
-                          disabled={busy !== null}
-                          onClick={() => {
-                            const note = prompt("Motivo da recusa (a pessoa vê):");
-                            if (note !== null) act(b.id, "admin_review_business", { p_id: b.id, p_status: "rejected", p_note: note });
-                          }}
-                        >
-                          Recusar
-                        </Button>
-                      )}
-                      {b.status === "approved" && (
-                        <Button
-                          variant="perigo"
-                          className="px-3 py-1.5 text-xs"
-                          disabled={busy !== null}
-                          onClick={() => {
-                            const note = prompt("Motivo da suspensão (a divulgação no ar sai do mapa):");
-                            if (note !== null) act(b.id, "admin_review_business", { p_id: b.id, p_status: "suspended", p_note: note });
-                          }}
-                        >
-                          Suspender
-                        </Button>
-                      )}
-                      {busy === b.id && <Spinner />}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section className="mt-10">
-            <h2 className="rotulo mb-3">Posts · {posts.length}</h2>
-            {posts.length === 0 ? (
-              <EmptyState title="Nada para revisar">Nenhum post denunciado, escondido ou negado nas últimas 48h.</EmptyState>
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {posts.map((p) => {
-                  const alive = new Date(p.expires_at).getTime() > now;
-                  // "no ar" mas já vencido (a limpeza ainda não passou): mostra como vencido
-                  const st = STATUS[p.status === "published" && !alive ? "expired" : p.status];
-                  const blocked = p.moderation?.approved === false;
-                  return (
-                    <li key={p.id} className="flex gap-4 rounded-xl border border-line bg-surface p-3">
-                      <a href={photoUrl(p.photo_path)} target="_blank" rel="noreferrer" className="h-28 w-28 shrink-0 overflow-hidden rounded-lg bg-elev">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={photoUrl(p.photo_path)} alt="" className="h-full w-full object-cover" />
-                      </a>
-                      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                          <span className="inline-flex items-center gap-1.5 text-sm font-medium">
-                            <CategoryIcon category={p.category} /> {CATEGORIES[p.category].label}
-                          </span>
-                          <span className={cx("rotulo", st.tone)}>{st.label}</span>
-                          <span className="rotulo">{timeAgo(p.created_at)}</span>
-                        </div>
-                        {p.caption && <p className="text-sm">{p.caption}</p>}
-                        <p className="rotulo flex flex-wrap gap-x-3">
-                          <span className={p.report_count ? "text-danger" : ""}>{p.report_count} denúncias</span>
-                          <span>{p.deny_count} disseram que acabou</span>
-                          <span>{p.confirm_count} confirmaram</span>
-                          <span>autor: {p.author_posts} posts{p.author_banned ? " · banido" : ""}</span>
-                        </p>
-                        {p.reasons?.length ? <p className="text-xs text-muted">Motivos: {p.reasons.join(" · ")}</p> : null}
-                        {blocked && (
-                          <p className="text-xs text-danger">
-                            Recusado pela moderação automática: {p.moderation?.labels?.map((l) => `${l.name} ${l.confidence}%`).join(", ")}
-                          </p>
-                        )}
-                        <div className="mt-1 flex flex-wrap gap-2">
-                          {p.status === "hidden" && alive && (
-                            <Button variant="secundario" className="px-3 py-1.5 text-xs" disabled={busy !== null} onClick={() => act(p.id, "admin_set_post", { p_id: p.id, p_visible: true })}>
-                              Restaurar
-                            </Button>
-                          )}
-                          {p.status === "published" && alive && (
-                            <Button variant="secundario" className="px-3 py-1.5 text-xs" disabled={busy !== null} onClick={() => act(p.id, "admin_set_post", { p_id: p.id, p_visible: false })}>
-                              Esconder
-                            </Button>
-                          )}
-                          <Button
-                            variant="perigo"
-                            className="px-3 py-1.5 text-xs"
-                            disabled={busy !== null}
-                            onClick={() =>
-                              act(
-                                p.id,
-                                "admin_ban_user",
-                                { p_user_id: p.user_id, p_ban: !p.author_banned },
-                                p.author_banned ? "Desbanir a conta?" : "Banir a conta? Tudo o que ela tem no ar sai do mapa.",
-                              )
-                            }
-                          >
-                            {p.author_banned ? "Desbanir autor" : "Banir autor"}
-                          </Button>
-                          {busy === p.id && <Spinner />}
-                        </div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
-
-          <section className="mt-10">
-            <h2 className="rotulo mb-3">Perguntas · {requests.length}</h2>
-            {requests.length === 0 ? (
-              <EmptyState title="Nenhuma pergunta denunciada" />
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {requests.map((r) => (
-                  <li key={r.id} className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-3">
-                    <p className="text-sm font-medium">{r.question}</p>
-                    <p className="rotulo flex flex-wrap gap-x-3">
-                      <span className={STATUS[r.status]?.tone}>{STATUS[r.status]?.label}</span>
-                      <span>{timeAgo(r.created_at)}</span>
-                      <span className="text-danger">{r.report_count} denúncias</span>
-                      <span>{r.answer_count} respostas</span>
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="secundario"
-                        className="px-3 py-1.5 text-xs"
-                        disabled={busy !== null}
-                        onClick={() => act(r.id, "admin_set_request", { p_id: r.id, p_visible: r.status !== "open" })}
-                      >
-                        {r.status === "open" ? "Esconder" : "Restaurar"}
-                      </Button>
-                      <Button
-                        variant="perigo"
-                        className="px-3 py-1.5 text-xs"
-                        disabled={busy !== null}
-                        onClick={() => act(r.id, "admin_ban_user", { p_user_id: r.user_id, p_ban: !r.author_banned }, r.author_banned ? "Desbanir a conta?" : "Banir a conta?")}
-                      >
-                        {r.author_banned ? "Desbanir autor" : "Banir autor"}
-                      </Button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </>
-      )}
-    </main>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card title={`Engajamento · posts de ${data.days} dias`}>
+          <dl className="grid grid-cols-2 gap-3">
+            {[
+              ["Visualizações", data.engagement.views],
+              ["Compartilhamentos", data.engagement.shares],
+              ["Ainda está rolando", data.engagement.confirms],
+              ["Já acabou", data.engagement.denies],
+            ].map(([label, n]) => (
+              <div key={label as string}>
+                <dt className="rotulo">{label}</dt>
+                <dd className="font-display text-xl font-semibold">{fmt(n as number)}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-4 text-xs text-muted">
+            {fmt(t.in_history)} no histórico · {plural(t.push, "inscrição de alerta", "inscrições de alerta")} ·{" "}
+            {plural(t.businesses.approved ?? 0, "estabelecimento aprovado", "estabelecimentos aprovados")} · {fmt(t.admins)} na moderação ·{" "}
+            {plural(t.banned, "banido", "banidos")}
+          </p>
+        </Card>
+        <Card title="Quem mais ajuda (XP)">
+          {data.top.length === 0 ? (
+            <p className="text-sm text-muted">Ninguém ganhou XP ainda.</p>
+          ) : (
+            <ol className="flex flex-col gap-2">
+              {data.top.map((u, i) => (
+                <li key={u.id}>
+                  <Link href={`/admin/usuarios/${u.id}`} className="flex items-center gap-3 text-sm hover:text-accent">
+                    <span className="rotulo w-4">{i + 1}</span>
+                    <span className="min-w-0 flex-1 truncate">{u.nickname ? `@${u.nickname}` : u.email}</span>
+                    <span className="rotulo">{levelName(u.level)}</span>
+                    <span className="w-16 text-right text-xs tabular-nums text-muted">{fmt(u.xp)} XP</span>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          )}
+        </Card>
+      </div>
+    </div>
   );
 }

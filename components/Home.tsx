@@ -638,8 +638,8 @@ export default function Home() {
         {isAdmin && (
           <Link
             href="/admin"
-            aria-label="Moderação"
-            title="Moderação"
+            aria-label="Painel"
+            title="Painel"
             className="grid h-11 w-11 place-items-center rounded-full border border-line bg-surface text-muted hover:text-ink"
           >
             <FlagIcon />
