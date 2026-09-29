@@ -6,7 +6,7 @@ import { recordInteraction } from "@/lib/interactions";
 import { CATEGORIES, severityVar } from "@/lib/categories";
 import { photoUrl } from "@/lib/media";
 import { levelName } from "@/lib/progress";
-import { countdown, distance, formatDistance, isFresh, remaining, timeAgo, type PostFeature } from "@/lib/posts";
+import { distance, formatDistance, isFresh, timeAgo, type PostFeature } from "@/lib/posts";
 import { CategoryIcon, ChevronIcon, CloseIcon, FlagIcon, PinIcon } from "./ui/icons";
 import { Tag } from "./ui/Tag";
 import { Button, IconButton } from "./ui";
@@ -29,6 +29,7 @@ type Props = {
 };
 
 const whenFmt = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
+const STORY_MS = 6000;
 const registered = (iso: string) => whenFmt.format(new Date(iso)).replace(",", " às");
 
 // Tela cheia sobre a foto: sala-escura, porque a foto manda na luz.
@@ -72,11 +73,38 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
     };
   });
 
+  // Passagem automática: cada story fica STORY_MS. Segurar pausa; toque
+  // rápido navega (um toque longo só pausa, não navega).
+  const [held, setHeld] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  const [round, setRound] = useState(0);
+  const pressAt = useRef(0);
+  // Até quando ignorar a rolagem (é o próprio app rolando)
+  const autoScroll = useRef(0);
+  const paused = held || hidden;
+  useEffect(() => {
+    const onVis = () => setHidden(document.visibilityState !== "visible");
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
+  useEffect(() => {
+    if (held) pressAt.current = Date.now();
+  }, [held]);
+  function tapGo(delta: number) {
+    if (Date.now() - pressAt.current > 300) return; // foi um segurar, não um toque
+    if (delta > 0 && index === posts.length - 1) return;
+    if (delta < 0 && index === 0) return setRound((r) => r + 1); // recomeça o primeiro
+    go(delta);
+  }
+
   function go(delta: number) {
     const el = track.current;
     if (!el) return;
     const next = Math.min(posts.length - 1, Math.max(0, index + delta));
-    el.scrollTo({ left: next * el.clientWidth, behavior: "smooth" });
+    // O índice muda na hora; a rolagem só acompanha (não depende dela terminar)
+    setIndex(next);
+    autoScroll.current = Date.now() + 700;
+    el.scrollTo({ left: next * el.clientWidth, behavior: document.visibilityState === "visible" ? "smooth" : "instant" });
   }
 
   async function report(id: string) {
@@ -104,7 +132,6 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
   const color = archive ? "var(--muted)" : promo ? "var(--ink)" : severityVar(p.category);
 
   const segments = posts.length > 24 ? [] : posts;
-  const lifeLeft = archive ? 1 : remaining(p, now);
   const meta = [
     promo ? p.business_segment : archive ? null : `${p.author_nickname ? `@${p.author_nickname} · ` : ""}${levelName(p.author_level ?? 1)}`,
     userPos ? `${formatDistance(distance(userPos, coords))} de você` : null,
@@ -139,6 +166,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
           ref={track}
           className="no-scrollbar flex h-full snap-x snap-mandatory overflow-x-auto"
           onScroll={(e) => {
+            if (Date.now() < autoScroll.current) return;
             const el = e.currentTarget;
             const i = Math.round(el.scrollLeft / el.clientWidth);
             if (i !== index) setIndex(i);
@@ -160,17 +188,37 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
         <div className="story-blur-topo" />
         <div className="story-blur-base" />
 
-        {/* Topo: barras (uma por post; a atual mostra a vida que resta) e cabeçalho */}
+        {/* Toque: esquerda volta, direita avança; segurar pausa */}
+        <div
+          className="absolute inset-x-0 top-24 bottom-[42%] flex"
+          onPointerDown={() => setHeld(true)}
+          onPointerUp={() => setHeld(false)}
+          onPointerCancel={() => setHeld(false)}
+          onPointerLeave={() => setHeld(false)}
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          <button type="button" aria-label="Story anterior" className="h-full w-1/3 cursor-w-resize" onClick={() => tapGo(-1)} />
+          <button type="button" aria-label="Próximo story" className="h-full flex-1 cursor-e-resize" onClick={() => tapGo(1)} />
+        </div>
+
+        {/* Topo: barras (uma por post; a atual enche e passa sozinha) e cabeçalho */}
         <div className="absolute inset-x-0 top-0 flex flex-col gap-3 px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
           <div className="flex gap-1" aria-hidden="true">
             {segments.map((f, i) => (
               <span key={f.properties.id} className="story-barra">
-                <i
-                  style={{
-                    width: i < index ? "100%" : i === index ? `${lifeLeft * 100}%` : "0%",
-                    background: i === index ? color : undefined,
-                  }}
-                />
+                {i === index ? (
+                  // A barra do atual enche em STORY_MS; ao terminar, passa para o próximo
+                  <i
+                    key={`${f.properties.id}-${round}`}
+                    className="story-enche"
+                    style={{ animationDuration: `${STORY_MS}ms`, animationPlayState: paused ? "paused" : "running" }}
+                    onAnimationEnd={() => {
+                      if (index < posts.length - 1) go(1);
+                    }}
+                  />
+                ) : (
+                  <i style={{ width: i < index ? "100%" : "0%" }} />
+                )}
               </span>
             ))}
           </div>
@@ -190,7 +238,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
                   </>
                 ) : (
                   <>
-                    {timeAgo(p.created_at, now)} · some em <span className="num text-ink">{countdown(p.expires_at, now)}</span>
+                    {timeAgo(p.created_at, now)}
                   </>
                 )}
               </p>

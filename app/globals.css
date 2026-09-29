@@ -291,6 +291,19 @@ body {
   border-radius: 9999px;
   background: rgb(244 239 228 / 0.35);
 }
+.story-enche {
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left;
+  animation-name: story-enche;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes story-enche {
+  to {
+    transform: scaleX(1);
+  }
+}
 .story-barra > i {
   display: block;
   height: 100%;
@@ -631,6 +644,10 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* Sem passagem automática do story: a barra fica vazia e a pessoa toca */
+  .story-enche {
+    animation: none !important;
+  }
   *,
   *::before,
   *::after {
