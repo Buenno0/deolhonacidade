@@ -24,6 +24,26 @@ export async function silentPosition(): Promise<GeolocationPosition | null> {
   }
 }
 
+// Avisa quando a pessoa libera a localização no meio da visita (pelos ajustes
+// do navegador, sem tocar em nada no app). Devolve a função que para de ouvir.
+export function onLocationGranted(run: () => void): () => void {
+  let status: PermissionStatus | null = null;
+  let stopped = false;
+  const handler = () => status?.state === "granted" && run();
+  navigator.permissions
+    ?.query({ name: "geolocation" as PermissionName })
+    .then((s) => {
+      if (stopped) return;
+      status = s;
+      s.addEventListener("change", handler);
+    })
+    .catch(() => {});
+  return () => {
+    stopped = true;
+    status?.removeEventListener("change", handler);
+  };
+}
+
 const DISMISSED = "deolho-fora-da-area";
 export const wasDismissed = () => {
   try {

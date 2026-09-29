@@ -27,7 +27,7 @@ import LandmarkSheet from "./LandmarkSheet";
 import NewPostSheet from "./NewPostSheet";
 import type { Landmark } from "@/lib/landmarks";
 import OutOfArea from "./OutOfArea";
-import { dismiss, locateCity, silentPosition, wasDismissed, type NearestCity } from "@/lib/cityCheck";
+import { dismiss, locateCity, onLocationGranted, silentPosition, wasDismissed, type NearestCity } from "@/lib/cityCheck";
 import PostViewer from "./PostViewer";
 import RequestSheet from "./RequestSheet";
 import TrendsView from "./TrendsView";
@@ -282,14 +282,20 @@ export default function Home() {
   }, [session, refreshProgress]);
 
   // Abriu o app longe da cidade? Só confere se a localização já foi liberada antes
+  // e também se ela liberar a localização no meio da visita
   useEffect(() => {
-    if (wasDismissed()) return;
-    silentPosition().then(async (p) => {
-      if (!p) return;
-      const at: [number, number] = [p.coords.longitude, p.coords.latitude];
-      const r = await locateCity(at[1], at[0]);
-      if (r && r.inside === null) setOutside({ nearest: r.nearest, from: at });
-    });
+    const check = () => {
+      if (wasDismissed()) return;
+      silentPosition().then(async (p) => {
+        if (!p) return;
+        const at: [number, number] = [p.coords.longitude, p.coords.latitude];
+        const r = await locateCity(at[1], at[0]);
+        if (r && r.inside === null) setOutside({ nearest: r.nearest, from: at });
+        else if (r) setUserPos(at);
+      });
+    };
+    check();
+    return onLocationGranted(check);
   }, []);
 
   // Onde a pessoa está, e o que fazer se for fora de uma cidade atendida
