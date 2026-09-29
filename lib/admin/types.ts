@@ -139,3 +139,31 @@ const df = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", 
 const dd = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "America/Sao_Paulo" });
 export const dateTime = (iso: string | null) => (iso ? df.format(new Date(iso)) : "—");
 export const dateOnly = (iso: string | null) => (iso ? dd.format(new Date(iso)) : "—");
+
+export type AwsCosts = {
+  currency: "USD";
+  fetched_at: string;
+  month: string; // AAAA-MM
+  month_to_date: number;
+  last_month: number;
+  forecast: number | null;
+  budget: { name: string; limit: number; actual: number; forecast: number | null } | null;
+  by_service: { service: string; amount: number }[];
+  daily: { day: string; total: number }[];
+};
+
+const usdFmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const usdFine = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 4 });
+// Centavos contam aqui: abaixo de 1 dólar mostra até 4 casas
+export const usd = (n: number) => (Math.abs(n) < 1 && n !== 0 ? usdFine : usdFmt).format(n);
+
+export const SERVICE_LABEL: Record<string, string> = {
+  "Amazon Simple Storage Service": "S3 · fotos",
+  "Amazon Rekognition": "Rekognition · moderação",
+  "Amazon CloudFront": "CloudFront · entrega",
+  "Amazon Simple Email Service": "SES · e-mail",
+  "AWS Key Management Service": "KMS · chaves",
+  "AmazonCloudWatch": "CloudWatch",
+  "AWS Cost Explorer": "Cost Explorer · painel",
+  Tax: "Impostos",
+};

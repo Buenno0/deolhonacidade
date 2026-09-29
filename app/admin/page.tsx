@@ -6,7 +6,8 @@ import { getSupabase } from "@/lib/supabase/client";
 import { CATEGORIES } from "@/lib/categories";
 import { levelName } from "@/lib/progress";
 import { download, toCsv, today } from "@/lib/admin/csv";
-import { fmt, pct, plural, type DayPoint, type Overview } from "@/lib/admin/types";
+import { loadCosts } from "@/lib/admin/costs";
+import { fmt, pct, plural, usd, type AwsCosts, type DayPoint, type Overview } from "@/lib/admin/types";
 import { useAdmin } from "@/components/admin/context";
 import Stat from "@/components/admin/Stat";
 import Columns from "@/components/admin/Columns";
@@ -43,6 +44,12 @@ export default function VisaoGeral() {
   const [data, setData] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [costs, setCosts] = useState<AwsCosts | null>(null);
+
+  // Resumo dos custos (a rota guarda a consulta por 6 h; sem permissão, some)
+  useEffect(() => {
+    loadCosts().then((r) => "data" in r && setCosts(r.data));
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -113,6 +120,22 @@ export default function VisaoGeral() {
             {counts!.businesses > 0 && ` · ${counts!.businesses} estabelecimento${counts!.businesses > 1 ? "s" : ""} em análise`}
           </span>
           <span className="rotulo text-accent">revisar →</span>
+        </Link>
+      )}
+
+      {costs && (
+        <Link
+          href="/admin/custos"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-surface px-4 py-3 text-sm hover:bg-elev"
+        >
+          <span>
+            AWS neste mês: <strong className="font-semibold">{usd(costs.month_to_date)}</strong>
+            {costs.forecast !== null && <span className="text-muted"> · previsão {usd(costs.forecast)}</span>}
+            {costs.budget && costs.budget.limit > 0 && (
+              <span className="text-muted"> · {Math.round((costs.month_to_date / costs.budget.limit) * 100)}% do orçamento</span>
+            )}
+          </span>
+          <span className="rotulo text-accent">custos →</span>
         </Link>
       )}
 

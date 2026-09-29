@@ -1,6 +1,6 @@
-# Credencial do servidor do app (rotas /api/posts/* e /api/cron/expire).
-# Menor privilégio: só o prefixo posts/ deste bucket e só a detecção de
-# conteúdo impróprio do Rekognition.
+# Credencial do servidor do app (rotas /api/posts/*, /api/cron/expire e
+# /api/admin/custos). Menor privilégio: só o prefixo posts/ deste bucket, só a
+# detecção de conteúdo impróprio do Rekognition e só leitura de custos.
 #
 # É uma access key fixa porque ainda não sabemos onde o app vai rodar. Quando
 # for a Vercel, troque por OIDC (a Vercel emite um token por deploy e a AWS o
@@ -29,6 +29,20 @@ resource "aws_iam_user_policy" "app" {
         Effect   = "Allow"
         Action   = ["rekognition:DetectModerationLabels", "rekognition:DetectFaces", "rekognition:DetectText"]
         Resource = "*"
+      },
+      {
+        # Painel admin: custos do mês e previsão (o Cost Explorer não tem
+        # recurso por ARN; o filtro por projeto é feito na consulta)
+        Sid      = "Custos"
+        Effect   = "Allow"
+        Action   = ["ce:GetCostAndUsage", "ce:GetCostForecast"]
+        Resource = "*"
+      },
+      {
+        Sid      = "Orcamento"
+        Effect   = "Allow"
+        Action   = ["budgets:ViewBudget"]
+        Resource = aws_budgets_budget.mensal.arn
       },
     ]
   })
