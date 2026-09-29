@@ -739,3 +739,16 @@ body {
     animation: none !important;
   }
 }
+
+/* Animações que ninguém vê não gastam bateria: app escondido pausa tudo;
+   story ou Trends por cima do mapa pausam as do mapa */
+:root[data-oculto="sim"] *,
+:root[data-oculto="sim"] *::before,
+:root[data-oculto="sim"] *::after,
+:root[data-pausa-mapa="sim"] .maplibregl-marker,
+:root[data-pausa-mapa="sim"] .maplibregl-marker *,
+:root[data-pausa-mapa="sim"] .maplibregl-marker::before,
+:root[data-pausa-mapa="sim"] .maplibregl-marker *::before,
+:root[data-pausa-mapa="sim"] .maplibregl-marker *::after {
+  animation-play-state: paused !important;
+}

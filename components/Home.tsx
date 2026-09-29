@@ -179,6 +179,28 @@ export default function Home() {
     [],
   );
 
+  // Tempo real sem recarregar a lista inteira: busca só o post avisado e o
+  // atualiza no lugar (novo, mudou ou saiu do ar)
+  const updatePost = useCallback((id: string) => {
+    getSupabase()
+      .rpc("active_post", { p_id: id })
+      .then(({ data, error }) => {
+        if (error) return;
+        const f = data as PostFeature | null;
+        const alive = f && new Date(f.properties.expires_at).getTime() > Date.now() ? f : null;
+        setPosts((list) => {
+          if (!list) return list;
+          const rest = list.filter((x) => x.properties.id !== id);
+          return alive ? [alive, ...rest].sort((a, b) => b.properties.created_at.localeCompare(a.properties.created_at)) : rest;
+        });
+        const known = knownIds.current;
+        if (alive && known && !known.has(id) && !ownPosts.current.has(id) && !alive.properties.processing) {
+          setToast({ text: `Novo: ${CATEGORIES[alive.properties.category].label}`, postId: id });
+        }
+        if (alive) knownIds.current?.add(id);
+      });
+  }, []);
+
   const loadRequests = useCallback(
     () =>
       fetchRequests().then(
@@ -238,28 +260,79 @@ export default function Home() {
     };
   }, [tab, historyDay]);
 
-  // Marcos: fixos, carregados uma vez
+  // Animações que ninguém vê não rodam: com o app escondido, tudo pausa; com
+  // o story ou o Trends por cima, pausam as do mapa (marcos, Agora, Em alta)
+  const mapCovered = panel?.kind === "viewer" || tab === "trends" || (tab === "historico" && historyList);
   useEffect(() => {
-    supabase.rpc("city_landmarks", { p_city_id: CITY.id }).then(({ data }) => setLandmarks((data as Landmark[]) ?? []));
+    const root = document.documentElement;
+    if (mapCovered) root.dataset.pausaMapa = "sim";
+    else delete root.dataset.pausaMapa;
+  }, [mapCovered]);
+  useEffect(() => {
+    const root = document.documentElement;
+    const on = () => {
+      if (document.visibilityState === "hidden") root.dataset.oculto = "sim";
+      else delete root.dataset.oculto;
+    };
+    document.addEventListener("visibilitychange", on);
+    return () => document.removeEventListener("visibilitychange", on);
+  }, []);
+
+  // Marcos: quase nunca mudam. Guardados no aparelho por 1 dia; na volta,
+  // aparecem na hora e a cópia só é atualizada quando vence
+  useEffect(() => {
+    const KEY = `deolho-marcos-${CITY.id}`;
+    let cached: { at: number; list: Landmark[] } | null = null;
+    try {
+      cached = JSON.parse(localStorage.getItem(KEY) ?? "null");
+    } catch {
+      // sem armazenamento: busca sempre
+    }
+    if (cached?.list?.length) Promise.resolve().then(() => setLandmarks(cached!.list));
+    if (cached && Date.now() - cached.at < 24 * 3600e3) return;
+    supabase.rpc("city_landmarks", { p_city_id: CITY.id }).then(({ data }) => {
+      const list = (data as Landmark[]) ?? [];
+      setLandmarks(list);
+      try {
+        localStorage.setItem(KEY, JSON.stringify({ at: Date.now(), list }));
+      } catch {
+        // sem armazenamento: tudo bem
+      }
+    });
   }, [supabase]);
 
   useEffect(() => {
     loadPosts();
     loadRequests();
-    const interval = setInterval(() => {
+    // O tempo real já avisa cada mudança: a lista inteira só vem de novo a cada
+    // 5 min (rede de segurança) e ao voltar ao app; com o app escondido, nada
+    const refresh = () => {
+      if (document.visibilityState !== "visible") return;
       loadPosts();
       loadRequests();
-    }, 60_000);
+    };
+    const interval = setInterval(refresh, 5 * 60_000);
+    let hiddenAt = 0;
+    const onVisible = () => {
+      if (document.visibilityState === "hidden") hiddenAt = Date.now();
+      else if (hiddenAt && Date.now() - hiddenAt > 30_000) refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     const channel = supabase
       .channel(`city:${CITY.id}`)
-      .on("broadcast", { event: "post_changed" }, () => loadPosts())
+      .on("broadcast", { event: "post_changed" }, ({ payload }) => {
+        const id = (payload as { id?: string } | undefined)?.id;
+        if (id) updatePost(id);
+        else loadPosts();
+      })
       .on("broadcast", { event: "request_changed" }, () => loadRequests())
       .subscribe();
     return () => {
       clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
       supabase.removeChannel(channel);
     };
-  }, [supabase, loadPosts, loadRequests]);
+  }, [supabase, loadPosts, loadRequests, updatePost]);
 
   // Progresso (XP, nível, conquistas). Conquista nova ou nível novo viram festa.
   const refreshProgress = useCallback(
@@ -333,12 +406,13 @@ export default function Home() {
 
   useEffect(() => {
     if (!session) return;
+    // Uma consulta só: termos, moderação e estabelecimento (antes eram três)
     supabase
-      .from("profiles")
-      .select("accepted_terms_at")
-      .eq("id", session.user.id)
-      .single()
-      .then(async ({ data }) => {
+      .rpc("my_account")
+      .then(async ({ data: acc }) => {
+        const data = acc as { accepted_terms_at: string | null; is_admin: boolean; business: Business | null } | null;
+        setIsAdmin(Boolean(data?.is_admin));
+        setBusiness(data?.business ?? null);
         // Voltando do Google: os termos foram aceitos antes de sair
         let pending = false;
         let then: string | null = null;
@@ -363,8 +437,6 @@ export default function Home() {
         }
         setTermsUserId(data?.accepted_terms_at ? session.user.id : null);
       });
-    supabase.rpc("am_i_admin").then(({ data }) => setIsAdmin(Boolean(data)));
-    supabase.rpc("my_business").then(({ data }) => setBusiness((data as Business | null) ?? null));
   }, [supabase, session]);
 
   useEffect(() => {
