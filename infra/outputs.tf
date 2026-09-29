@@ -5,10 +5,10 @@ output "env_app" {
     STORAGE_PROVIDER           = "s3"
     MODERATION_PROVIDER        = "rekognition"
     REKOGNITION_REGION         = var.regiao
-    AWS_REGION                 = var.regiao
+    DEOLHO_AWS_REGION          = var.regiao
     S3_BUCKET                  = aws_s3_bucket.fotos.bucket
     NEXT_PUBLIC_MEDIA_BASE_URL = "https://${aws_cloudfront_distribution.fotos.domain_name}"
-    AWS_ACCESS_KEY_ID          = aws_iam_access_key.app.id
+    DEOLHO_AWS_ACCESS_KEY_ID   = aws_iam_access_key.app.id
   }
 }
 

@@ -68,7 +68,7 @@ tofu output -raw aws_secret_access_key
 tofu output smtp && tofu output -raw smtp_senha
 ```
 
-Adicione as variáveis de `env_app` e o `AWS_SECRET_ACCESS_KEY` na Vercel e faça o deploy de novo. O lifecycle do bucket apaga tudo em 31 dias, como rede de segurança: as fotos do histórico vivem até 30, e as outras a limpeza do app apaga quando saem do mapa. No console do SES, peça "production access" para mandar e-mail a qualquer endereço.
+Adicione as variáveis de `env_app` e o `DEOLHO_AWS_SECRET_ACCESS_KEY` (de `tofu output -raw aws_secret_access_key`) na Vercel. Os nomes `DEOLHO_AWS_*` evitam os `AWS_*` que a Vercel reserva para ela e faça o deploy de novo. O lifecycle do bucket apaga tudo em 31 dias, como rede de segurança: as fotos do histórico vivem até 30, e as outras a limpeza do app apaga quando saem do mapa. No console do SES, peça "production access" para mandar e-mail a qualquer endereço.
 
 ## 4. Conferir no ar
 

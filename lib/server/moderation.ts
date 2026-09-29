@@ -6,6 +6,7 @@ import {
   RekognitionClient,
   type BoundingBox,
 } from "@aws-sdk/client-rekognition";
+import { awsCredentials, awsRegion } from "./aws";
 
 // MODERATION_PROVIDER=none (padrão, local) ou rekognition.
 // Numa foto, três perguntas em paralelo (cerca de 1 s no total, em vez de 3
@@ -31,7 +32,7 @@ export type ModerationResult = {
 let rk: RekognitionClient | undefined;
 // O Rekognition não existe em todas as regiões (São Paulo incluso): região própria
 const client = () =>
-  (rk ??= new RekognitionClient({ region: process.env.REKOGNITION_REGION ?? process.env.AWS_REGION ?? "us-east-1" }));
+  (rk ??= new RekognitionClient({ region: process.env.REKOGNITION_REGION ?? awsRegion, credentials: awsCredentials() }));
 
 const toBox = (b?: BoundingBox): Box | null =>
   b && b.Width && b.Height ? { left: b.Left ?? 0, top: b.Top ?? 0, width: b.Width, height: b.Height } : null;

@@ -2,6 +2,7 @@ import "server-only";
 import { DeleteObjectsCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createPresignedPost, type PresignedPost } from "@aws-sdk/s3-presigned-post";
 import { THUMB_SUFFIX } from "@/lib/media";
+import { awsCredentials, awsRegion } from "./aws";
 import { adminClient } from "./supabase";
 
 // Onde as fotos moram. STORAGE_PROVIDER=supabase (padrão, local) ou s3.
@@ -16,7 +17,7 @@ const MAX_BYTES = 1024 * 1024;
 const CACHE_CONTROL = "public, max-age=600";
 
 let s3: S3Client | undefined;
-const client = () => (s3 ??= new S3Client({ region: process.env.AWS_REGION ?? "us-east-1" }));
+const client = () => (s3 ??= new S3Client({ region: awsRegion, credentials: awsCredentials() }));
 
 export const s3Key = (path: string) => PREFIX + path;
 export const allPaths = (photoPath: string) => [photoPath, photoPath + THUMB_SUFFIX];
