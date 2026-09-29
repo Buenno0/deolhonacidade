@@ -32,7 +32,7 @@ export function looksLikePlate(text: string) {
   return PLATE.test(fixed);
 }
 
-export type Box = { left: number; top: number; width: number; height: number };
+export type Box = { left: number; top: number; width: number; height: number; kind: "face" | "plate" };
 export type ModerationResult = {
   approved: boolean;
   provider: string;
@@ -47,8 +47,8 @@ let rk: RekognitionClient | undefined;
 const client = () =>
   (rk ??= new RekognitionClient({ region: process.env.REKOGNITION_REGION ?? awsRegion, credentials: awsCredentials() }));
 
-const toBox = (b?: BoundingBox): Box | null =>
-  b && b.Width && b.Height ? { left: b.Left ?? 0, top: b.Top ?? 0, width: b.Width, height: b.Height } : null;
+const toBox = (b: BoundingBox | undefined, kind: Box["kind"]): Box | null =>
+  b && b.Width && b.Height ? { left: b.Left ?? 0, top: b.Top ?? 0, width: b.Width, height: b.Height, kind } : null;
 
 export async function inspect(bytes: Uint8Array): Promise<{ result: ModerationResult; boxes: Box[] }> {
   if (provider !== "rekognition") return { result: { approved: true, provider, labels: [], faces: 0, plates: 0 }, boxes: [] };
@@ -72,11 +72,11 @@ export async function inspect(bytes: Uint8Array): Promise<{ result: ModerationRe
 
   const faceBoxes = (faces.FaceDetails ?? [])
     .filter((f) => (f.Confidence ?? 0) >= 70)
-    .map((f) => toBox(f.BoundingBox))
+    .map((f) => toBox(f.BoundingBox, "face"))
     .filter((b): b is Box => b !== null);
   const plateBoxes = (text.TextDetections ?? [])
     .filter((t) => t.Type === "LINE" && looksLikePlate(t.DetectedText ?? ""))
-    .map((t) => toBox(t.Geometry?.BoundingBox))
+    .map((t) => toBox(t.Geometry?.BoundingBox, "plate"))
     .filter((b): b is Box => b !== null);
 
   return {
