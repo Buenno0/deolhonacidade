@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import { preparePhoto } from "@/lib/image/compress";
 import { submitPost } from "@/lib/posting";
-import { CATEGORIES, CATEGORY_KEYS, LIFETIME_HOURS, type Category } from "@/lib/categories";
+import {
+  CATEGORIES,
+  CATEGORY_KEYS,
+  LIFETIME_HOURS,
+  type Category,
+} from "@/lib/categories";
 import { iosOtherBrowser, safariUrl, useLocation } from "@/lib/useLocation";
 import Sheet from "./Sheet";
 import { Button, Chip, Spinner } from "./ui";
@@ -16,9 +21,16 @@ const GOOD_ACCURACY_M = 100;
 const MAX_ACCURACY_M = 500;
 
 // As mais usadas primeiro, numa linha só
-const ORDER: Category[] = ["evento", "transito", "acidente", "alagamento", "seguranca", "falta_energia", "obra", "outro"].filter((c) =>
-  CATEGORY_KEYS.includes(c as Category),
-) as Category[];
+const ORDER: Category[] = [
+  "evento",
+  "transito",
+  "acidente",
+  "alagamento",
+  "seguranca",
+  "falta_energia",
+  "obra",
+  "outro",
+].filter((c) => CATEGORY_KEYS.includes(c as Category)) as Category[];
 
 type Props = {
   // Respondendo a um "Alguém aí?": a pergunta aparece no topo
@@ -26,20 +38,39 @@ type Props = {
   onClose: () => void;
   // Tentou postar de fora da cidade: o Home mostra o aviso de fora da área
   onOutOfArea?: (at: [number, number]) => void;
-  onPosted: (id: string, at: [number, number], accuracy: number, processing: boolean) => void;
+  onPosted: (
+    id: string,
+    at: [number, number],
+    accuracy: number,
+    processing: boolean,
+  ) => void;
   // Estabelecimento aprovado: libera a divulgação
   business?: { name: string } | null;
   // Foto já tirada pelo botão Registrar (câmera primeiro)
   initialPhoto?: File | null;
 };
 
-export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, business, initialPhoto = null }: Props) {
+export default function NewPostSheet({
+  request,
+  onClose,
+  onOutOfArea,
+  onPosted,
+  business,
+  initialPhoto = null,
+}: Props) {
   const [photo, setPhoto] = useState<File | null>(initialPhoto);
   const [category, setCategory] = useState<Category | null>(null);
   const [caption, setCaption] = useState("");
   const [keepHistory, setKeepHistory] = useState(false);
   const promo = category === "estabelecimento";
-  const { position, error: geoError, elapsed, stalled, needsTap, retry } = useLocation();
+  const {
+    position,
+    error: geoError,
+    elapsed,
+    stalled,
+    needsTap,
+    retry,
+  } = useLocation();
   const [step, setStep] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,7 +118,8 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
       onPosted(id, [position.lng, position.lat], position.accuracy, processing);
     } catch (e) {
       const message = errorMessage(e, "Não foi possível publicar");
-      if (onOutOfArea && /dentro da cidade/.test(message)) return onOutOfArea([position.lng, position.lat]);
+      if (onOutOfArea && /dentro da cidade/.test(message))
+        return onOutOfArea([position.lng, position.lat]);
       setError(message);
       setStep(null);
     }
@@ -102,52 +134,68 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
       <PinIcon /> {label}
     </button>
   );
-  const locationLine = needsTap && !geoError ? (
-    <span className="flex flex-col items-start gap-2">
-      <span className="text-muted">Para marcar o ponto do registro, o app precisa da sua localização.</span>
-      {allowButton("Permitir localização")}
-    </span>
-  ) : geoError ? (
-    <span className="text-danger">
-      {geoError}{" "}
-      <button type="button" onClick={retry} className="font-medium underline underline-offset-2">
-        Tentar de novo
-      </button>
-    </span>
-  ) : position === null && stalled && iosOtherBrowser() ? (
-    <span className="flex flex-col items-start gap-2">
-      <span className="text-muted">Este navegador não mostrou o pedido de localização. No Safari funciona.</span>
-      <span className="flex flex-wrap gap-2">
-        <a href={safariUrl()} className="inline-flex items-center gap-2 rounded-full bg-accent px-3.5 py-1.5 text-xs font-medium text-accent-ink">
-          Abrir no Safari
-        </a>
-        <button type="button" onClick={retry} className="rounded-full border border-line px-3.5 py-1.5 text-xs">
+  const locationLine =
+    needsTap && !geoError ? (
+      <span className="flex flex-col items-start gap-2">
+        <span className="text-muted">
+          Para marcar o ponto do registro, o app precisa da sua localização.
+        </span>
+        {allowButton("Permitir localização")}
+      </span>
+    ) : geoError ? (
+      <span className="text-danger">
+        {geoError}{" "}
+        <button
+          type="button"
+          onClick={retry}
+          className="font-medium underline underline-offset-2"
+        >
           Tentar de novo
         </button>
       </span>
-    </span>
-  ) : position === null && stalled ? (
-    <span className="flex flex-col items-start gap-2">
-      <span className="text-muted">A localização não chegou. Toque para o navegador perguntar de novo.</span>
-      {allowButton("Permitir localização")}
-    </span>
-  ) : position === null ? (
-    <span className="text-muted">
-      Buscando sua localização… <span className="num">{elapsed}s</span>
-    </span>
-  ) : position.accuracy <= GOOD_ACCURACY_M ? (
-    <span>
-      Localização ok <span className="num text-muted">±{meters} m</span>
-    </span>
-  ) : usable ? (
-    <span className="text-warn">
-      Aproximada <span className="num">±{meters} m</span>
-    </span>
-  ) : (
-    <span className="text-muted">
-      Precisão baixa <span className="num">±{meters} m</span>, esperando melhorar…
-    </span>
-  );
+    ) : position === null && stalled && iosOtherBrowser() ? (
+      <span className="flex flex-col items-start gap-2">
+        <span className="text-muted">
+          Este navegador não mostrou o pedido de localização. No Safari
+          funciona.
+        </span>
+        <span className="flex flex-wrap gap-2">
+          <a
+            href={safariUrl()}
+            className="inline-flex items-center gap-2 rounded-full bg-accent px-3.5 py-1.5 text-xs font-medium text-accent-ink"
+          >
+            Abrir no Safari
+          </a>
+          <button
+            type="button"
+            onClick={retry}
+            className="rounded-full border border-line px-3.5 py-1.5 text-xs"
+          >
+            Tentar de novo
+          </button>
+        </span>
+      </span>
+    ) : position === null && stalled ? (
+      <span className="flex flex-col items-start gap-2">
+        <span className="text-muted">
+          A localização não chegou. Toque para o navegador perguntar de novo.
+        </span>
+        {allowButton("Permitir localização")}
+      </span>
+    ) : position === null ? (
+      <span className="text-muted">
+        Buscando sua localização… <span className="num">{elapsed}s</span>
+      </span>
+    ) : position.accuracy <= GOOD_ACCURACY_M ? null : usable ? (
+      <span className="text-warn">
+        Aproximada <span className="num">±{meters} m</span>
+      </span>
+    ) : (
+      <span className="text-muted">
+        Precisão baixa <span className="num">±{meters} m</span>, esperando
+        melhorar…
+      </span>
+    );
 
   const cameraInput = (
     <input
@@ -170,14 +218,20 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
       footer={
         <div className="flex flex-col gap-2">
           {error && <p className="text-sm text-danger">{error}</p>}
-          <Button size="lg" onClick={submit} disabled={Boolean(missing) || busy} className="w-full">
+          <Button
+            size="lg"
+            onClick={submit}
+            disabled={Boolean(missing) || busy}
+            className="w-full"
+          >
             {busy ? (
               <>
                 <Spinner />
                 {step}
               </>
             ) : (
-              (missing ?? `${promo ? "Publicar divulgação" : "Publicar"} · some em ${LIFETIME_HOURS[category!]}h`)
+              (missing ??
+              `${promo ? "Publicar divulgação" : "Publicar"} · some em ${LIFETIME_HOURS[category!]}h`)
             )}
           </Button>
         </div>
@@ -185,26 +239,40 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
     >
       <div className="flex flex-col gap-4">
         {/* Sem foto ainda: a localização vem primeiro (é o primeiro passo) */}
-        {!preview && <div className="flex items-center gap-2 text-sm">{locationLine}</div>}
+        {!preview && locationLine && (
+          <div className="flex items-center gap-2 text-sm">{locationLine}</div>
+        )}
 
         {/* A foto é o post. Tirada: vira miniatura, para caber tudo sem rolar */}
         {preview ? (
           <div className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={preview} alt="Prévia da foto" className="h-24 w-24 shrink-0 rounded-xl border border-line object-cover" />
+            <img
+              src={preview}
+              alt="Prévia da foto"
+              className="h-24 w-24 shrink-0 rounded-xl border border-line object-cover"
+            />
             <div className="flex min-w-0 flex-1 flex-col gap-2 text-sm">
-              <p className="flex items-start gap-2">
-                <span className="mt-0.5 shrink-0">
-                  {geoError ? (
-                    <AlertIcon className="text-danger" />
-                  ) : position === null ? (
-                    <Spinner />
-                  ) : (
-                    <PinIcon className={position.accuracy <= GOOD_ACCURACY_M ? "text-ok" : "text-warn"} />
-                  )}
-                </span>
-                {locationLine}
-              </p>
+              {locationLine && (
+                <p className="flex items-start gap-2">
+                  <span className="mt-0.5 shrink-0">
+                    {geoError ? (
+                      <AlertIcon className="text-danger" />
+                    ) : position === null ? (
+                      <Spinner />
+                    ) : (
+                      <PinIcon
+                        className={
+                          position.accuracy <= GOOD_ACCURACY_M
+                            ? "text-ok"
+                            : "text-warn"
+                        }
+                      />
+                    )}
+                  </span>
+                  {locationLine}
+                </p>
+              )}
               <label className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-full border border-line px-3 py-1.5 text-xs text-muted transition hover:text-ink">
                 <CameraIcon /> Tirar outra
                 {cameraInput}
@@ -214,7 +282,9 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
         ) : (
           <label className="flex aspect-[16/9] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-line bg-elev text-muted transition hover:text-ink">
             <CameraIcon width="2em" height="2em" />
-            <span className="font-display text-base font-semibold text-ink">Tirar foto</span>
+            <span className="font-display text-base font-semibold text-ink">
+              Tirar foto
+            </span>
             <span className="rotulo">tem que ser de agora</span>
             {cameraInput}
           </label>
@@ -225,13 +295,24 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
           <legend className="rotulo mb-2">O que é</legend>
           <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 pb-1">
             {business && !request && (
-              <Chip type="button" active={promo} onClick={() => setCategory("estabelecimento")} className="shrink-0 py-2 text-sm">
+              <Chip
+                type="button"
+                active={promo}
+                onClick={() => setCategory("estabelecimento")}
+                className="shrink-0 py-2 text-sm"
+              >
                 <CategoryIcon category="estabelecimento" />
                 Divulgação · {business.name}
               </Chip>
             )}
             {ORDER.map((key) => (
-              <Chip key={key} type="button" active={category === key} onClick={() => setCategory(key)} className="shrink-0 py-2 text-sm">
+              <Chip
+                key={key}
+                type="button"
+                active={category === key}
+                onClick={() => setCategory(key)}
+                className="shrink-0 py-2 text-sm"
+              >
                 <CategoryIcon category={key} />
                 {CATEGORIES[key].label}
               </Chip>
@@ -242,7 +323,9 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
         <label className="flex flex-col gap-1.5">
           <span className="flex justify-between">
             <span className="rotulo">Legenda (opcional)</span>
-            <span className="num text-[10px] text-muted">{caption.length}/140</span>
+            <span className="num text-[10px] text-muted">
+              {caption.length}/140
+            </span>
           </span>
           <textarea
             maxLength={140}
@@ -255,12 +338,17 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
         </label>
 
         {promo ? (
-          <p className="text-xs text-muted">Aparece com a tag Divulgação e o nome do estabelecimento. Uma por dia, no endereço cadastrado.</p>
+          <p className="text-xs text-muted">
+            Aparece com a tag Divulgação e o nome do estabelecimento. Uma por
+            dia, no endereço cadastrado.
+          </p>
         ) : (
           <label className="flex cursor-pointer items-center justify-between gap-3 text-sm">
             <span>
               Guardar no histórico por 30 dias
-              <span className="block text-xs text-muted">Você tira quando quiser em Meus posts.</span>
+              <span className="block text-xs text-muted">
+                Você tira quando quiser em Meus posts.
+              </span>
             </span>
             <input
               type="checkbox"
@@ -271,7 +359,6 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
             />
           </label>
         )}
-
       </div>
     </Sheet>
   );
