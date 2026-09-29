@@ -1,5 +1,5 @@
 import "server-only";
-import { DeleteObjectsCommand, HeadObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectsCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createPresignedPost, type PresignedPost } from "@aws-sdk/s3-presigned-post";
 import { THUMB_SUFFIX } from "@/lib/media";
 import { adminClient } from "./supabase";
@@ -55,9 +55,25 @@ export async function exists(path: string) {
 }
 
 export async function readBytes(path: string): Promise<Uint8Array> {
+  if (storageProvider === "s3") {
+    const out = await client().send(new GetObjectCommand({ Bucket: BUCKET, Key: s3Key(path) }));
+    return out.Body!.transformToByteArray();
+  }
   const { data, error } = await adminClient().storage.from("posts").download(path);
   if (error || !data) throw error ?? new Error("foto não encontrada");
   return new Uint8Array(await data.arrayBuffer());
+}
+
+// Escrita pelo servidor (a foto já desfocada)
+export async function writeBytes(path: string, bytes: Uint8Array, contentType: string) {
+  if (storageProvider === "s3") {
+    await client().send(
+      new PutObjectCommand({ Bucket: BUCKET, Key: s3Key(path), Body: bytes, ContentType: contentType, CacheControl: CACHE_CONTROL }),
+    );
+    return;
+  }
+  const { error } = await adminClient().storage.from("posts").upload(path, bytes, { contentType, upsert: true, cacheControl: "600" });
+  if (error) throw error;
 }
 
 export async function remove(paths: string[]) {

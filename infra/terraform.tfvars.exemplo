@@ -1,7 +1,7 @@
 # Copie para terraform.tfvars (que fica fora do git) e ajuste.
 bucket          = "deolhonacidade-fotos-SEU-SUFIXO"
 origens_web     = ["http://localhost:3000", "https://deolhonacidade.vercel.app"]
-email_remetente = "voce@exemplo.com"
+# email_remetente = "voce@exemplo.com"  # só se for mandar o código por e-mail via SES
 email_alerta    = "voce@exemplo.com"
 # dominio_email = "deolhonacidade.com.br"
 # orcamento_usd = 5

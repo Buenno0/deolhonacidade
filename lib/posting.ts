@@ -10,7 +10,7 @@ type PresignedPost = { url: string; fields: Record<string, string> };
 // 1. create_post (RPC): valida local, limite e termos; reserva o caminho
 // 2. envia foto e miniatura (Supabase Storage direto, ou S3 com formulário assinado)
 // 3. /api/posts/[id]/publish: moderação + publicação no servidor
-export async function submitPost(draft: Draft, onStep: (s: string) => void): Promise<string> {
+export async function submitPost(draft: Draft, onStep: (s: string) => void): Promise<{ id: string; processing: boolean }> {
   const supabase = getSupabase();
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData.session?.access_token;
@@ -45,11 +45,26 @@ export async function submitPost(draft: Draft, onStep: (s: string) => void): Pro
     if (a.error || b.error) throw a.error ?? b.error;
   }
 
-  onStep("Verificando e publicando…");
+  onStep("Publicando…");
   const res = await fetch(`/api/posts/${id}/publish`, { method: "POST", headers: auth });
   const body = (await res.json().catch(() => ({}))) as { status?: string; error?: string };
-  if (!res.ok || body.status !== "published") throw new Error(body.error ?? "Não foi possível publicar");
-  return id;
+  // "processing": o servidor desfoca rostos e placas em segundo plano
+  if (!res.ok || (body.status !== "published" && body.status !== "processing")) {
+    throw new Error(body.error ?? "Não foi possível publicar");
+  }
+  return { id, processing: body.status === "processing" };
+}
+
+// Espera o servidor terminar (costuma levar 1 a 2 s). Devolve o status final.
+export async function waitPublished(id: string, timeoutMs = 30_000): Promise<"published" | "hidden" | "timeout"> {
+  const supabase = getSupabase();
+  const until = Date.now() + timeoutMs;
+  for (let wait = 700; Date.now() < until; wait = Math.min(2500, wait * 1.4)) {
+    await new Promise((r) => setTimeout(r, wait));
+    const { data } = await supabase.rpc("my_post_status", { p_id: id });
+    if (data === "published" || data === "hidden") return data;
+  }
+  return "timeout";
 }
 
 async function uploadToS3({ url, fields }: PresignedPost, blob: Blob) {

@@ -22,8 +22,9 @@ variable "dominio_email" {
 }
 
 variable "email_remetente" {
-  description = "Endereço que envia o código de login (ex.: nao-responda@deolhonacidade.com.br)."
+  description = "Endereço que envia o código de login (ex.: nao-responda@deolhonacidade.com.br). Vazio: sem SES (o login principal é pelo Google)."
   type        = string
+  default     = ""
 }
 
 variable "email_alerta" {

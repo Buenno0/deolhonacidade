@@ -4,6 +4,7 @@ output "env_app" {
   value = {
     STORAGE_PROVIDER           = "s3"
     MODERATION_PROVIDER        = "rekognition"
+    REKOGNITION_REGION         = var.regiao
     AWS_REGION                 = var.regiao
     S3_BUCKET                  = aws_s3_bucket.fotos.bucket
     NEXT_PUBLIC_MEDIA_BASE_URL = "https://${aws_cloudfront_distribution.fotos.domain_name}"
@@ -19,17 +20,17 @@ output "aws_secret_access_key" {
 
 # Supabase > Authentication > SMTP Settings
 output "smtp" {
-  value = {
+  value = local.com_email ? {
     host      = "email-smtp.${var.regiao}.amazonaws.com"
     port      = 587
-    usuario   = aws_iam_access_key.smtp.id
+    usuario   = aws_iam_access_key.smtp[0].id
     remetente = var.email_remetente
-  }
+  } : null
 }
 
 output "smtp_senha" {
   description = "tofu output -raw smtp_senha"
-  value       = aws_iam_access_key.smtp.ses_smtp_password_v4
+  value       = local.com_email ? aws_iam_access_key.smtp[0].ses_smtp_password_v4 : null
   sensitive   = true
 }
 

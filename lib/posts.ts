@@ -24,6 +24,8 @@ export type PostProperties = {
   business_instagram?: string | null;
   // Só verdadeiro para quem postou (o banco não diz de quem é)
   mine?: boolean;
+  // O servidor ainda está verificando e desfocando (só quem postou vê)
+  processing?: boolean;
   // Histórico: até quando a foto fica guardada depois de sumir do mapa
   archived_until?: string | null;
 };
@@ -99,7 +101,9 @@ export const TRENDING_TOP = 3;
 export const TRENDING_MIN_ENGAGEMENT = 5;
 export function trendingRanks(posts: PostFeature[], now = Date.now()) {
   const ranked = posts
-    .filter((f) => f.properties.category !== "estabelecimento" && engagement(f.properties) >= TRENDING_MIN_ENGAGEMENT)
+    .filter(
+      (f) => f.properties.category !== "estabelecimento" && !f.properties.processing && engagement(f.properties) >= TRENDING_MIN_ENGAGEMENT,
+    )
     .sort((a, b) => hotness(b.properties, now) - hotness(a.properties, now))
     .slice(0, TRENDING_TOP);
   return new Map(ranked.map((f, i) => [f.properties.id, i + 1]));

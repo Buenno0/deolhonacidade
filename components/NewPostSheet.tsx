@@ -21,7 +21,7 @@ type Props = {
   onClose: () => void;
   // Tentou postar de fora da cidade: o Home mostra o aviso de fora da área
   onOutOfArea?: (at: [number, number]) => void;
-  onPosted: (id: string, at: [number, number], accuracy: number) => void;
+  onPosted: (id: string, at: [number, number], accuracy: number, processing: boolean) => void;
   // Estabelecimento aprovado: libera a divulgação
   business?: { name: string } | null;
 };
@@ -55,7 +55,7 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
     try {
       setStep("Preparando a foto…");
       const prepared = await preparePhoto(photo);
-      const id = await submitPost(
+      const { id, processing } = await submitPost(
         {
           lat: position.lat,
           lng: position.lng,
@@ -67,7 +67,7 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
         },
         setStep,
       );
-      onPosted(id, [position.lng, position.lat], position.accuracy);
+      onPosted(id, [position.lng, position.lat], position.accuracy, processing);
     } catch (e) {
       const message = errorMessage(e, "Não foi possível publicar");
       if (onOutOfArea && /dentro da cidade/.test(message)) return onOutOfArea([position.lng, position.lat]);

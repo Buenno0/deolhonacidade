@@ -160,14 +160,16 @@ function pinElement(post: PostProperties, count?: number) {
 // cheio e neutro. Uma tag no máximo: Divulgação, senão Em alta, senão Agora.
 function paintPin(el: HTMLElement, post: PostProperties, active: boolean, opts: { rank?: number; archive: boolean; cluster: boolean }) {
   const promo = post.category === "estabelecimento";
-  el.style.setProperty("--sev", opts.archive ? "var(--muted)" : promo ? "var(--ink)" : severityVar(post.category));
-  el.style.setProperty("--restante", opts.archive ? "1" : remaining(post).toFixed(3));
+  const quiet = opts.archive || post.processing;
+  el.style.setProperty("--sev", quiet ? "var(--muted)" : promo ? "var(--ink)" : severityVar(post.category));
+  el.style.setProperty("--restante", opts.archive ? "1" : post.processing ? "0.25" : remaining(post).toFixed(3));
   const tag: TagKind | null =
-    opts.archive || opts.cluster ? null : promo ? "divulgacao" : opts.rank ? "alta" : isFresh(post.created_at) ? "agora" : null;
+    opts.archive || opts.cluster || post.processing ? null : promo ? "divulgacao" : opts.rank ? "alta" : isFresh(post.created_at) ? "agora" : null;
   el.dataset.novo = tag === "agora" ? "sim" : "nao";
   el.dataset.alta = tag === "alta" ? "sim" : "nao";
   el.dataset.divulgacao = promo && !opts.cluster ? "sim" : "nao";
   el.dataset.ativo = active ? "sim" : "nao";
+  el.dataset.processando = post.processing && !opts.cluster ? "sim" : "nao";
   if ((el.dataset.tag ?? "") !== (tag ?? "")) {
     el.querySelector(".pin-tag")?.remove();
     if (tag) el.insertAdjacentHTML("beforeend", tagHtml(tag));

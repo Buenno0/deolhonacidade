@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabase/client";
+import { waitPublished } from "@/lib/posting";
 import { CITY } from "@/lib/city";
 import { ALL_CATEGORY_KEYS, CATEGORIES, type Category } from "@/lib/categories";
 import { formatDistance, trendingRanks, type PostFeature, type PostsCollection, type RequestFeature } from "@/lib/posts";
@@ -835,10 +836,22 @@ export default function Home() {
             setPanel(null);
             handlePosition(at, false);
           }}
-          onPosted={(id, at, accuracy) => {
+          onPosted={(id, at, accuracy, processing) => {
             ownPosts.current.add(id);
             setPanel(null);
-            setToast({ text: `Publicado${accuracy > 100 ? ` · ±${formatDistance(accuracy)}` : ""}`, postId: id });
+            const near = accuracy > 100 ? ` · ±${formatDistance(accuracy)}` : "";
+            if (processing) {
+              // Rostos e placas sendo desfocados no servidor; o pin já aparece para você
+              setToast({ text: `Protegendo rostos e placas…${near}` });
+              waitPublished(id).then((st) => {
+                loadPosts();
+                refreshMine();
+                if (st === "published") setToast({ text: "Publicado", postId: id });
+                else if (st === "hidden")
+                  setToast({ text: "A foto não foi publicada: a verificação automática encontrou conteúdo impróprio" });
+                else setToast({ text: "A verificação está demorando. Seu post aparece assim que terminar." });
+              });
+            } else setToast({ text: `Publicado${near}`, postId: id });
             setUserPos(at);
             setFocus(at);
             loadPosts();
