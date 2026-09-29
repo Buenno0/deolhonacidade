@@ -42,3 +42,11 @@ content_path = "./supabase/templates/codigo-login.html"
 enabled = true
 provider = "turnstile"
 secret = "env(SUPABASE_AUTH_CAPTCHA_SECRET)"
+
+# Login com Google. Local fica desligado; para testar, crie um cliente OAuth e
+# ponha SUPABASE_AUTH_GOOGLE_CLIENT_ID e _SECRET em supabase/.env
+[auth.external.google]
+enabled = false
+client_id = "env(SUPABASE_AUTH_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_GOOGLE_SECRET)"
+skip_nonce_check = true

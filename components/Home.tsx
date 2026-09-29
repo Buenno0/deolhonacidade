@@ -19,7 +19,7 @@ import AchievementOverlay, { type Celebration } from "./AchievementOverlay";
 import type { Progress } from "@/lib/progress";
 import AlertsSheet from "./AlertsSheet";
 import AskPanel from "./AskPanel";
-import AuthSheet from "./AuthSheet";
+import AuthSheet, { PENDING_TERMS_KEY, PENDING_THEN_KEY } from "./AuthSheet";
 import LiveStrip from "./LiveStrip";
 import MapTypePicker, { type HeatMode } from "./MapTypePicker";
 import LandmarkSheet from "./LandmarkSheet";
@@ -316,7 +316,31 @@ export default function Home() {
       .select("accepted_terms_at")
       .eq("id", session.user.id)
       .single()
-      .then(({ data }) => setTermsUserId(data?.accepted_terms_at ? session.user.id : null));
+      .then(async ({ data }) => {
+        // Voltando do Google: os termos foram aceitos antes de sair
+        let pending = false;
+        let then: string | null = null;
+        try {
+          pending = sessionStorage.getItem(PENDING_TERMS_KEY) === "1";
+          then = sessionStorage.getItem(PENDING_THEN_KEY);
+          sessionStorage.removeItem(PENDING_TERMS_KEY);
+          sessionStorage.removeItem(PENDING_THEN_KEY);
+        } catch {
+          // sem armazenamento: os termos aparecem na próxima ação
+        }
+        if (!data?.accepted_terms_at && pending) {
+          const { error } = await supabase.rpc("accept_terms");
+          if (!error) {
+            setTermsUserId(session.user.id);
+            if (then === "new") setPanel({ kind: "new", request: null });
+            else if (then === "alerts") setPanel({ kind: "alerts" });
+            else if (then === "account") setPanel({ kind: "account" });
+            else if (then === "ask") setAsking(true);
+            return;
+          }
+        }
+        setTermsUserId(data?.accepted_terms_at ? session.user.id : null);
+      });
     supabase.rpc("am_i_admin").then(({ data }) => setIsAdmin(Boolean(data)));
     supabase.rpc("my_business").then(({ data }) => setBusiness((data as Business | null) ?? null));
   }, [supabase, session]);
@@ -776,6 +800,7 @@ export default function Home() {
       {panel?.kind === "auth" && (
         <AuthSheet
           session={session}
+          then={panel.then}
           onClose={() => setPanel(null)}
           onDone={(userId) => {
             setTermsUserId(userId);
