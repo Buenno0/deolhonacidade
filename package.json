@@ -12,7 +12,8 @@
     "lint": "eslint",
     "tokens": "node scripts/gerar-tokens.mjs",
     "contraste": "node scripts/contraste.mjs",
-    "test:e2e": "node --test --test-concurrency=1 \"tests/e2e/*.test.mjs\""
+    "test:e2e": "node --test --test-concurrency=1 \"tests/e2e/*.test.mjs\"",
+    "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
     "@aws-sdk/client-rekognition": "^3.1142.0",

@@ -15,7 +15,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
-      - run: npx tsc --noEmit
+      # PageProps, RouteContext e LayoutProps são gerados pelo Next (next-env.d.ts
+      # e .next/types não vão para o git); sem o typegen, o tsc não os encontra
+      - run: npm run typecheck
       - run: npm run contraste
       - run: npm run build
         env:
