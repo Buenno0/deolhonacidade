@@ -5,12 +5,15 @@ import { photoUrl, thumbUrl } from "@/lib/media";
 import { isFresh, remaining, timeAgo, type PostFeature } from "@/lib/posts";
 
 // Os posts mais recentes, como fila de "stories". Mesmo anel de tempo do pin.
-export default function LiveStrip({ posts, onOpen }: { posts: PostFeature[]; onOpen: (id: string) => void }) {
+export default function LiveStrip({ posts, onOpen, seen }: { posts: PostFeature[]; onOpen: (id: string) => void; seen?: Set<string> }) {
   if (posts.length === 0) return null;
+  // Como no Instagram: os que você ainda não viu primeiro; os vistos com anel cinza
+  const ordered = seen ? [...posts.filter((f) => !seen.has(f.properties.id)), ...posts.filter((f) => seen.has(f.properties.id))] : posts;
   return (
     <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 pt-1">
-      {posts.map((f) => {
+      {ordered.map((f) => {
         const p = f.properties;
+        const viewed = seen?.has(p.id) ?? false;
         return (
           <button
             key={p.id}
@@ -20,11 +23,11 @@ export default function LiveStrip({ posts, onOpen }: { posts: PostFeature[]; onO
           >
             <span
               className="pin pin-mini"
-              data-novo={p.category !== "estabelecimento" && isFresh(p.created_at) ? "sim" : "nao"}
+              data-novo={!viewed && p.category !== "estabelecimento" && isFresh(p.created_at) ? "sim" : "nao"}
               data-divulgacao={p.category === "estabelecimento" ? "sim" : "nao"}
               style={
                 {
-                  "--sev": p.category === "estabelecimento" ? "var(--ink)" : severityVar(p.category),
+                  "--sev": viewed ? "var(--muted)" : p.category === "estabelecimento" ? "var(--ink)" : severityVar(p.category),
                   "--restante": remaining(p),
                 } as React.CSSProperties
               }

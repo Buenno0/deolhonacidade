@@ -52,6 +52,8 @@ type Props = {
   onSelectLandmark: (id: string) => void;
   // Histórico: pins de um dia que já passou (anel neutro, sem tempo nem tags)
   archive?: boolean;
+  // Stories já vistos neste aparelho: anel cinza
+  seen?: Set<string>;
   onMove?: (center: [number, number]) => void;
 };
 
@@ -185,14 +187,19 @@ function pinElement(post: PostProperties, count?: number) {
 
 // Pin: anel na cor da severidade e no tempo que resta. No histórico, anel
 // cheio e neutro. Uma tag no máximo: Divulgação, senão Em alta, senão Agora.
-function paintPin(el: HTMLElement, post: PostProperties, active: boolean, opts: { rank?: number; archive: boolean; cluster: boolean }) {
+function paintPin(
+  el: HTMLElement,
+  post: PostProperties,
+  active: boolean,
+  opts: { rank?: number; archive: boolean; cluster: boolean; seen?: boolean },
+) {
   const promo = post.category === "estabelecimento";
   const quiet = opts.archive || post.processing;
-  el.style.setProperty("--sev", quiet ? "var(--muted)" : promo ? "var(--ink)" : severityVar(post.category));
+  el.style.setProperty("--sev", quiet || opts.seen ? "var(--muted)" : promo ? "var(--ink)" : severityVar(post.category));
   el.style.setProperty("--restante", opts.archive ? "1" : post.processing ? "0.25" : remaining(post).toFixed(3));
   const tag: TagKind | null =
     opts.archive || opts.cluster || post.processing ? null : promo ? "divulgacao" : opts.rank ? "alta" : isFresh(post.created_at) ? "agora" : null;
-  el.dataset.novo = tag === "agora" ? "sim" : "nao";
+  el.dataset.novo = tag === "agora" && !opts.seen ? "sim" : "nao";
   el.dataset.alta = tag === "alta" ? "sim" : "nao";
   el.dataset.divulgacao = promo && !opts.cluster ? "sim" : "nao";
   el.dataset.ativo = active ? "sim" : "nao";
@@ -223,6 +230,7 @@ export default function CityMap({
   onSelectLandmark,
   onMove,
   archive = false,
+  seen,
 }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<MapLibreMap | null>(null);
@@ -231,14 +239,14 @@ export default function CityMap({
   const byTime = useRef(new Map<number, PostProperties>());
   // Ids já vistos: um post que chega depois disso "pousa" com animação
   const known = useRef<Set<string> | null>(null);
-  const latest = useRef({ posts, activeId, theme, mapType, heat, archive, onSelect, onSelectMany, onSelectRequest, onSelectLandmark, onMove });
+  const latest = useRef({ posts, activeId, theme, mapType, heat, archive, seen, onSelect, onSelectMany, onSelectRequest, onSelectLandmark, onMove });
   const landmarkMarkers = useRef(new Map<string, Marker>());
   const requestMarkers = useRef(new Map<string, Marker>());
   const syncRef = useRef<() => void>(() => {});
   const userMarker = useRef<Marker | null>(null);
 
   useEffect(() => {
-    latest.current = { posts, activeId, theme, mapType, heat, archive, onSelect, onSelectMany, onSelectRequest, onSelectLandmark, onMove };
+    latest.current = { posts, activeId, theme, mapType, heat, archive, seen, onSelect, onSelectMany, onSelectRequest, onSelectLandmark, onMove };
   });
 
   // Cria o mapa uma vez
@@ -295,6 +303,7 @@ export default function CityMap({
           rank: ranks.get(post.id),
           archive: latest.current.archive,
           cluster: isCluster,
+          seen: !isCluster && Boolean(latest.current.seen?.has(post.id)),
         });
       }
       for (const [key, entry] of markerMap) {
@@ -389,6 +398,11 @@ export default function CityMap({
     map.current?.getSource<GeoJSONSource>("posts-now")?.setData(toData(happenings(posts)));
     syncRef.current();
   }, [posts]);
+
+  // Visto agora: o anel fica cinza
+  useEffect(() => {
+    syncRef.current();
+  }, [seen]);
 
   // Camadas de calor
   useEffect(() => {

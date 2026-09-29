@@ -26,6 +26,8 @@ type Props = {
   ranks?: Map<string, number>;
   // Histórico: posts que já saíram do mapa
   archive?: boolean;
+  // Já vistos neste aparelho: a passagem automática pula
+  seen?: Set<string>;
 };
 
 const whenFmt = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
@@ -34,7 +36,7 @@ const registered = (iso: string) => whenFmt.format(new Date(iso)).replace(",", "
 
 // Tela cheia sobre a foto: sala-escura, porque a foto manda na luz.
 // Um carrossel com scroll-snap nativo: arrastar no celular, setas no teclado.
-export default function PostViewer({ posts, startId, userPos, loggedIn, onActive, onClose, onNeedLogin, onChanged, ranks, archive = false }: Props) {
+export default function PostViewer({ posts, startId, userPos, loggedIn, onActive, onClose, onNeedLogin, onChanged, ranks, archive = false, seen }: Props) {
   const track = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(() => Math.max(0, posts.findIndex((p) => p.properties.id === startId)));
   const [reported, setReported] = useState<Record<string, "sending" | "done">>({});
@@ -76,6 +78,8 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
   // Passagem automática: cada story fica STORY_MS. Segurar pausa; toque
   // rápido navega (um toque longo só pausa, não navega).
   const [held, setHeld] = useState(false);
+  // Os vistos antes de abrir (os que você assiste agora não contam)
+  const [seenAtOpen] = useState(() => new Set(seen ?? []));
   const [hidden, setHidden] = useState(false);
   const [round, setRound] = useState(0);
   const pressAt = useRef(0);
@@ -139,7 +143,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
       }
       autoScroll.current = 0;
       setIndex(i);
-    }, 150);
+    }, wait);
   }
   useEffect(() => () => clearTimeout(settleTimer.current), []);
 
@@ -268,7 +272,9 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
                     className="story-enche"
                     style={{ animationDuration: `${STORY_MS}ms`, animationPlayState: paused ? "paused" : "running" }}
                     onAnimationEnd={() => {
-                      if (index < posts.length - 1) go(1);
+                      // Próximo que você ainda não viu; nenhum: fica no atual
+                      const j = posts.findIndex((x, k) => k > index && !seenAtOpen.has(x.properties.id));
+                      if (j > index) go(j - index);
                     }}
                   />
                 ) : (

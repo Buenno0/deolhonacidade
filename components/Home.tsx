@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabase/client";
 import { waitPublished } from "@/lib/posting";
+import { markSeen, useSeen } from "@/lib/seen";
 import { locationWorkedBefore, permissionState } from "@/lib/useLocation";
 import { CITY } from "@/lib/city";
 import { ALL_CATEGORY_KEYS, CATEGORIES, type Category } from "@/lib/categories";
@@ -127,6 +128,7 @@ export default function Home() {
   // O que já foi festejado nesta visita (duas buscas seguidas não repetem a festa)
   const celebrated = useRef(new Set<string>());
   const [installHint, setInstallHint] = useState(false);
+  const seen = useSeen();
   const [outside, setOutside] = useState<{ nearest: NearestCity; from: [number, number] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const ownPosts = useRef(new Set<string>());
@@ -474,6 +476,7 @@ export default function Home() {
     <main className="relative h-dvh w-full overflow-hidden bg-bg">
       <CityMap
         posts={inHistory ? pool : visible}
+        seen={seen}
         archive={inHistory}
         theme={theme}
         mapType={mapType}
@@ -500,7 +503,9 @@ export default function Home() {
       />
 
       {/* Topo: marca, cidade, status ao vivo e filtros */}
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-10 px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      {/* Sem pointer-events-none aqui: no iPhone, rolagem horizontal dentro de um
+          elemento com esse ancestral não rola (a barra de filtros travava) */}
+      <header className="absolute inset-x-0 top-0 z-10 px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div className="pointer-events-auto mx-auto flex max-w-lg items-center gap-3 rounded-2xl border border-line bg-surface/90 py-2 pl-3 pr-2 backdrop-blur">
           <Mark size={40} className="shrink-0" />
           <div className="min-w-0 flex-1">
@@ -535,7 +540,7 @@ export default function Home() {
         {!asking && (
           <nav
             aria-label="Filtrar por categoria"
-            className="no-scrollbar pointer-events-auto mx-auto mt-2 flex max-w-lg items-center gap-2 overflow-x-auto pb-1"
+            className="no-scrollbar mx-auto mt-2 flex max-w-lg touch-pan-x items-center gap-2 overflow-x-auto overscroll-x-contain pb-1"
           >
             {/* Mapa | Trends | Histórico */}
             <div role="tablist" className="flex shrink-0 rounded-full border border-line bg-surface/90 p-0.5 backdrop-blur">
@@ -561,7 +566,7 @@ export default function Home() {
               ))}
             </div>
             {tab === "mapa" && (
-              <Chip active={filter === null} onClick={() => setFilter(null)}>
+              <Chip active={filter === null} onClick={() => setFilter(null)} className="shrink-0">
                 Tudo
               </Chip>
             )}
@@ -569,12 +574,12 @@ export default function Home() {
               <span className="tag shrink-0 border border-line bg-surface/90 text-ink">Histórico · {shortDay(historyDay)}</span>
             )}
             {inHistory && historyPosts && historyPosts.length > 0 && (
-              <Chip active={historyList} onClick={() => setHistoryList((v) => !v)}>
+              <Chip active={historyList} onClick={() => setHistoryList((v) => !v)} className="shrink-0">
                 {historyList ? "Ver no mapa" : "Lista"}
               </Chip>
             )}
             {tab === "mapa" && ALL_CATEGORY_KEYS.filter((k) => counts[k]).map((k) => (
-              <Chip key={k} active={filter === k} onClick={() => setFilter(filter === k ? null : k)}>
+              <Chip key={k} active={filter === k} onClick={() => setFilter(filter === k ? null : k)} className="shrink-0">
                 <CategoryIcon category={k} />
                 {CATEGORIES[k].label}
                 <span className="num opacity-70">{counts[k]}</span>
@@ -709,7 +714,7 @@ export default function Home() {
       ) : (
         <footer className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-bg via-bg/70 to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10">
           <div className="pointer-events-auto mx-auto max-w-lg">
-            {tab === "mapa" && <LiveStrip posts={ready.slice(0, 20)} onOpen={(id) => openViewer(id)} />}
+            {tab === "mapa" && <LiveStrip posts={ready.slice(0, 20)} seen={seen} onOpen={(id) => openViewer(id)} />}
             <div className="mt-3 flex gap-2">
               <Button size="lg" variant="secundario" onClick={startAsk} aria-label="Perguntar: alguém aí?" className="px-4">
                 <QuestionIcon />
@@ -772,7 +777,9 @@ export default function Home() {
           loggedIn={termsOk}
           ranks={ranks}
           archive={inHistory}
+          seen={seen}
           onActive={(f) => {
+            markSeen(f.properties.id);
             setActiveId(f.properties.id);
             setFocus(f.geometry.coordinates as [number, number]);
           }}
