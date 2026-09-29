@@ -22,6 +22,9 @@ type Props = {
 // estar ativo no Supabase). Como a volta do Google recarrega a página, o aceite
 // dos termos fica anotado aqui e o Home conclui depois.
 export const GOOGLE_ENABLED = process.env.NEXT_PUBLIC_AUTH_GOOGLE === "1" || Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
+// Código por e-mail: só com SMTP próprio no Supabase (o padrão só entrega à
+// equipe). Sem Google, fica sempre ligado; com Google, só com NEXT_PUBLIC_AUTH_EMAIL=1.
+export const EMAIL_ENABLED = !GOOGLE_ENABLED || process.env.NEXT_PUBLIC_AUTH_EMAIL === "1";
 export const PENDING_TERMS_KEY = "deolho-termos-aceitos";
 export const PENDING_THEN_KEY = "deolho-depois-do-login";
 
@@ -100,7 +103,7 @@ export default function AuthSheet({ session, onClose, onDone, then = null }: Pro
   return (
     <Sheet eyebrow="Conta" title={titles[step]} onClose={onClose}>
       {step === "email" && GOOGLE_ENABLED && (
-        <div className="mb-5 flex flex-col gap-3">
+        <div className={EMAIL_ENABLED ? "mb-5 flex flex-col gap-3" : "flex flex-col gap-4"}>
           {terms}
           {GOOGLE_CLIENT_ID && accepted ? (
             <GoogleButton onSignedIn={(id) => run(() => acceptTerms(id))} onError={setError} />
@@ -115,13 +118,16 @@ export default function AuthSheet({ session, onClose, onDone, then = null }: Pro
               {accepted ? "Entrar com Google" : "Aceite os termos para entrar"}
             </Button>
           )}
-          <p className="flex items-center gap-3 text-xs text-muted before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
-            ou com código no e-mail
-          </p>
+          {!EMAIL_ENABLED && <p className="text-center text-xs text-muted">Sem senha: é só escolher a sua conta do Google.</p>}
+          {EMAIL_ENABLED && (
+            <p className="flex items-center gap-3 text-xs text-muted before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
+              ou com código no e-mail
+            </p>
+          )}
         </div>
       )}
 
-      {step === "email" && (
+      {step === "email" && EMAIL_ENABLED && (
         <form
           className="flex flex-col gap-4"
           onSubmit={(e) => {

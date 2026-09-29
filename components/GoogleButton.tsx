@@ -81,7 +81,8 @@ export default function GoogleButton({ onSignedIn, onError }: { onSignedIn: (use
           shape: "pill",
           text: "continue_with",
           locale: "pt-BR",
-          width: Math.min(400, box.current.clientWidth || 320),
+          // O Google aceita de 200 a 400 px; a caixa do sheet é a medida
+          width: Math.max(200, Math.min(400, Math.floor(box.current.getBoundingClientRect().width) || 320)),
         });
         setReady(true);
       } catch (e) {
@@ -95,7 +96,8 @@ export default function GoogleButton({ onSignedIn, onError }: { onSignedIn: (use
 
   return (
     <div className="flex min-h-[44px] w-full justify-center">
-      <div ref={box} className="w-full" />
+      {/* O iframe do Google tem largura fixa: centralizado na caixa */}
+      <div ref={box} className="flex w-full justify-center [&>div]:mx-auto" />
       {!ready && <span className="sr-only">Carregando o login do Google…</span>}
     </div>
   );
