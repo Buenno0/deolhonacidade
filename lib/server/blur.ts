@@ -4,7 +4,7 @@ import type { Box } from "./moderation";
 
 const THUMB = 192;
 
-// Desfoca cada área (com folga de 20%, para pegar cabelo e borda da placa) e
+// Desfoca cada área (com folga de 30%, para pegar cabelo e borda da placa) e
 // refaz a miniatura a partir da foto desfocada: a do aparelho tinha o rosto.
 export async function blurAreas(bytes: Uint8Array, boxes: Box[]) {
   const img = sharp(bytes).rotate();
@@ -13,14 +13,15 @@ export async function blurAreas(bytes: Uint8Array, boxes: Box[]) {
   if (boxes.length && width && height) {
     const patches = await Promise.all(
       boxes.map(async (b) => {
-        const padX = b.width * 0.2;
-        const padY = b.height * 0.2;
+        const padX = b.width * 0.3;
+        const padY = b.height * 0.3;
         const left = Math.max(0, Math.floor((b.left - padX) * width));
         const top = Math.max(0, Math.floor((b.top - padY) * height));
         const w = Math.min(width - left, Math.ceil((b.width + 2 * padX) * width));
         const h = Math.min(height - top, Math.ceil((b.height + 2 * padY) * height));
         if (w < 2 || h < 2) return null;
-        const sigma = Math.max(8, Math.round(Math.max(w, h) / 6));
+        // Forte o bastante para não sobrar contorno reconhecível
+        const sigma = Math.max(12, Math.round(Math.max(w, h) / 3.5));
         const input = await sharp(bytes).rotate().extract({ left, top, width: w, height: h }).blur(sigma).toBuffer();
         return { input, left, top };
       }),
