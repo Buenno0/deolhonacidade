@@ -121,6 +121,28 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
     });
   }
 
+  // Assentamento: no iPhone a rolagem suave pode acabar sem avisar a posição
+  // final, e o cubo ficava congelado no meio. Parada a rolagem (e sem o dedo
+  // na tela), encaixa no story mais próximo e zera o giro.
+  const touching = useRef(false);
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  function settleSoon(el: HTMLDivElement, target?: number, wait = 150) {
+    clearTimeout(settleTimer.current);
+    settleTimer.current = setTimeout(() => {
+      if (touching.current) return;
+      const w = el.clientWidth || 1;
+      const i = target ?? Math.min(posts.length - 1, Math.max(0, Math.round(el.scrollLeft / w)));
+      if (Math.abs(el.scrollLeft - i * w) > 1) el.scrollTo({ left: i * w, behavior: "instant" });
+      for (const c of el.children) {
+        (c as HTMLElement).style.transform = "";
+        (c as HTMLElement).style.filter = "";
+      }
+      autoScroll.current = 0;
+      setIndex(i);
+    }, 150);
+  }
+  useEffect(() => () => clearTimeout(settleTimer.current), []);
+
   function go(delta: number) {
     const el = track.current;
     if (!el) return;
@@ -128,6 +150,8 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
     // O índice muda na hora; a rolagem só acompanha (não depende dela terminar)
     setIndex(next);
     autoScroll.current = Date.now() + 700;
+    // se a rolagem não avisar o fim, assenta mesmo assim
+    settleSoon(el, next, 650);
     el.scrollTo({ left: next * el.clientWidth, behavior: document.visibilityState === "visible" ? "smooth" : "instant" });
   }
 
@@ -189,8 +213,14 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
         <div
           ref={track}
           className="no-scrollbar flex h-full snap-x snap-mandatory overflow-x-auto [perspective:1200px]"
+          onTouchStart={() => (touching.current = true)}
+          onTouchEnd={(e) => {
+            touching.current = false;
+            settleSoon(e.currentTarget);
+          }}
           onScroll={(e) => {
             cube(e.currentTarget);
+            if (Date.now() >= autoScroll.current) settleSoon(e.currentTarget);
             if (Date.now() < autoScroll.current) return;
             const el = e.currentTarget;
             const i = Math.round(el.scrollLeft / el.clientWidth);
