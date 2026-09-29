@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabase/client";
 import { waitPublished } from "@/lib/posting";
+import { primeLocation } from "@/lib/useLocation";
 import { CITY } from "@/lib/city";
 import { ALL_CATEGORY_KEYS, CATEGORIES, type Category } from "@/lib/categories";
 import { formatDistance, trendingRanks, type PostFeature, type PostsCollection, type RequestFeature } from "@/lib/posts";
@@ -409,6 +410,8 @@ export default function Home() {
   const camera = useRef<HTMLInputElement>(null);
   const startPost = () =>
     requireLogin("new", () => {
+      // A localização é pedida aqui, dentro do toque e com a página visível
+      primeLocation();
       if (camera.current) {
         camera.current.value = "";
         camera.current.click();

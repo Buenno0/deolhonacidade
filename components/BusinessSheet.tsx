@@ -48,7 +48,7 @@ function BusinessForm({ business, onSaved }: { business: Business | null; onSave
   const [address, setAddress] = useState(business?.address ?? "");
   const [whatsapp, setWhatsapp] = useState(business?.whatsapp ?? "");
   const [instagram, setInstagram] = useState(business?.instagram ?? "");
-  const { position, error: geoError, elapsed, retry } = useLocation();
+  const { position, error: geoError, elapsed, stalled, retry } = useLocation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -109,6 +109,13 @@ function BusinessForm({ business, onSaved }: { business: Business | null; onSave
               {geoError}{" "}
               <button type="button" onClick={retry} className="font-medium text-ink underline underline-offset-2">
                 Tentar de novo
+              </button>
+            </>
+          ) : position === null && stalled ? (
+            <>
+              A localização não chegou.{" "}
+              <button type="button" onClick={retry} className="font-medium text-ink underline underline-offset-2">
+                Permitir localização
               </button>
             </>
           ) : position === null ? (

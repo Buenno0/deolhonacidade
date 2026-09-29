@@ -39,7 +39,7 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
   const [caption, setCaption] = useState("");
   const [keepHistory, setKeepHistory] = useState(false);
   const promo = category === "estabelecimento";
-  const { position, error: geoError, elapsed, retry } = useLocation();
+  const { position, error: geoError, elapsed, stalled, retry } = useLocation();
   const [step, setStep] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,10 +92,20 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
         Tentar de novo
       </button>
     </span>
+  ) : position === null && stalled ? (
+    <span className="flex flex-col items-start gap-2">
+      <span className="text-muted">A localização não chegou. Toque para o navegador perguntar de novo.</span>
+      <button
+        type="button"
+        onClick={retry}
+        className="inline-flex items-center gap-2 rounded-full bg-accent px-3.5 py-1.5 text-xs font-medium text-accent-ink"
+      >
+        <PinIcon /> Permitir localização
+      </button>
+    </span>
   ) : position === null ? (
     <span className="text-muted">
       Buscando sua localização… <span className="num">{elapsed}s</span>
-      {elapsed >= 15 && " · confira se a localização está liberada para o site"}
     </span>
   ) : position.accuracy <= GOOD_ACCURACY_M ? (
     <span>
