@@ -111,6 +111,9 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
   const settleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   // Posiciona a rolagem sem o encaixe no meio (no iPhone, o scroll-snap puxava
   // de volta para o story anterior logo depois de um pulo)
+  // A posição real do story (a mesma do encaixe), não a largura vezes o índice:
+  // uma fração de pixel de diferença fazia o encaixe dar um pulinho
+  const faceLeft = (el: HTMLDivElement, i: number) => (el.children[i] as HTMLElement | undefined)?.offsetLeft ?? i * el.clientWidth;
   function placeScroll(el: HTMLDivElement, left: number) {
     el.style.scrollSnapType = "none";
     el.scrollLeft = left;
@@ -125,7 +128,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
       if (touching.current) return;
       const w = el.clientWidth || 1;
       const i = target ?? Math.min(posts.length - 1, Math.max(0, Math.round(el.scrollLeft / w)));
-      if (Math.abs(el.scrollLeft - i * w) > 1) placeScroll(el, i * w);
+      if (Math.abs(el.scrollLeft - faceLeft(el, i)) > 1) placeScroll(el, faceLeft(el, i));
       autoScroll.current = Date.now() + 80;
       setIndex(i);
     }, wait);
@@ -147,7 +150,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
     setIndex(next);
     autoScroll.current = Date.now() + 700;
     const jump = () => {
-      placeScroll(el, next * w);
+      placeScroll(el, faceLeft(el, next));
       autoScroll.current = Date.now() + 120;
       // e confere depois: se a rolagem não ficou no story certo, corrige
       settleSoon(el, next, 220);
@@ -159,7 +162,9 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
       return;
     }
     animating.current = true;
-    const dist = (next - index) * w; // pode pular vários (os já vistos)
+    // Sem arrasto durante a troca: a rolagem nativa brigava com a animação
+    el.style.overflowX = "hidden";
+    const dist = faceLeft(el, next) - faceLeft(el, index); // pode pular vários (os já vistos)
     const opts: KeyframeAnimationOptions = { duration: 340, easing: "cubic-bezier(.25,.1,.25,1)", fill: "forwards" };
     const back = "translateX(-12%) scale(0.97)";
     const dim = (face: HTMLElement) => face.querySelector(".story-dim") as HTMLElement;
@@ -188,6 +193,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
         for (const a of anims) a.cancel();
         nxt.style.zIndex = "";
         cur.style.zIndex = "";
+        el.style.overflowX = "";
         animating.current = false;
       });
   }
@@ -282,7 +288,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
 
         {/* Toque: esquerda volta, direita avança; segurar pausa */}
         <div
-          className="absolute inset-x-0 top-20 bottom-[34%] flex"
+          className="absolute inset-x-0 top-20 bottom-0 flex"
           onPointerDown={() => {
             // na hora do toque (não num efeito depois): o clique chega antes
             pressAt.current = Date.now();
@@ -309,6 +315,8 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
                     className="story-enche"
                     style={{ animationDuration: `${STORY_MS}ms`, animationPlayState: paused ? "paused" : "running" }}
                     onAnimationEnd={() => {
+                      // Com o dedo na tela, espera: avançar agora brigaria com o arrasto
+                      if (touching.current) return setRound((r) => r + 1);
                       // Próximo que você ainda não viu; se todos à frente já foram
                       // vistos, segue para o próximo mesmo assim (para só no último)
                       const j = posts.findIndex((x, k) => k > index && !seenAtOpen.has(x.properties.id));
@@ -357,7 +365,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
         {/* Base: tags, legenda, dados e ações, sobre o desfoque */}
         <div
           key={`base-${p.id}`}
-          className="story-entra absolute inset-x-0 bottom-0 flex flex-col gap-3 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+          className="story-entra pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-3 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] [&_a]:pointer-events-auto [&_button]:pointer-events-auto [&_input]:pointer-events-auto"
         >
           {(promo || rank || fresh || archive) && (
             <div className="flex flex-wrap gap-2">
