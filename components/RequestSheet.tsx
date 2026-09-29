@@ -7,6 +7,7 @@ import { timeAgo, timeLeftShort, type PostFeature, type RequestProperties } from
 import Sheet from "./Sheet";
 import { Button } from "./ui";
 import { CameraIcon, FlagIcon } from "./ui/icons";
+import { useDragScroll } from "@/lib/useDragScroll";
 
 type Props = {
   request: RequestProperties;
@@ -21,6 +22,7 @@ type Props = {
 // Um pedido "Alguém aí?": a pergunta, as fotos que já responderam e o botão
 // para responder. Só quem está a até 1 km consegue (o banco confere).
 export default function RequestSheet({ request, answers, loggedIn, onClose, onAnswer, onOpenAnswer, onNeedLogin }: Props) {
+  const faixa = useDragScroll();
   const [reported, setReported] = useState(false);
 
   async function report() {
@@ -39,7 +41,7 @@ export default function RequestSheet({ request, answers, loggedIn, onClose, onAn
             <p className="rotulo mb-2">
               {answers.length} {answers.length === 1 ? "resposta" : "respostas"}
             </p>
-            <div className="no-scrollbar flex gap-2 overflow-x-auto">
+            <div ref={faixa} className="no-scrollbar flex select-none gap-2 overflow-x-auto">
               {answers.map((f) => (
                 <button
                   key={f.properties.id}

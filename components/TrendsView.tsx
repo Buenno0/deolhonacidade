@@ -7,6 +7,7 @@ import { engagement, hotness, isFresh, remaining, timeAgo, timeLeftShort, trendi
 import { Tag } from "./ui/Tag";
 import { Chip, EmptyState } from "./ui";
 import { CategoryIcon, CheckIcon, EyeIcon, ShareIcon } from "./ui/icons";
+import { useDragScroll } from "@/lib/useDragScroll";
 
 type Sort = "alta" | "vistos" | "confirmados";
 
@@ -55,6 +56,7 @@ const Thumb = ({ path, className }: { path: string; className: string }) => (
 
 // Trends: o que está chamando atenção agora, entre os posts no ar.
 export default function TrendsView({ posts, onOpen }: Props) {
+  const faixa = useDragScroll();
   const [sort, setSort] = useState<Sort>("alta");
   const [now] = useState(() => Date.now());
 
@@ -78,7 +80,7 @@ export default function TrendsView({ posts, onOpen }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="no-scrollbar flex gap-2 overflow-x-auto">
+      <div ref={faixa} className="no-scrollbar flex select-none gap-2 overflow-x-auto">
         {SORTS.map((s) => (
           <Chip key={s.id} active={sort === s.id} onClick={() => setSort(s.id)}>
             {s.label}

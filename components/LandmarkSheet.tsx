@@ -8,6 +8,7 @@ import AerialView from "./AerialView";
 import Sheet from "./Sheet";
 import { Button, Spinner } from "./ui";
 import { CameraIcon, PinIcon, QuestionIcon } from "./ui/icons";
+import { useDragScroll } from "@/lib/useDragScroll";
 
 type Props = {
   landmark: Landmark;
@@ -38,6 +39,8 @@ function useWiki(title: string | null) {
 // texto principal só quando fala do lugar; o que é sobre quem é homenageado
 // fica numa seção à parte. Nada que não venha de uma fonte.
 export default function LandmarkSheet({ landmark: l, posts, onClose, onOpenPost, onPostHere, onAskHere }: Props) {
+  const faixaFotos = useDragScroll();
+  const faixaPerto = useDragScroll();
   const place = useWiki(l.wiki_title);
   const about = useWiki(l.about_title);
   const [now] = useState(() => Date.now());
@@ -55,7 +58,7 @@ export default function LandmarkSheet({ landmark: l, posts, onClose, onOpenPost,
       <div className="flex flex-col gap-4">
         {/* Fotos do próprio lugar */}
         {l.photos.length > 0 ? (
-          <div className="no-scrollbar -mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1">
+          <div ref={faixaFotos} className="no-scrollbar -mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1">
             {l.photos.map((ph) => (
               <figure key={ph.url} className="w-full shrink-0 snap-center overflow-hidden rounded-xl border border-line bg-elev">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -141,7 +144,7 @@ export default function LandmarkSheet({ landmark: l, posts, onClose, onOpenPost,
           {nearby.length === 0 ? (
             <p className="text-sm text-muted">Nada registrado aqui agora.</p>
           ) : (
-            <div className="no-scrollbar flex gap-2 overflow-x-auto">
+            <div ref={faixaPerto} className="no-scrollbar flex select-none gap-2 overflow-x-auto">
               {nearby.map((f) => (
                 <button
                   key={f.properties.id}

@@ -14,6 +14,7 @@ import Sheet from "./Sheet";
 import { Button, Chip, Spinner } from "./ui";
 import { AlertIcon, CameraIcon, CategoryIcon, PinIcon } from "./ui/icons";
 import { errorMessage } from "@/lib/errors";
+import { useDragScroll } from "@/lib/useDragScroll";
 
 // Precisão em metros: até GOOD é "ok"; até MAX posta com aviso de aproximada.
 // No celular com GPS costuma dar 5-30 m; em notebook (Wi-Fi) 30-150 m ou mais.
@@ -61,6 +62,7 @@ export default function NewPostSheet({
   business,
   initialPhoto = null,
 }: Props) {
+  const faixa = useDragScroll();
   const [photo, setPhoto] = useState<File | null>(initialPhoto);
   const [category, setCategory] = useState<Category | null>(null);
   const [caption, setCaption] = useState("");
@@ -347,7 +349,7 @@ export default function NewPostSheet({
         {/* Categorias numa linha, deslizando, as mais usadas primeiro */}
         <fieldset>
           <legend className="rotulo mb-2">O que é</legend>
-          <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 pb-1">
+          <div ref={faixa} className="no-scrollbar -mx-5 flex select-none gap-2 overflow-x-auto px-5 pb-1">
             {business && !request && (
               <Chip
                 type="button"

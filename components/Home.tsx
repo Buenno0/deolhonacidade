@@ -37,6 +37,7 @@ import TrendsView from "./TrendsView";
 import Mark from "./ui/Mark";
 import BetaTag from "./ui/BetaTag";
 import { Button, Chip, EmptyState, IconButton, Spinner, cx } from "./ui";
+import { useDragScroll } from "@/lib/useDragScroll";
 import {
   ArchiveIcon,
   BellIcon,
@@ -93,6 +94,7 @@ async function fetchRequests(): Promise<RequestFeature[]> {
 }
 
 export default function Home() {
+  const faixa = useDragScroll();
   const supabase = getSupabase();
   const { theme, toggle } = useTheme();
   const mapType = useMapType();
@@ -553,7 +555,8 @@ export default function Home() {
         {!asking && (
           <nav
             aria-label="Filtrar por categoria"
-            className="no-scrollbar mx-auto mt-2 flex max-w-lg touch-pan-x items-center gap-2 overflow-x-auto overscroll-x-contain pb-1"
+            ref={faixa}
+            className="no-scrollbar mx-auto mt-2 flex max-w-lg touch-pan-x select-none items-center gap-2 overflow-x-auto overscroll-x-contain pb-1"
           >
             {/* Mapa | Trends | Histórico */}
             <div role="tablist" className="flex shrink-0 rounded-full border border-line bg-surface/90 p-0.5 backdrop-blur">

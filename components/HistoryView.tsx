@@ -6,6 +6,7 @@ import { photoUrl, thumbUrl } from "@/lib/media";
 import type { PostFeature } from "@/lib/posts";
 import { EmptyState, cx } from "./ui";
 import { CategoryIcon } from "./ui/icons";
+import { useDragScroll } from "@/lib/useDragScroll";
 
 export const HISTORY_DAYS = 30;
 const TZ = "America/Sao_Paulo";
@@ -37,12 +38,13 @@ export function HistoryRuler({
   today: string;
   onPick: (day: string) => void;
 }) {
+  const faixa = useDragScroll();
   const days = useMemo(() => {
     const [y, m, d] = today.split("-").map(Number);
     return Array.from({ length: HISTORY_DAYS }, (_, i) => new Date(Date.UTC(y, m - 1, d - i)).toISOString().slice(0, 10));
   }, [today]);
   return (
-    <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1" role="listbox" aria-label="Dia do histórico">
+    <div ref={faixa} className="no-scrollbar -mx-4 flex select-none gap-2 overflow-x-auto px-4 pb-1" role="listbox" aria-label="Dia do histórico">
       {days.map((d) => {
         const n = counts[d] ?? 0;
         const active = d === day;
