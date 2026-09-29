@@ -11,6 +11,10 @@ export type LocationState = {
   elapsed: number;
   // Passou do prazo sem resposta: o app oferece "Permitir localização"
   stalled: boolean;
+  // Ainda sem permissão: o pedido só sai num toque (no iPhone, pedido fora de
+  // um toque, ou com a câmera aberta, é negado sem perguntar e a negativa fica
+  // guardada até recarregar a página)
+  needsTap: boolean;
   // Pede de novo. Chame dentro de um toque: é o que faz o navegador perguntar.
   retry: () => void;
 };
@@ -33,9 +37,9 @@ export function deniedHelp() {
             : "brave" in navigator
               ? "Brave"
               : null;
-  if (ios && app) return `A localização está bloqueada para o ${app}. No iPhone: Ajustes > ${app} > Localização > Ao Usar o App. Depois, toque em Tentar de novo.`;
+  if (ios && app) return `A localização está bloqueada para o ${app}. No iPhone: Ajustes > ${app} > Localização > Ao Usar o App. Depois, recarregue a página e toque em Tentar de novo.`;
   if (ios)
-    return "A localização está bloqueada. No iPhone: Ajustes > Privacidade e Segurança > Serviços de Localização > Sites do Safari > Ao Usar o App. No site, toque em aA > Ajustes do Site > Localização > Perguntar.";
+    return "A localização está bloqueada. No iPhone: Ajustes > Privacidade e Segurança > Serviços de Localização > Sites do Safari > Ao Usar o App. No site, toque em aA > Ajustes do Site > Localização > Perguntar, e recarregue a página.";
   if (/Android/.test(ua))
     return "A localização está bloqueada. Toque no cadeado ao lado do endereço > Permissões > Localização > Permitir, e confira se a localização do aparelho está ligada.";
   return "A localização está bloqueada. Libere para este site no cadeado ao lado do endereço e confira se o sistema permite a localização para o navegador.";
@@ -75,7 +79,7 @@ export function primeLocation() {
   });
 }
 
-async function permissionState(): Promise<PermissionState | null> {
+export async function permissionState(): Promise<PermissionState | null> {
   try {
     return (await navigator.permissions?.query({ name: "geolocation" as PermissionName }))?.state ?? null;
   } catch {
@@ -93,7 +97,10 @@ export function useLocation(): LocationState {
   );
   const [elapsed, setElapsed] = useState(0);
   const [stalled, setStalled] = useState(false);
+  const [needsTap, setNeedsTap] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  // Depois de um toque em "Permitir", já pode pedir direto
+  const tapped = useRef(false);
   const hasFix = useRef(position !== null);
 
   useEffect(() => {
@@ -102,6 +109,7 @@ export function useLocation(): LocationState {
     let stopped = false;
     const started = Date.now();
     const tick = setInterval(() => {
+      if (watch === null) return; // esperando o toque: não conta tempo
       const ms = Date.now() - started;
       setElapsed(Math.round(ms / 1000));
       if (!hasFix.current && ms >= STALL_MS) setStalled(true);
@@ -131,10 +139,13 @@ export function useLocation(): LocationState {
 
     permissionState().then((state) => {
       if (stopped) return;
-      if (state === "denied") {
-        setError(deniedHelp());
+      // Sem permissão ainda (ou sem como saber): espera o toque em "Permitir"
+      if (state !== "granted" && !tapped.current) {
+        setNeedsTap(true);
+        if (state === "denied") setError(deniedHelp());
         return;
       }
+      setNeedsTap(false);
       // Com a página escondida (câmera aberta), espera ela voltar
       if (document.visibilityState === "visible") start();
       else document.addEventListener("visibilitychange", onVisible);
@@ -153,10 +164,12 @@ export function useLocation(): LocationState {
     setError(null);
     setElapsed(0);
     setStalled(false);
+    setNeedsTap(false);
+    tapped.current = true;
     // Dentro do toque: é aqui que o navegador mostra a pergunta de permissão
     primeLocation();
     setAttempt((n) => n + 1);
   }, []);
 
-  return { position, error, elapsed, stalled, retry };
+  return { position, error, elapsed, stalled, needsTap, retry };
 }

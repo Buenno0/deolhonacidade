@@ -39,7 +39,7 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
   const [caption, setCaption] = useState("");
   const [keepHistory, setKeepHistory] = useState(false);
   const promo = category === "estabelecimento";
-  const { position, error: geoError, elapsed, stalled, retry } = useLocation();
+  const { position, error: geoError, elapsed, stalled, needsTap, retry } = useLocation();
   const [step, setStep] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +56,15 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
   const usable = position !== null && position.accuracy <= MAX_ACCURACY_M;
   const meters = position ? Math.round(position.accuracy) : 0;
   const busy = step !== null;
-  const missing = !photo ? "Tire a foto" : !category ? "Escolha o que é" : !usable ? "Aguardando localização" : null;
+  const missing = !photo
+    ? "Tire a foto"
+    : !category
+      ? "Escolha o que é"
+      : needsTap
+        ? "Permita a localização"
+        : !usable
+          ? "Aguardando localização"
+          : null;
 
   async function submit() {
     if (!photo || !category || !position) return;
@@ -85,7 +93,21 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
     }
   }
 
-  const locationLine = geoError ? (
+  const allowButton = (label: string) => (
+    <button
+      type="button"
+      onClick={retry}
+      className="inline-flex items-center gap-2 rounded-full bg-accent px-3.5 py-1.5 text-xs font-medium text-accent-ink"
+    >
+      <PinIcon /> {label}
+    </button>
+  );
+  const locationLine = needsTap && !geoError ? (
+    <span className="flex flex-col items-start gap-2">
+      <span className="text-muted">Para marcar o ponto do registro, o app precisa da sua localização.</span>
+      {allowButton("Permitir localização")}
+    </span>
+  ) : geoError ? (
     <span className="text-danger">
       {geoError}{" "}
       <button type="button" onClick={retry} className="font-medium underline underline-offset-2">
@@ -95,13 +117,7 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
   ) : position === null && stalled ? (
     <span className="flex flex-col items-start gap-2">
       <span className="text-muted">A localização não chegou. Toque para o navegador perguntar de novo.</span>
-      <button
-        type="button"
-        onClick={retry}
-        className="inline-flex items-center gap-2 rounded-full bg-accent px-3.5 py-1.5 text-xs font-medium text-accent-ink"
-      >
-        <PinIcon /> Permitir localização
-      </button>
+      {allowButton("Permitir localização")}
     </span>
   ) : position === null ? (
     <span className="text-muted">
@@ -156,6 +172,9 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
       }
     >
       <div className="flex flex-col gap-4">
+        {/* Sem foto ainda: a localização vem primeiro (é o primeiro passo) */}
+        {!preview && <div className="flex items-center gap-2 text-sm">{locationLine}</div>}
+
         {/* A foto é o post. Tirada: vira miniatura, para caber tudo sem rolar */}
         {preview ? (
           <div className="flex items-center gap-3">
@@ -241,8 +260,6 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
           </label>
         )}
 
-        {/* Sem foto ainda: a localização aparece aqui embaixo */}
-        {!preview && <p className="flex items-center gap-2 text-sm">{locationLine}</p>}
       </div>
     </Sheet>
   );

@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabase/client";
 import { waitPublished } from "@/lib/posting";
-import { primeLocation } from "@/lib/useLocation";
+import { permissionState } from "@/lib/useLocation";
 import { CITY } from "@/lib/city";
 import { ALL_CATEGORY_KEYS, CATEGORIES, type Category } from "@/lib/categories";
 import { formatDistance, trendingRanks, type PostFeature, type PostsCollection, type RequestFeature } from "@/lib/posts";
@@ -408,11 +408,26 @@ export default function Home() {
   // Câmera primeiro: o toque em Registrar já abre a câmera (o navegador só
   // deixa abrir dentro do próprio toque); a foto chega pronta no formulário
   const camera = useRef<HTMLInputElement>(null);
+  const geoGranted = useRef(false);
+  useEffect(() => {
+    let status: PermissionStatus | null = null;
+    const read = () => (geoGranted.current = status?.state === "granted");
+    permissionState().then((st) => (geoGranted.current = st === "granted"));
+    navigator.permissions
+      ?.query({ name: "geolocation" as PermissionName })
+      .then((st) => {
+        status = st;
+        st.addEventListener("change", read);
+      })
+      .catch(() => {});
+    return () => status?.removeEventListener("change", read);
+  }, []);
   const startPost = () =>
     requireLogin("new", () => {
-      // A localização é pedida aqui, dentro do toque e com a página visível
-      primeLocation();
-      if (camera.current) {
+      // Câmera direto só com a localização já liberada. Sem ela, o formulário
+      // abre primeiro e pede a localização num toque (com a câmera aberta, o
+      // iPhone nega sem perguntar e guarda a negativa até recarregar)
+      if (geoGranted.current && camera.current) {
         camera.current.value = "";
         camera.current.click();
       } else setPanel({ kind: "new", request: null });
