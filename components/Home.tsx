@@ -374,6 +374,8 @@ export default function Home() {
     () => (posts ?? []).filter((f) => !filter || f.properties.category === filter),
     [posts, filter],
   );
+  // O que já pode ser visto: sem os que o servidor ainda está desfocando
+  const ready = useMemo(() => visible.filter((f) => !f.properties.processing), [visible]);
   const counts = useMemo(() => {
     const c: Partial<Record<Category, number>> = {};
     for (const f of posts ?? []) c[f.properties.category] = (c[f.properties.category] ?? 0) + 1;
@@ -425,14 +427,16 @@ export default function Home() {
   }
 
   const pool = inHistory ? (historyPosts ?? []) : (posts ?? []);
-  const shown = inHistory ? pool : visible;
+  const shown = inHistory ? pool : ready;
   const viewerPosts =
     panel?.kind === "viewer"
       ? panel.ids
-        ? panel.ids.map((id) => pool.find((f) => f.properties.id === id)).filter((f): f is PostFeature => Boolean(f))
+        ? panel.ids
+            .map((id) => pool.find((f) => f.properties.id === id))
+            .filter((f): f is PostFeature => Boolean(f) && !f!.properties.processing)
         : shown.some((f) => f.properties.id === panel.startId)
           ? shown
-          : pool // o post pedido está fora do filtro: mostra todos
+          : pool.filter((f) => !f.properties.processing) // o post pedido está fora do filtro: mostra todos
       : [];
   const openRequest = panel?.kind === "request" ? requests.find((r) => r.properties.id === panel.id) : undefined;
   const answersOf = (requestId: string) => (posts ?? []).filter((f) => f.properties.request_id === requestId);
@@ -440,7 +444,7 @@ export default function Home() {
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-bg">
       <CityMap
-        posts={shown}
+        posts={inHistory ? pool : visible}
         archive={inHistory}
         theme={theme}
         mapType={mapType}
@@ -449,7 +453,11 @@ export default function Home() {
         userPos={userPos}
         requests={inHistory ? [] : requestsShown}
         heat={heat}
-        onSelect={(id) => openViewer(id)}
+        onSelect={(id) =>
+          posts?.find((f) => f.properties.id === id)?.properties.processing
+            ? setToast({ text: "Protegendo rostos e placas… seu post aparece em instantes" })
+            : openViewer(id)
+        }
         onSelectMany={(ids) => openViewer(ids[0], ids)}
         onSelectRequest={(id) => setPanel({ kind: "request", id })}
         landmarks={landmarks}
@@ -672,7 +680,7 @@ export default function Home() {
       ) : (
         <footer className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-bg via-bg/70 to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10">
           <div className="pointer-events-auto mx-auto max-w-lg">
-            {tab === "mapa" && <LiveStrip posts={visible.slice(0, 20)} onOpen={(id) => openViewer(id)} />}
+            {tab === "mapa" && <LiveStrip posts={ready.slice(0, 20)} onOpen={(id) => openViewer(id)} />}
             <div className="mt-3 flex gap-2">
               <Button size="lg" variant="secundario" onClick={startAsk} aria-label="Perguntar: alguém aí?" className="px-4">
                 <QuestionIcon />

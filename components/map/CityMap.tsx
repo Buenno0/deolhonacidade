@@ -132,6 +132,25 @@ const toData = (posts: PostFeature[]): GeoJSON.FeatureCollection => ({
 // O calor é de acontecimento: divulgação não esquenta o mapa
 const happenings = (posts: PostFeature[]) => posts.filter((f) => f.properties.category !== "estabelecimento");
 
+// A foto do pin. Enquanto o servidor desfoca rostos e placas, nada carrega:
+// a original nunca aparece na tela, nem para quem postou.
+function setPinPhoto(img: HTMLImageElement, post: PostProperties) {
+  const want = post.processing ? "" : post.photo_path;
+  if (img.dataset.path === want) return;
+  img.dataset.path = want;
+  img.onerror = null;
+  if (!want) {
+    img.removeAttribute("src");
+    return;
+  }
+  img.src = thumbUrl(want);
+  // Post sem miniatura (anterior a ela existir): cai para a foto inteira
+  img.onerror = () => {
+    img.onerror = null;
+    img.src = photoUrl(want);
+  };
+}
+
 function pinElement(post: PostProperties, count?: number) {
   const el = document.createElement("button");
   el.type = "button";
@@ -140,13 +159,8 @@ function pinElement(post: PostProperties, count?: number) {
   const img = document.createElement("img");
   img.alt = "";
   img.decoding = "async";
-  img.src = thumbUrl(post.photo_path);
-  // Post sem miniatura (anterior a ela existir): cai para a foto inteira
-  img.onerror = () => {
-    img.onerror = null;
-    img.src = photoUrl(post.photo_path);
-  };
   el.appendChild(img);
+  setPinPhoto(img, post);
   if (count) {
     const badge = document.createElement("span");
     badge.className = "pin-contagem";
@@ -170,6 +184,8 @@ function paintPin(el: HTMLElement, post: PostProperties, active: boolean, opts: 
   el.dataset.divulgacao = promo && !opts.cluster ? "sim" : "nao";
   el.dataset.ativo = active ? "sim" : "nao";
   el.dataset.processando = post.processing && !opts.cluster ? "sim" : "nao";
+  const img = el.querySelector("img");
+  if (img) setPinPhoto(img, post);
   if ((el.dataset.tag ?? "") !== (tag ?? "")) {
     el.querySelector(".pin-tag")?.remove();
     if (tag) el.insertAdjacentHTML("beforeend", tagHtml(tag));

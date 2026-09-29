@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { getSupabase } from "@/lib/supabase/client";
 import { timeAgo, type PostProperties } from "@/lib/posts";
-import { Button, Spinner } from "../ui";
+import { Spinner } from "../ui";
 import { CheckIcon, CloseIcon } from "../ui/icons";
 import { errorMessage } from "@/lib/errors";
 
@@ -63,27 +63,29 @@ export default function StillThere({ post, loggedIn, onNeedLogin, onVoted }: Pro
       ? `${post.confirm_count} ${post.confirm_count === 1 ? "confirmou" : "confirmaram"}${post.last_confirmed_at ? ` · último ${timeAgo(post.last_confirmed_at)}` : ""}`
       : "Ninguém confirmou ainda";
 
+  // Estilo story: botões de vidro sobre o desfoque, sem caixa em volta
   return (
-    <div className="rounded-xl border border-white/10 bg-black/40 p-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-ink">{answered === null ? "Ainda está rolando?" : "Obrigado por confirmar"}</p>
-          <p className="rotulo mt-0.5">{summary}{post.deny_count > 0 ? ` · ${post.deny_count} disse que acabou` : ""}</p>
+    <div className="flex flex-col gap-2">
+      {answered === null ? (
+        <div className="flex gap-2.5">
+          <button type="button" className="story-pill story-vidro flex-1" disabled={busy !== null} onClick={() => vote(true)}>
+            {busy === "sim" ? <Spinner /> : <CheckIcon className="text-ok" />} Ainda está rolando
+          </button>
+          <button type="button" className="story-pill story-vidro px-4" disabled={busy !== null} onClick={() => vote(false)}>
+            {busy === "nao" ? <Spinner /> : <CloseIcon />} Acabou
+          </button>
         </div>
-        {answered === null ? (
-          <div className="grid shrink-0 grid-cols-2 gap-2 sm:flex">
-            <Button variant="secundario" className="border-white/15 bg-white/5 px-3 py-1.5" disabled={busy !== null} onClick={() => vote(true)}>
-              {busy === "sim" ? <Spinner /> : <CheckIcon className="text-ok" />} Sim
-            </Button>
-            <Button variant="secundario" className="border-white/15 bg-white/5 px-3 py-1.5" disabled={busy !== null} onClick={() => vote(false)}>
-              {busy === "nao" ? <Spinner /> : <CloseIcon className="text-muted" />} Acabou
-            </Button>
-          </div>
-        ) : (
-          <span className="rotulo shrink-0 text-ink">{answered ? "você: sim" : "você: acabou"}</span>
-        )}
-      </div>
-      {error && <p className="mt-2 text-xs text-danger">{error}</p>}
+      ) : (
+        <p className="story-pill story-vidro justify-start px-4 text-sm font-medium">
+          {answered ? <CheckIcon className="text-ok" /> : <CloseIcon />}
+          {answered ? "Você confirmou que ainda está rolando" : "Você disse que acabou"}
+        </p>
+      )}
+      <p className="rotulo text-ink/70">
+        {summary}
+        {post.deny_count > 0 ? ` · ${post.deny_count} disse que acabou` : ""}
+      </p>
+      {error && <p className="text-xs text-danger">{error}</p>}
     </div>
   );
 }
