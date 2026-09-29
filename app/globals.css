@@ -349,7 +349,7 @@ body {
   background: rgb(244 239 228 / 0.35);
 }
 .story-face {
-  box-shadow: -18px 0 40px rgb(0 0 0 / 0.45);
+  box-shadow: -10px 0 28px rgb(0 0 0 / 0.3);
 }
 .story-dim {
   position: absolute;

@@ -148,8 +148,8 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
     }
     animating.current = true;
     const dist = (next - index) * w; // pode pular vários (os já vistos)
-    const opts: KeyframeAnimationOptions = { duration: 380, easing: "cubic-bezier(.2,.8,.2,1)", fill: "forwards" };
-    const back = "translateX(-22%) scale(0.94)";
+    const opts: KeyframeAnimationOptions = { duration: 340, easing: "cubic-bezier(.25,.1,.25,1)", fill: "forwards" };
+    const back = "translateX(-12%) scale(0.97)";
     const dim = (face: HTMLElement) => face.querySelector(".story-dim") as HTMLElement;
     const anims =
       next > index
@@ -157,16 +157,19 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
             // o próximo entra por cima, da direita
             nxt.animate([{ transform: "translateX(0)" }, { transform: `translateX(${-dist}px)` }], opts),
             cur.animate([{ transform: "none" }, { transform: back }], opts),
-            dim(cur).animate([{ opacity: 0 }, { opacity: 0.55 }], opts),
+            dim(cur).animate([{ opacity: 0 }, { opacity: 0.35 }], opts),
           ]
         : [
             // voltando: o atual sai pela direita e revela o anterior embaixo
             cur.animate([{ transform: "none" }, { transform: `translateX(${w}px)` }], opts),
             nxt.animate([{ transform: `translateX(${-dist}px) ${back}` }, { transform: `translateX(${-dist}px)` }], opts),
-            dim(nxt).animate([{ opacity: 0.55 }, { opacity: 0 }], opts),
+            dim(nxt).animate([{ opacity: 0.35 }, { opacity: 0 }], opts),
           ];
     (next > index ? nxt : cur).style.zIndex = "2";
-    Promise.all(anims.map((a) => a.finished))
+    // Limite de segurança: se o mapa recarregar os posts no meio e a foto em
+    // animação for trocada, a animação "órfã" nunca termina e travava os toques
+    const guard = new Promise((r) => setTimeout(r, (opts.duration as number) + 150));
+    Promise.race([Promise.all(anims.map((a) => a.finished)), guard])
       .catch(() => {})
       .finally(() => {
         jump();
@@ -234,7 +237,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
       <div className="relative h-full w-full overflow-hidden sm:aspect-[9/16] sm:h-[min(92dvh,860px)] sm:w-auto sm:rounded-2xl sm:shadow-2xl">
         <div
           ref={track}
-          className="no-scrollbar flex h-full snap-x snap-mandatory overflow-x-auto"
+          className="no-scrollbar relative isolate z-0 flex h-full snap-x snap-mandatory overflow-x-auto"
           onTouchStart={() => (touching.current = true)}
           onTouchEnd={(e) => {
             touching.current = false;
