@@ -137,18 +137,31 @@ const happenings = (posts: PostFeature[]) => posts.filter((f) => f.properties.ca
 function setPinPhoto(img: HTMLImageElement, post: PostProperties) {
   const want = post.processing ? "" : post.photo_path;
   if (img.dataset.path === want) return;
+  // Trocando de foto (ou saindo do "processando"): não do primeiro desenho
+  const swapping = img.dataset.path !== undefined;
   img.dataset.path = want;
   img.onerror = null;
   if (!want) {
     img.removeAttribute("src");
     return;
   }
-  img.src = thumbUrl(want);
-  // Post sem miniatura (anterior a ela existir): cai para a foto inteira
-  img.onerror = () => {
-    img.onerror = null;
-    img.src = photoUrl(want);
+  // A foto troca só quando já carregou: até lá, o pin segue com o anel girando
+  const pin = img.closest(".pin") as HTMLElement | null;
+  const show = (url: string) => {
+    if (img.dataset.path !== want) return;
+    img.src = url;
+    delete pin?.dataset.carregando;
   };
+  if (pin && swapping) pin.dataset.carregando = "sim";
+  const pre = new Image();
+  pre.decoding = "async";
+  pre.onload = () => show(pre.src);
+  // Post sem miniatura (anterior a ela existir): cai para a foto inteira
+  pre.onerror = () => {
+    pre.onerror = () => show(photoUrl(want));
+    pre.src = photoUrl(want);
+  };
+  pre.src = thumbUrl(want);
 }
 
 function pinElement(post: PostProperties, count?: number) {

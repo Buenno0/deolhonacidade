@@ -1,6 +1,6 @@
 import { after } from "next/server";
 import type { Category } from "@/lib/categories";
-import { THUMB_SUFFIX } from "@/lib/media";
+import { THUMB_SUFFIX, photoUrl, thumbUrl } from "@/lib/media";
 import { blurAreas } from "@/lib/server/blur";
 import { inspect, type ModerationResult } from "@/lib/server/moderation";
 import { notifyPost } from "@/lib/server/push";
@@ -50,6 +50,10 @@ async function processPhoto(id: string, original: string) {
         writeBytes(photoPath + THUMB_SUFFIX, safe.thumb, "image/webp"),
       ]);
     }
+    // Esquenta o CDN: a primeira busca de um endereço novo vai até o S3 (EUA) e
+    // leva segundos. Pedindo daqui (a função roda em São Paulo), a cópia fica
+    // no ponto do CloudFront que atende a cidade antes de o pin aparecer.
+    if (photoPath) await warmCdn([thumbUrl(photoPath), photoUrl(photoPath)]);
     await finalize(id, result, photoPath);
     // A original (com rostos) não fica guardada; se foi recusada, sai também
     await remove(photoPath ? [original, original + THUMB_SUFFIX] : []).catch((e) => console.error("apagar original falhou", e));
@@ -58,6 +62,16 @@ async function processPhoto(id: string, original: string) {
     console.error("processamento da foto falhou", e);
     await adminClient().from("posts").update({ moderation: { processing: false, failed: true } }).eq("id", id);
   }
+}
+
+async function warmCdn(urls: string[]) {
+  await Promise.all(
+    urls.map((u) =>
+      fetch(u, { signal: AbortSignal.timeout(4000) })
+        .then((r) => r.arrayBuffer())
+        .catch(() => {}),
+    ),
+  );
 }
 
 async function finalize(id: string, result: ModerationResult, photoPath: string | null) {

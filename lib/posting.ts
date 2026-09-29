@@ -59,8 +59,10 @@ export async function submitPost(draft: Draft, onStep: (s: string) => void): Pro
 export async function waitPublished(id: string, timeoutMs = 30_000): Promise<"published" | "hidden" | "timeout"> {
   const supabase = getSupabase();
   const until = Date.now() + timeoutMs;
-  for (let wait = 700; Date.now() < until; wait = Math.min(2500, wait * 1.4)) {
-    await new Promise((r) => setTimeout(r, wait));
+  // Pergunta a cada 0,8 s: a publicação costuma levar 1 a 3 s, e intervalos
+  // crescentes faziam o pin demorar a trocar mesmo com tudo pronto
+  while (Date.now() < until) {
+    await new Promise((r) => setTimeout(r, 800));
     const { data } = await supabase.rpc("my_post_status", { p_id: id });
     if (data === "published" || data === "hidden") return data;
   }
