@@ -97,6 +97,30 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
     go(delta);
   }
 
+  // Cubo entre os stories: cada foto gira como a face de um cubo conforme a
+  // rolagem (arrastar ou a passagem automática), e a que sai escurece
+  const reduceMotion = useRef(false);
+  useEffect(() => {
+    reduceMotion.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }, []);
+  function cube(el: HTMLDivElement) {
+    if (reduceMotion.current) return;
+    const w = el.clientWidth || 1;
+    const x = el.scrollLeft / w;
+    [...el.children].forEach((child, i) => {
+      const d = Math.max(-1, Math.min(1, i - x));
+      const face = child as HTMLElement;
+      if (Math.abs(d) >= 1) {
+        face.style.transform = "";
+        face.style.filter = "";
+        return;
+      }
+      face.style.transformOrigin = d > 0 ? "0% 50%" : "100% 50%";
+      face.style.transform = `rotateY(${d * 75}deg)`;
+      face.style.filter = `brightness(${1 - Math.abs(d) * 0.55})`;
+    });
+  }
+
   function go(delta: number) {
     const el = track.current;
     if (!el) return;
@@ -164,8 +188,9 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
       <div className="relative h-full w-full overflow-hidden sm:aspect-[9/16] sm:h-[min(92dvh,860px)] sm:w-auto sm:rounded-2xl sm:shadow-2xl">
         <div
           ref={track}
-          className="no-scrollbar flex h-full snap-x snap-mandatory overflow-x-auto"
+          className="no-scrollbar flex h-full snap-x snap-mandatory overflow-x-auto [perspective:1200px]"
           onScroll={(e) => {
+            cube(e.currentTarget);
             if (Date.now() < autoScroll.current) return;
             const el = e.currentTarget;
             const i = Math.round(el.scrollLeft / el.clientWidth);
@@ -173,7 +198,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
           }}
         >
           {posts.map((f) => (
-            <div key={f.properties.id} className="relative h-full w-full shrink-0 snap-center bg-black">
+            <div key={f.properties.id} className="story-face relative h-full w-full shrink-0 snap-center bg-black">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={photoUrl(f.properties.photo_path)}
@@ -222,7 +247,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
               </span>
             ))}
           </div>
-          <div className="flex items-center gap-2.5">
+          <div key={`topo-${p.id}`} className="story-entra flex items-center gap-2.5">
             <span
               className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-[1.5px]"
               style={{ borderColor: color, color, background: `color-mix(in oklab, ${color} 22%, transparent)` }}
@@ -255,7 +280,10 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
         </div>
 
         {/* Base: tags, legenda, dados e ações, sobre o desfoque */}
-        <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+        <div
+          key={`base-${p.id}`}
+          className="story-entra absolute inset-x-0 bottom-0 flex flex-col gap-3 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+        >
           {(promo || rank || fresh || archive) && (
             <div className="flex flex-wrap gap-2">
               {promo && <Tag kind="divulgacao" />}

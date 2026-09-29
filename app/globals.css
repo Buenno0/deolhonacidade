@@ -291,6 +291,19 @@ body {
   border-radius: 9999px;
   background: rgb(244 239 228 / 0.35);
 }
+.story-face {
+  backface-visibility: hidden;
+  will-change: transform;
+}
+.story-entra {
+  animation: story-entra 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes story-entra {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
 .story-enche {
   width: 100%;
   transform: scaleX(0);
