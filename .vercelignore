@@ -1,0 +1,11 @@
+# Nada de segredo local no upload do deploy
+.env*
+!.env.example
+supabase/.env*
+supabase/.temp
+infra/*.tfstate*
+infra/.terraform
+infra/terraform.tfvars
+.next
+node_modules
+tests
