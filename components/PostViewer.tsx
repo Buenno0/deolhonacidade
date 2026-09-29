@@ -94,8 +94,8 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
   function tapGo(delta: number) {
     // Segurou mais de meio segundo: era para pausar, não para navegar
     if (pressAt.current && Date.now() - pressAt.current > 500) return;
-    if (delta > 0 && index === posts.length - 1) return;
-    if (delta < 0 && index === 0) return setRound((r) => r + 1); // recomeça o primeiro
+    if (delta > 0 && at.current === posts.length - 1) return;
+    if (delta < 0 && at.current === 0) return setRound((r) => r + 1); // recomeça o primeiro
     go(delta);
   }
 
@@ -125,7 +125,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
   function settleSoon(el: HTMLDivElement, target?: number, wait = 150) {
     clearTimeout(settleTimer.current);
     settleTimer.current = setTimeout(() => {
-      if (touching.current) return;
+      if (touching.current || running.current) return;
       const w = el.clientWidth || 1;
       const i = target ?? Math.min(posts.length - 1, Math.max(0, Math.round(el.scrollLeft / w)));
       if (Math.abs(el.scrollLeft - faceLeft(el, i)) > 1) placeScroll(el, faceLeft(el, i));
@@ -140,13 +140,27 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
   // Animations API (roda na placa de vídeo). No fim, a rolagem pula para o
   // destino e as camadas voltam ao normal no mesmo quadro. Arrastar com o dedo
   // continua sendo o deslize nativo do navegador.
-  const animating = useRef(false);
+  // A troca em andamento: um toque no meio a conclui na hora e a próxima começa
+  // do destino dela (antes, os toques rápidos eram descartados ou animavam a
+  // partir do story errado)
+  const running = useRef<{ finish: () => void } | null>(null);
+  // O índice de verdade, sem esperar o próximo desenho da tela
+  const at = useRef(index);
+  useEffect(() => {
+    at.current = index;
+  }, [index]);
+
   function go(delta: number) {
     const el = track.current;
-    if (!el || animating.current) return;
-    const next = Math.min(posts.length - 1, Math.max(0, index + delta));
-    if (next === index) return;
+    if (!el) return;
+    running.current?.finish();
+    const from = at.current;
+    const next = Math.min(posts.length - 1, Math.max(0, from + delta));
+    if (next === from) return;
+    // a conferência agendada pela troca anterior não pode disparar no meio desta
+    clearTimeout(settleTimer.current);
     const w = el.clientWidth;
+    at.current = next;
     setIndex(next);
     autoScroll.current = Date.now() + 700;
     const jump = () => {
@@ -155,21 +169,20 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
       // e confere depois: se a rolagem não ficou no story certo, corrige
       settleSoon(el, next, 220);
     };
-    const cur = el.children[index] as HTMLElement | undefined;
+    const cur = el.children[from] as HTMLElement | undefined;
     const nxt = el.children[next] as HTMLElement | undefined;
     if (!cur || !nxt || reduceMotion.current || document.visibilityState !== "visible" || typeof cur.animate !== "function") {
       jump();
       return;
     }
-    animating.current = true;
     // Sem arrasto durante a troca: a rolagem nativa brigava com a animação
     el.style.overflowX = "hidden";
-    const dist = faceLeft(el, next) - faceLeft(el, index); // pode pular vários (os já vistos)
+    const dist = faceLeft(el, next) - faceLeft(el, from); // pode pular vários (os já vistos)
     const opts: KeyframeAnimationOptions = { duration: 340, easing: "cubic-bezier(.25,.1,.25,1)", fill: "forwards" };
     const back = "translateX(-12%) scale(0.97)";
     const dim = (face: HTMLElement) => face.querySelector(".story-dim") as HTMLElement;
     const anims =
-      next > index
+      next > from
         ? [
             // o próximo entra por cima, da direita
             nxt.animate([{ transform: "translateX(0)" }, { transform: `translateX(${-dist}px)` }], opts),
@@ -182,20 +195,24 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
             nxt.animate([{ transform: `translateX(${-dist}px) ${back}` }, { transform: `translateX(${-dist}px)` }], opts),
             dim(nxt).animate([{ opacity: 0.35 }, { opacity: 0 }], opts),
           ];
-    (next > index ? nxt : cur).style.zIndex = "2";
+    (next > from ? nxt : cur).style.zIndex = "2";
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(guard);
+      jump();
+      for (const x of anims) x.cancel();
+      nxt.style.zIndex = "";
+      cur.style.zIndex = "";
+      el.style.overflowX = "";
+      if (running.current?.finish === finish) running.current = null;
+    };
+    running.current = { finish };
     // Limite de segurança: se o mapa recarregar os posts no meio e a foto em
-    // animação for trocada, a animação "órfã" nunca termina e travava os toques
-    const guard = new Promise((r) => setTimeout(r, (opts.duration as number) + 150));
-    Promise.race([Promise.all(anims.map((a) => a.finished)), guard])
-      .catch(() => {})
-      .finally(() => {
-        jump();
-        for (const a of anims) a.cancel();
-        nxt.style.zIndex = "";
-        cur.style.zIndex = "";
-        el.style.overflowX = "";
-        animating.current = false;
-      });
+    // animação for trocada, a animação "órfã" nunca termina
+    const guard = setTimeout(finish, (opts.duration as number) + 150);
+    Promise.all(anims.map((x) => x.finished)).then(finish, finish);
   }
 
   async function report(id: string) {
