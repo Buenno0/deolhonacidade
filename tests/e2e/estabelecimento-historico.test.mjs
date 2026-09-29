@@ -165,3 +165,13 @@ test("histórico: teto de 500 por cidade, com os 10 melhores de cada dia garanti
   assert.ok(cut.length >= 20, "os excedentes saíram");
   assert.ok(cut.every((p) => p.photo_path === null), "e as fotos deles foram para a limpeza");
 });
+
+test("o mapa diz só ao dono que o post é dele", async () => {
+  const dono = await login("mine");
+  const outro = await login("mine-outro");
+  const p = await publish(dono, { category: "evento" });
+  const achar = async (c) => (await c.rpc("active_posts", { p_city_id: CITY })).data.features.find((f) => f.properties.id === p.id);
+  assert.equal((await achar(dono)).properties.mine, true);
+  assert.equal((await achar(outro)).properties.mine, false);
+  assert.equal((await achar(anon())).properties.mine, false);
+});

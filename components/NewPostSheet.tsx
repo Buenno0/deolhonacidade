@@ -8,6 +8,7 @@ import { useLocation } from "@/lib/useLocation";
 import Sheet from "./Sheet";
 import { Button, Chip, Spinner } from "./ui";
 import { AlertIcon, CameraIcon, CategoryIcon, PinIcon } from "./ui/icons";
+import { errorMessage } from "@/lib/errors";
 
 // Precisão em metros: até GOOD é "ok"; até MAX posta com aviso de aproximada.
 // No celular com GPS costuma dar 5-30 m; em notebook (Wi-Fi) 30-150 m ou mais.
@@ -68,7 +69,7 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
       );
       onPosted(id, [position.lng, position.lat], position.accuracy);
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Não foi possível publicar";
+      const message = errorMessage(e, "Não foi possível publicar");
       if (onOutOfArea && /dentro da cidade/.test(message)) return onOutOfArea([position.lng, position.lat]);
       setError(message);
       setStep(null);

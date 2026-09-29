@@ -5,6 +5,7 @@ import { getSupabase } from "@/lib/supabase/client";
 import { timeAgo, type PostProperties } from "@/lib/posts";
 import { Button, Spinner } from "../ui";
 import { CheckIcon, CloseIcon } from "../ui/icons";
+import { errorMessage } from "@/lib/errors";
 
 type Vote = Pick<PostProperties, "confirm_count" | "deny_count" | "expires_at" | "last_confirmed_at">;
 
@@ -51,7 +52,7 @@ export default function StillThere({ post, loggedIn, onNeedLogin, onVoted }: Pro
       setAnswered(still);
       onVoted(post.id, data as Vote);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Não foi possível responder");
+      setError(errorMessage(e, "Não foi possível responder"));
     } finally {
       setBusy(null);
     }

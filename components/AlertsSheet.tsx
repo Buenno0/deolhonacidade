@@ -8,6 +8,7 @@ import { formatDistance } from "@/lib/posts";
 import Sheet from "./Sheet";
 import { Button, Chip, Spinner } from "./ui";
 import { CategoryIcon, LocateIcon, PinIcon } from "./ui/icons";
+import { errorMessage } from "@/lib/errors";
 
 const RADII = [500, 1000, 3000];
 
@@ -84,7 +85,7 @@ export default function AlertsSheet({ getMapCenter, onClose, onSaved }: Props) {
       if (error) throw error;
       onSaved(`Alertas ligados · ${formatDistance(radius)} ${where === "aqui" ? "de você" : "do ponto"}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Não foi possível ligar os alertas");
+      setError(errorMessage(e, "Não foi possível ligar os alertas"));
     } finally {
       setBusy(false);
     }

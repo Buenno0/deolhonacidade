@@ -8,6 +8,7 @@ import Captcha, { TURNSTILE_SITE_KEY } from "./Captcha";
 import GoogleButton, { GOOGLE_CLIENT_ID } from "./GoogleButton";
 import Sheet from "./Sheet";
 import { Button } from "./ui";
+import { errorMessage } from "@/lib/errors";
 
 type Props = {
   session: Session | null;
@@ -47,7 +48,7 @@ export default function AuthSheet({ session, onClose, onDone, then = null }: Pro
     try {
       await action();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Algo deu errado");
+      setError(errorMessage(e, "Algo deu errado"));
     } finally {
       setBusy(false);
     }

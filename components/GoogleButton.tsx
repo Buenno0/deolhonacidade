@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getSupabase } from "@/lib/supabase/client";
+import { errorMessage } from "@/lib/errors";
 
 // Botão oficial do Google (Google Identity Services). O login acontece num
 // popup do Google em cima do próprio site e devolve um token que o Supabase
@@ -84,7 +85,7 @@ export default function GoogleButton({ onSignedIn, onError }: { onSignedIn: (use
         });
         setReady(true);
       } catch (e) {
-        if (!off) latest.current.onError(e instanceof Error ? e.message : "Não foi possível carregar o login do Google");
+        if (!off) latest.current.onError(errorMessage(e, "Não foi possível carregar o login do Google"));
       }
     })();
     return () => {

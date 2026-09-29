@@ -22,6 +22,8 @@ export type PostProperties = {
   business_segment?: string | null;
   business_whatsapp?: string | null;
   business_instagram?: string | null;
+  // Só verdadeiro para quem postou (o banco não diz de quem é)
+  mine?: boolean;
   // Histórico: até quando a foto fica guardada depois de sumir do mapa
   archived_until?: string | null;
 };

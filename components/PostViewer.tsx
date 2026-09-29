@@ -98,6 +98,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
   const cat = CATEGORIES[p.category];
   const coords = current.geometry.coordinates as [number, number];
   const promo = p.category === "estabelecimento";
+  const mine = Boolean(p.mine);
   const rank = archive ? undefined : ranks?.get(p.id);
   const fresh = !archive && !promo && isFresh(p.created_at, now);
   const color = archive ? "var(--muted)" : promo ? "var(--ink)" : severityVar(p.category);
@@ -241,7 +242,10 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
               )}
             </div>
           ) : (
-            !archive && (
+            !archive &&
+            (mine ? (
+              <p className="rotulo mt-4">Seu post · quem está perto confirma se ainda está rolando</p>
+            ) : (
               <div className="mt-4">
                 <StillThere
                   key={p.id}
@@ -254,19 +258,21 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
                   }}
                 />
               </div>
-            )
+            ))
           )}
           <div className="mt-3 flex items-center justify-between">
             <ShareButton post={p} onShared={onChanged} archive={archive} />
-            <Button
-              variant="perigo"
-              onClick={() => report(p.id)}
-              disabled={Boolean(reported[p.id])}
-              className="px-3 py-1.5 text-xs"
-            >
-              <FlagIcon />
-              {reported[p.id] === "done" ? "Denúncia enviada" : "Denunciar"}
-            </Button>
+            {!mine && (
+              <Button
+                variant="perigo"
+                onClick={() => report(p.id)}
+                disabled={Boolean(reported[p.id])}
+                className="px-3 py-1.5 text-xs"
+              >
+                <FlagIcon />
+                {reported[p.id] === "done" ? "Denúncia enviada" : "Denunciar"}
+              </Button>
+            )}
           </div>
         </div>
       </div>
