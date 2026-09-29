@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { preparePhoto } from "@/lib/image/compress";
 import { submitPost } from "@/lib/posting";
 import { CATEGORIES, CATEGORY_KEYS, LIFETIME_HOURS, type Category } from "@/lib/categories";
-import { useLocation } from "@/lib/useLocation";
+import { iosOtherBrowser, safariUrl, useLocation } from "@/lib/useLocation";
 import Sheet from "./Sheet";
 import { Button, Chip, Spinner } from "./ui";
 import { AlertIcon, CameraIcon, CategoryIcon, PinIcon } from "./ui/icons";
@@ -113,6 +113,18 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, 
       <button type="button" onClick={retry} className="font-medium underline underline-offset-2">
         Tentar de novo
       </button>
+    </span>
+  ) : position === null && stalled && iosOtherBrowser() ? (
+    <span className="flex flex-col items-start gap-2">
+      <span className="text-muted">Este navegador não mostrou o pedido de localização. No Safari funciona.</span>
+      <span className="flex flex-wrap gap-2">
+        <a href={safariUrl()} className="inline-flex items-center gap-2 rounded-full bg-accent px-3.5 py-1.5 text-xs font-medium text-accent-ink">
+          Abrir no Safari
+        </a>
+        <button type="button" onClick={retry} className="rounded-full border border-line px-3.5 py-1.5 text-xs">
+          Tentar de novo
+        </button>
+      </span>
     </span>
   ) : position === null && stalled ? (
     <span className="flex flex-col items-start gap-2">

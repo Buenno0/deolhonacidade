@@ -19,6 +19,14 @@ export type LocationState = {
   retry: () => void;
 };
 
+// iPhone num navegador que não é o Safari (Chrome, Brave…): alguns seguram o
+// pedido de localização sem mostrar a pergunta. Dá para abrir no Safari.
+export function iosOtherBrowser() {
+  const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
+  return /iPhone|iPad|iPod/.test(ua) && (/CriOS|FxiOS|EdgiOS|DuckDuckGo|OPT\//.test(ua) || "brave" in navigator);
+}
+export const safariUrl = () => `x-safari-${window.location.href}`;
+
 // Negado sem nem perguntar quase sempre é o aparelho: no iPhone, cada
 // navegador tem a própria permissão de localização, e sem ela nenhum site pede.
 export function deniedHelp() {
@@ -49,7 +57,7 @@ const MESSAGES: Record<number, string> = {
   1: "",
   2: "Não foi possível descobrir onde você está. Confira se os Serviços de Localização do aparelho estão ligados.",
 };
-const STALL_MS = 12_000;
+const STALL_MS = 10_000;
 const FRESH_MS = 2 * 60_000;
 
 // A última posição conhecida, compartilhada: o toque em Registrar já pede a
