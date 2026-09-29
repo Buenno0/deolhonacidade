@@ -15,6 +15,9 @@ const PREFIX = "posts/"; // o CloudFront serve este prefixo como raiz
 const MAX_BYTES = 1024 * 1024;
 // O CDN pode segurar uma cópia por no máximo 10 min depois que o post some
 const CACHE_CONTROL = "public, max-age=600";
+// A versão desfocada tem endereço único e nunca muda: 12 h no aparelho, 1 h no
+// CDN (uma foto removida sai da borda em até 1 h)
+const CACHE_SAFE = "public, max-age=43200, s-maxage=3600, immutable";
 
 let s3: S3Client | undefined;
 const client = () => (s3 ??= new S3Client({ region: awsRegion, credentials: awsCredentials() }));
@@ -69,11 +72,11 @@ export async function readBytes(path: string): Promise<Uint8Array> {
 export async function writeBytes(path: string, bytes: Uint8Array, contentType: string) {
   if (storageProvider === "s3") {
     await client().send(
-      new PutObjectCommand({ Bucket: BUCKET, Key: s3Key(path), Body: bytes, ContentType: contentType, CacheControl: CACHE_CONTROL }),
+      new PutObjectCommand({ Bucket: BUCKET, Key: s3Key(path), Body: bytes, ContentType: contentType, CacheControl: CACHE_SAFE }),
     );
     return;
   }
-  const { error } = await adminClient().storage.from("posts").upload(path, bytes, { contentType, upsert: true, cacheControl: "600" });
+  const { error } = await adminClient().storage.from("posts").upload(path, bytes, { contentType, upsert: true, cacheControl: "43200" });
   if (error) throw error;
 }
 

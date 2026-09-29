@@ -240,6 +240,11 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
   const color = archive ? "var(--muted)" : promo ? "var(--ink)" : severityVar(p.category);
 
   const segments = posts.length > 24 ? [] : posts;
+  const autoNext = (() => {
+    const j = posts.findIndex((x, k) => k > index && !seenAtOpen.has(x.properties.id));
+    return j > index ? j : index + 1;
+  })();
+  const loadNow = new Set([index - 1, index, index + 1, autoNext]);
   const meta = [
     promo ? p.business_segment : archive ? null : `${p.author_nickname ? `@${p.author_nickname} · ` : ""}${levelName(p.author_level ?? 1)}`,
     userPos ? `${formatDistance(distance(userPos, coords))} de você` : null,
@@ -286,11 +291,14 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
             if (i !== index) setIndex(i);
           }}
         >
-          {posts.map((f) => (
+          {posts.map((f, i) => (
             <div key={f.properties.id} className="story-face relative h-full w-full shrink-0 snap-center bg-black">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={photoUrl(f.properties.photo_path)}
+                // Só o atual, os vizinhos e o próximo da passagem automática:
+                // antes, abrir o story baixava as fotos grandes de todos
+                src={loadNow.has(i) ? photoUrl(f.properties.photo_path) : undefined}
+                decoding="async"
                 alt={f.properties.caption ?? CATEGORIES[f.properties.category].label}
                 className="h-full w-full object-cover"
                 draggable={false}

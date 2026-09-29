@@ -54,3 +54,6 @@ infra/.terraform/
 infra/*.tfstate*
 infra/terraform.tfvars
 infra/.terraform.lock.hcl.bak
+
+# Planos do tofu levam uma cópia do estado (com segredos): nunca no git
+infra/*.tfplan

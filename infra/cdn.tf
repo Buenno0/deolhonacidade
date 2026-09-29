@@ -11,12 +11,14 @@ resource "aws_cloudfront_origin_access_control" "fotos" {
 }
 
 # Cache curto de propósito: quando o post some (12h, ou denúncia), a cópia na
-# borda pode durar no máximo 10 min. O upload grava Cache-Control max-age=600.
+# borda dura pouco. A original grava max-age=600 (10 min); a versão desfocada,
+# que tem endereço único e nunca muda, grava s-maxage=3600 (1 h na borda) e
+# max-age=43200 (12 h no aparelho de quem já viu).
 resource "aws_cloudfront_cache_policy" "fotos" {
   name        = "deolho-fotos"
   min_ttl     = 0
   default_ttl = 600
-  max_ttl     = 600
+  max_ttl     = 3600
   parameters_in_cache_key_and_forwarded_to_origin {
     cookies_config {
       cookie_behavior = "none"
