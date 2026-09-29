@@ -129,6 +129,14 @@ export default function Home() {
   const celebrated = useRef(new Set<string>());
   const [installHint, setInstallHint] = useState(false);
   const seen = useSeen();
+  // Posts meus ainda sendo protegidos: aparecem na hora, com a prévia desfocada
+  const [pending, setPending] = useState<Record<string, PostFeature>>({});
+  const dropPending = (id: string) =>
+    setPending((m) => {
+      const next = { ...m };
+      delete next[id];
+      return next;
+    });
   const [outside, setOutside] = useState<{ nearest: NearestCity; from: [number, number] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const ownPosts = useRef(new Set<string>());
@@ -375,10 +383,15 @@ export default function Home() {
     }
   }
 
-  const visible = useMemo(
-    () => (posts ?? []).filter((f) => !filter || f.properties.category === filter),
-    [posts, filter],
-  );
+  const visible = useMemo(() => {
+    const list = (posts ?? []).map((f) =>
+      // o servidor já mandou o meu post: carrega a prévia até a foto revelar
+      pending[f.properties.id] ? { ...f, properties: { ...f.properties, preview: pending[f.properties.id].properties.preview } } : f,
+    );
+    const have = new Set(list.map((f) => f.properties.id));
+    const mineNow = Object.values(pending).filter((f) => !have.has(f.properties.id));
+    return [...mineNow, ...list].filter((f) => !filter || f.properties.category === filter);
+  }, [posts, filter, pending]);
   // O que já pode ser visto: sem os que o servidor ainda está desfocando
   const ready = useMemo(() => visible.filter((f) => !f.properties.processing), [visible]);
   const counts = useMemo(() => {
@@ -905,22 +918,59 @@ export default function Home() {
             setPanel(null);
             handlePosition(at, false);
           }}
-          onPosted={(id, at, accuracy, processing) => {
+          onPosted={(id, at, accuracy, processing, blurred, category) => {
             ownPosts.current.add(id);
             setPanel(null);
             // Depois do primeiro post, o convite para instalar
             if (shouldOfferInstall()) setTimeout(() => setInstallHint(true), 4000);
             const near = accuracy > 100 ? ` · ±${formatDistance(accuracy)}` : "";
             if (processing) {
-              // Rostos e placas sendo desfocados no servidor; o pin já aparece para você
+              // O pin pousa na hora com a prévia desfocada (feita no aparelho),
+              // enquanto o servidor protege rostos e placas
+              const now = new Date();
+              setPending((m) => ({
+                ...m,
+                [id]: {
+                  type: "Feature",
+                  geometry: { type: "Point", coordinates: at },
+                  properties: {
+                    id,
+                    category,
+                    caption: null,
+                    photo_path: "",
+                    created_at: now.toISOString(),
+                    expires_at: new Date(now.getTime() + 12 * 3600e3).toISOString(),
+                    confirm_count: 0,
+                    deny_count: 0,
+                    last_confirmed_at: null,
+                    request_id: null,
+                    view_count: 0,
+                    share_count: 0,
+                    mine: true,
+                    processing: true,
+                    preview: blurred,
+                  },
+                },
+              }));
               setToast({ text: `Protegendo rostos e placas…${near}` });
-              waitPublished(id).then((st) => {
+              waitPublished(id).then((r) => {
                 loadPosts();
                 refreshMine();
-                if (st === "published") setToast({ text: "Publicado", postId: id });
-                else if (st === "hidden")
+                // a prévia sai depois que a foto de verdade já revelou no pin
+                setTimeout(() => dropPending(id), 1500);
+                const shielded = r.faces + r.plates;
+                const what = [
+                  r.faces ? `${r.faces} ${r.faces === 1 ? "rosto" : "rostos"}` : "",
+                  r.plates ? `${r.plates} ${r.plates === 1 ? "placa" : "placas"}` : "",
+                ]
+                  .filter(Boolean)
+                  .join(" e ");
+                if (r.status === "published")
+                  setToast({ text: shielded ? `No ar · ${what} ${shielded === 1 ? "protegido" : "protegidos"}` : "No ar", postId: id });
+                else if (r.status === "hidden") {
+                  dropPending(id);
                   setToast({ text: "A foto não foi publicada: a verificação automática encontrou conteúdo impróprio" });
-                else setToast({ text: "A verificação está demorando. Seu post aparece assim que terminar." });
+                } else setToast({ text: "A verificação está demorando. Seu post aparece assim que terminar." });
               });
             } else setToast({ text: `Publicado${near}`, postId: id });
             setUserPos(at);

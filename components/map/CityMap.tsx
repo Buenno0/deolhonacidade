@@ -141,8 +141,10 @@ const happenings = (posts: PostFeature[]) => posts.filter((f) => f.properties.ca
 // A foto do pin. Enquanto o servidor desfoca rostos e placas, nada carrega:
 // a original nunca aparece na tela, nem para quem postou.
 function setPinPhoto(img: HTMLImageElement, post: PostProperties) {
-  const want = post.processing ? "" : post.photo_path;
+  // Processando: só a prévia desfocada feita no aparelho (ou nada)
+  const want = post.processing ? (post.preview ? `preview:${post.id}` : "") : post.photo_path;
   if (img.dataset.path === want) return;
+  const fromPreview = img.dataset.path?.startsWith("preview:") ?? false;
   // Trocando de foto (ou saindo do "processando"): não do primeiro desenho
   const swapping = img.dataset.path !== undefined;
   img.dataset.path = want;
@@ -151,14 +153,23 @@ function setPinPhoto(img: HTMLImageElement, post: PostProperties) {
     img.removeAttribute("src");
     return;
   }
+  if (want.startsWith("preview:")) {
+    img.src = post.preview!;
+    return;
+  }
   // A foto troca só quando já carregou: até lá, o pin segue com o anel girando
   const pin = img.closest(".pin") as HTMLElement | null;
   const show = (url: string) => {
     if (img.dataset.path !== want) return;
     img.src = url;
     delete pin?.dataset.carregando;
+    // Saindo da prévia: a foto de verdade "revela" e um halo pulsa
+    if (pin && fromPreview) {
+      pin.dataset.revela = "sim";
+      setTimeout(() => delete pin.dataset.revela, 900);
+    }
   };
-  if (pin && swapping) pin.dataset.carregando = "sim";
+  if (pin && swapping && !fromPreview) pin.dataset.carregando = "sim";
   const pre = new Image();
   pre.decoding = "async";
   pre.onload = () => show(pre.src);

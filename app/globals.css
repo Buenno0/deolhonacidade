@@ -190,8 +190,8 @@ body {
 .pin[data-processando="sim"] {
   animation: none;
 }
-.pin[data-carregando="sim"]::before,
-.pin[data-processando="sim"]::before {
+/* Carregando a foto nova: um brilho girando no anel */
+.pin[data-carregando="sim"]::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -199,10 +199,65 @@ body {
   background: conic-gradient(var(--ink) 0 22%, transparent 22%);
   animation: pin-gira 1.1s linear infinite;
 }
-.pin[data-carregando="sim"] img,
-.pin[data-processando="sim"] img {
+.pin[data-carregando="sim"] img {
   opacity: 0.55;
-  filter: blur(2px);
+}
+/* Processando (o meu post): a prévia desfocada com uma luz varrendo, e o
+   anel enchendo como progresso */
+@property --restante {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
+}
+.pin[data-processando="sim"] {
+  animation: pin-enche 3.2s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+.pin[data-processando="sim"]::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 5px;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgb(244 239 228 / 0.6), transparent) no-repeat;
+  background-size: 100% 35%;
+  animation: pin-varre 1.4s linear infinite;
+}
+@keyframes pin-enche {
+  from {
+    --restante: 0;
+  }
+  to {
+    --restante: 0.92;
+  }
+}
+@keyframes pin-varre {
+  from {
+    background-position: 0 -60%;
+  }
+  to {
+    background-position: 0 160%;
+  }
+}
+/* Pronto: a foto de verdade revela e um halo dourado pulsa */
+.pin[data-revela="sim"] img {
+  animation: pin-revela 700ms ease-out;
+}
+.pin[data-revela="sim"] {
+  animation: pin-halo 900ms ease-out;
+}
+@keyframes pin-revela {
+  from {
+    filter: blur(8px);
+  }
+}
+@keyframes pin-halo {
+  from {
+    box-shadow: 0 0 0 0 rgb(210 154 68 / 0.9);
+  }
+  to {
+    box-shadow: 0 0 0 18px rgb(210 154 68 / 0);
+  }
 }
 .pin-tag {
   position: absolute;

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { preparePhoto } from "@/lib/image/compress";
-import { submitPost } from "@/lib/posting";
+import { useEffect, useRef, useState } from "react";
+import { preparePhoto, type PreparedPhoto } from "@/lib/image/compress";
+import { blurredPreview, discardDraft, publishDraft, startDraft, submitPost } from "@/lib/posting";
 import {
   CATEGORIES,
   CATEGORY_KEYS,
@@ -43,6 +43,9 @@ type Props = {
     at: [number, number],
     accuracy: number,
     processing: boolean,
+    // Prévia desfocada (feita no aparelho) para o pin enquanto o servidor trabalha
+    blurred: string | null,
+    category: Category,
   ) => void;
   // Estabelecimento aprovado: libera a divulgação
   business?: { name: string } | null;
@@ -97,25 +100,76 @@ export default function NewPostSheet({
           ? "Aguardando localização"
           : null;
 
+  // Envio antecipado: com a foto e a localização, a foto já é preparada e sobe
+  // como rascunho, enquanto a pessoa escolhe a categoria. Trocou a foto ou
+  // fechou sem publicar: o rascunho é descartado.
+  type Draft = { photo: File; prepared: Promise<PreparedPhoto>; id: Promise<string | null>; blurred: Promise<string | null> };
+  const draft = useRef<Draft | null>(null);
+  const published = useRef(false);
+  const havePosition = usable;
+  useEffect(() => {
+    if (!photo || !havePosition || !position) return;
+    if (draft.current?.photo === photo) return;
+    const old = draft.current;
+    if (old)
+      old.id.then((id) => {
+        if (id) discardDraft(id);
+      });
+    const prepared = preparePhoto(photo);
+    draft.current = {
+      photo,
+      prepared,
+      blurred: prepared.then((p) => blurredPreview(p.thumb)),
+      id: prepared.then((p) => startDraft({ lat: position.lat, lng: position.lng }, p, request?.id ?? null)).catch(() => null),
+    };
+    // a posição mais recente vai no publishDraft; aqui basta a primeira boa
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photo, havePosition]);
+  useEffect(
+    () => () => {
+      // fechou sem publicar: descarta e esquece (uma nova montagem cria outro)
+      const d = draft.current;
+      if (!published.current && d) {
+        draft.current = null;
+        d.id.then((id) => {
+          if (id) discardDraft(id);
+        });
+      }
+    },
+    [],
+  );
+
   async function submit() {
     if (!photo || !category || !position) return;
     setError(null);
+    const details = {
+      lat: position.lat,
+      lng: position.lng,
+      category,
+      caption,
+      keepHistory: keepHistory && !promo,
+    };
     try {
-      setStep("Preparando a foto…");
-      const prepared = await preparePhoto(photo);
-      const { id, processing } = await submitPost(
-        {
-          lat: position.lat,
-          lng: position.lng,
-          category,
-          caption,
-          requestId: request?.id ?? null,
-          keepHistory: keepHistory && !promo,
-          ...prepared,
-        },
-        setStep,
-      );
-      onPosted(id, [position.lng, position.lat], position.accuracy, processing);
+      setStep("Publicando…");
+      const d = draft.current?.photo === photo ? draft.current : null;
+      const draftId = d ? await d.id : null;
+      let result: { id: string; processing: boolean };
+      const viaDraft = draftId ? await publishDraft(draftId, details).catch((e) => {
+        // rascunho sumiu (descartado ou vencido): cai no caminho completo
+        if (/Rascunho não encontrado/.test(errorMessage(e, ""))) return null;
+        throw e;
+      }) : null;
+      if (viaDraft) {
+        result = viaDraft;
+      } else {
+        // sem rascunho (falhou ou não deu tempo): tudo de uma vez
+        setStep("Preparando a foto…");
+        const prepared = d ? await d.prepared : await preparePhoto(photo);
+        result = await submitPost({ ...details, requestId: request?.id ?? null, ...prepared }, setStep);
+      }
+      published.current = true;
+      const blurred = d ? await d.blurred : null;
+      onPosted(result.id, [position.lng, position.lat], position.accuracy, result.processing, blurred, category);
     } catch (e) {
       const message = errorMessage(e, "Não foi possível publicar");
       if (onOutOfArea && /dentro da cidade/.test(message))

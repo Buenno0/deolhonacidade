@@ -175,3 +175,24 @@ test("o mapa diz só ao dono que o post é dele", async () => {
   assert.equal((await achar(outro)).properties.mine, false);
   assert.equal((await achar(anon())).properties.mine, false);
 });
+
+test("rascunho: a foto sobe antes, a categoria vem depois; descartado não conta no limite", async () => {
+  const u = await login("rascunho");
+  // o rascunho nasce como "outro" e é atualizado na hora de publicar
+  const { data: d } = await u.rpc("create_post", { p_lat: CENTER[0], p_lng: CENTER[1], p_category: "outro", p_caption: null, p_request_id: null, p_keep_history: false });
+  const upd = await u.rpc("update_draft", { p_id: d.id, p_lat: CENTER[0] + 0.001, p_lng: CENTER[1], p_category: "transito", p_caption: "Fila na ponte", p_keep_history: true });
+  assert.ifError(upd.error);
+  const r = await row("posts", d.id, "category, caption, keep_history, status");
+  assert.deepEqual([r.category, r.caption, r.keep_history, r.status], ["transito", "Fila na ponte", true, "pending"]);
+  assert.ok((await u.rpc("update_draft", { p_id: d.id, p_lat: -23.55, p_lng: -46.63, p_category: "transito" })).error, "fora da cidade recusa");
+
+  // cinco rascunhos descartados não impedem de postar
+  for (let i = 0; i < 5; i++) {
+    const { data: x } = await u.rpc("create_post", { p_lat: CENTER[0], p_lng: CENTER[1], p_category: "outro" });
+    await u.rpc("delete_my_post", { p_id: x.id });
+  }
+  const ok = await publish(u, { category: "evento" });
+  assert.equal(ok.status, "published");
+  const { data: res } = await u.rpc("my_post_result", { p_id: ok.id });
+  assert.equal(res.status, "published");
+});

@@ -26,6 +26,8 @@ export type PostProperties = {
   mine?: boolean;
   // O servidor ainda está verificando e desfocando (só quem postou vê)
   processing?: boolean;
+  // Prévia bem desfocada, feita no aparelho, para o pin enquanto processa
+  preview?: string | null;
   // Histórico: até quando a foto fica guardada depois de sumir do mapa
   archived_until?: string | null;
 };
