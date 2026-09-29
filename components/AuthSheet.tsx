@@ -118,7 +118,6 @@ export default function AuthSheet({ session, onClose, onDone, then = null }: Pro
               {accepted ? "Entrar com Google" : "Aceite os termos para entrar"}
             </Button>
           )}
-          {!EMAIL_ENABLED && <p className="text-center text-xs text-muted">Sem senha: é só escolher a sua conta do Google.</p>}
           {EMAIL_ENABLED && (
             <p className="flex items-center gap-3 text-xs text-muted before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
               ou com código no e-mail
