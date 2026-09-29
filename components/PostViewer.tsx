@@ -109,14 +109,24 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
   // próximo.
   const touching = useRef(false);
   const settleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // Posiciona a rolagem sem o encaixe no meio (no iPhone, o scroll-snap puxava
+  // de volta para o story anterior logo depois de um pulo)
+  function placeScroll(el: HTMLDivElement, left: number) {
+    el.style.scrollSnapType = "none";
+    el.scrollLeft = left;
+    requestAnimationFrame(() => {
+      el.scrollLeft = left;
+      el.style.scrollSnapType = "";
+    });
+  }
   function settleSoon(el: HTMLDivElement, target?: number, wait = 150) {
     clearTimeout(settleTimer.current);
     settleTimer.current = setTimeout(() => {
       if (touching.current) return;
       const w = el.clientWidth || 1;
       const i = target ?? Math.min(posts.length - 1, Math.max(0, Math.round(el.scrollLeft / w)));
-      if (Math.abs(el.scrollLeft - i * w) > 1) el.scrollTo({ left: i * w, behavior: "instant" });
-      autoScroll.current = 0;
+      if (Math.abs(el.scrollLeft - i * w) > 1) placeScroll(el, i * w);
+      autoScroll.current = Date.now() + 80;
       setIndex(i);
     }, wait);
   }
@@ -137,8 +147,10 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
     setIndex(next);
     autoScroll.current = Date.now() + 700;
     const jump = () => {
-      el.scrollTo({ left: next * w, behavior: "instant" });
+      placeScroll(el, next * w);
       autoScroll.current = Date.now() + 120;
+      // e confere depois: se a rolagem não ficou no story certo, corrige
+      settleSoon(el, next, 220);
     };
     const cur = el.children[index] as HTMLElement | undefined;
     const nxt = el.children[next] as HTMLElement | undefined;
