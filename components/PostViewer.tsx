@@ -294,9 +294,11 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
                     className="story-enche"
                     style={{ animationDuration: `${STORY_MS}ms`, animationPlayState: paused ? "paused" : "running" }}
                     onAnimationEnd={() => {
-                      // Próximo que você ainda não viu; nenhum: fica no atual
+                      // Próximo que você ainda não viu; se todos à frente já foram
+                      // vistos, segue para o próximo mesmo assim (para só no último)
                       const j = posts.findIndex((x, k) => k > index && !seenAtOpen.has(x.properties.id));
                       if (j > index) go(j - index);
+                      else if (index < posts.length - 1) go(1);
                     }}
                   />
                 ) : (

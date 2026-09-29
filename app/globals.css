@@ -665,9 +665,11 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* Sem passagem automática do story: a barra fica vazia e a pessoa toca */
+  /* A passagem automática do story é tempo, não movimento: continua valendo
+     (a regra geral abaixo zeraria a duração e pularia todos de uma vez) */
   .story-enche {
-    animation: none !important;
+    animation-duration: 6s !important;
+    animation-iteration-count: 1 !important;
   }
   *,
   *::before,
