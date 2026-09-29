@@ -101,33 +101,14 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
     go(delta);
   }
 
-  // Cubo entre os stories: cada foto gira como a face de um cubo conforme a
-  // rolagem (arrastar ou a passagem automática), e a que sai escurece
   const reduceMotion = useRef(false);
   useEffect(() => {
     reduceMotion.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }, []);
-  function cube(el: HTMLDivElement) {
-    if (reduceMotion.current) return;
-    const w = el.clientWidth || 1;
-    const x = el.scrollLeft / w;
-    [...el.children].forEach((child, i) => {
-      const d = Math.max(-1, Math.min(1, i - x));
-      const face = child as HTMLElement;
-      if (Math.abs(d) >= 1) {
-        face.style.transform = "";
-        face.style.filter = "";
-        return;
-      }
-      face.style.transformOrigin = d > 0 ? "0% 50%" : "100% 50%";
-      face.style.transform = `rotateY(${d * 75}deg)`;
-      face.style.filter = `brightness(${1 - Math.abs(d) * 0.55})`;
-    });
-  }
 
-  // Assentamento: no iPhone a rolagem suave pode acabar sem avisar a posição
-  // final, e o cubo ficava congelado no meio. Parada a rolagem (e sem o dedo
-  // na tela), encaixa no story mais próximo e zera o giro.
+  // Assentamento: no iPhone a rolagem pode acabar sem avisar a posição
+  // final. Parada a rolagem (e sem o dedo na tela), encaixa no story mais
+  // próximo.
   const touching = useRef(false);
   const settleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   function settleSoon(el: HTMLDivElement, target?: number, wait = 150) {
@@ -137,26 +118,65 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
       const w = el.clientWidth || 1;
       const i = target ?? Math.min(posts.length - 1, Math.max(0, Math.round(el.scrollLeft / w)));
       if (Math.abs(el.scrollLeft - i * w) > 1) el.scrollTo({ left: i * w, behavior: "instant" });
-      for (const c of el.children) {
-        (c as HTMLElement).style.transform = "";
-        (c as HTMLElement).style.filter = "";
-      }
       autoScroll.current = 0;
       setIndex(i);
     }, wait);
   }
   useEffect(() => () => clearTimeout(settleTimer.current), []);
 
+  // Empilhar (toque e passagem automática): o próximo desliza por cima com
+  // sombra e o atual recua e escurece. Só transform e opacity, pela Web
+  // Animations API (roda na placa de vídeo). No fim, a rolagem pula para o
+  // destino e as camadas voltam ao normal no mesmo quadro. Arrastar com o dedo
+  // continua sendo o deslize nativo do navegador.
+  const animating = useRef(false);
   function go(delta: number) {
     const el = track.current;
-    if (!el) return;
+    if (!el || animating.current) return;
     const next = Math.min(posts.length - 1, Math.max(0, index + delta));
-    // O índice muda na hora; a rolagem só acompanha (não depende dela terminar)
+    if (next === index) return;
+    const w = el.clientWidth;
     setIndex(next);
     autoScroll.current = Date.now() + 700;
-    // se a rolagem não avisar o fim, assenta mesmo assim
-    settleSoon(el, next, 650);
-    el.scrollTo({ left: next * el.clientWidth, behavior: document.visibilityState === "visible" ? "smooth" : "instant" });
+    const jump = () => {
+      el.scrollTo({ left: next * w, behavior: "instant" });
+      autoScroll.current = Date.now() + 120;
+    };
+    const cur = el.children[index] as HTMLElement | undefined;
+    const nxt = el.children[next] as HTMLElement | undefined;
+    if (!cur || !nxt || reduceMotion.current || document.visibilityState !== "visible" || typeof cur.animate !== "function") {
+      jump();
+      return;
+    }
+    animating.current = true;
+    const dist = (next - index) * w; // pode pular vários (os já vistos)
+    const opts: KeyframeAnimationOptions = { duration: 380, easing: "cubic-bezier(.2,.8,.2,1)", fill: "forwards" };
+    const back = "translateX(-22%) scale(0.94)";
+    const dim = (face: HTMLElement) => face.querySelector(".story-dim") as HTMLElement;
+    const anims =
+      next > index
+        ? [
+            // o próximo entra por cima, da direita
+            nxt.animate([{ transform: "translateX(0)" }, { transform: `translateX(${-dist}px)` }], opts),
+            cur.animate([{ transform: "none" }, { transform: back }], opts),
+            dim(cur).animate([{ opacity: 0 }, { opacity: 0.55 }], opts),
+          ]
+        : [
+            // voltando: o atual sai pela direita e revela o anterior embaixo
+            cur.animate([{ transform: "none" }, { transform: `translateX(${w}px)` }], opts),
+            nxt.animate([{ transform: `translateX(${-dist}px) ${back}` }, { transform: `translateX(${-dist}px)` }], opts),
+            dim(nxt).animate([{ opacity: 0.55 }, { opacity: 0 }], opts),
+          ];
+    (next > index ? nxt : cur).style.zIndex = "2";
+    Promise.all(anims.map((a) => a.finished))
+      .catch(() => {})
+      .finally(() => {
+        jump();
+        for (const a of anims) a.cancel();
+        nxt.style.zIndex = "";
+        cur.style.zIndex = "";
+        animating.current = false;
+      });
   }
 
   async function report(id: string) {
@@ -216,14 +236,13 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
       <div className="relative h-full w-full overflow-hidden sm:aspect-[9/16] sm:h-[min(92dvh,860px)] sm:w-auto sm:rounded-2xl sm:shadow-2xl">
         <div
           ref={track}
-          className="no-scrollbar flex h-full snap-x snap-mandatory overflow-x-auto [perspective:1200px]"
+          className="no-scrollbar flex h-full snap-x snap-mandatory overflow-x-auto"
           onTouchStart={() => (touching.current = true)}
           onTouchEnd={(e) => {
             touching.current = false;
             settleSoon(e.currentTarget);
           }}
           onScroll={(e) => {
-            cube(e.currentTarget);
             if (Date.now() >= autoScroll.current) settleSoon(e.currentTarget);
             if (Date.now() < autoScroll.current) return;
             const el = e.currentTarget;
@@ -240,6 +259,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
                 className="h-full w-full object-cover"
                 draggable={false}
               />
+              <div className="story-dim" />
             </div>
           ))}
         </div>
