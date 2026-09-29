@@ -3,26 +3,37 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "node scripts/copy-maplibre-worker.mjs",
+    "prepare": "node scripts/copy-maplibre-worker.mjs && node scripts/gerar-tokens.mjs",
+    "predev": "npm run prepare",
     "dev": "next dev",
-    "prebuild": "node scripts/copy-maplibre-worker.mjs",
+    "prebuild": "npm run prepare",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "tokens": "node scripts/gerar-tokens.mjs",
+    "contraste": "node scripts/contraste.mjs",
+    "test:e2e": "node --test --test-concurrency=1 \"tests/e2e/*.test.mjs\""
   },
   "dependencies": {
+    "@aws-sdk/client-rekognition": "^3.1142.0",
+    "@aws-sdk/client-s3": "^3.1142.0",
+    "@aws-sdk/s3-presigned-post": "^3.1142.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
     "maplibre-gl": "^6.11.2",
     "next": "16.3.6",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "server-only": "^0.0.1",
+    "sharp": "^0.35.5",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.3.6",
     "tailwindcss": "^4",

@@ -4,13 +4,18 @@ import { useState } from "react";
 import Link from "next/link";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabase/client";
+import Captcha, { TURNSTILE_SITE_KEY } from "./Captcha";
 import Sheet from "./Sheet";
+import { Button } from "./ui";
 
 type Props = {
   session: Session | null;
   onClose: () => void;
-  onDone: () => void;
+  onDone: (userId: string) => void;
 };
+
+const FIELD =
+  "w-full rounded-lg border border-line bg-bg px-3 py-2.5 text-base outline-none transition focus:border-accent";
 
 // Login por código de 6 dígitos no e-mail + aceite dos termos.
 // Se já existe sessão (ex.: fechou antes de aceitar), mostra só os termos.
@@ -22,6 +27,9 @@ export default function AuthSheet({ session, onClose, onDone }: Props) {
   const [accepted, setAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
+  const needsCaptcha = Boolean(TURNSTILE_SITE_KEY) && !captcha;
 
   async function run(action: () => Promise<void>) {
     setBusy(true);
@@ -35,18 +43,23 @@ export default function AuthSheet({ session, onClose, onDone }: Props) {
     }
   }
 
-  const acceptTerms = async () => {
+  const acceptTerms = async (userId: string) => {
     const { error } = await supabase.rpc("accept_terms");
     if (error) throw error;
-    onDone();
+    onDone(userId);
   };
 
   const terms = (
-    <label className="flex items-start gap-2 text-sm">
-      <input type="checkbox" className="mt-1" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
+    <label className="flex items-start gap-3 text-sm text-muted">
+      <input
+        type="checkbox"
+        className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
+        checked={accepted}
+        onChange={(e) => setAccepted(e.target.checked)}
+      />
       <span>
         Li e aceito os{" "}
-        <Link href="/termos" target="_blank" className="underline">
+        <Link href="/termos" target="_blank" className="text-accent underline underline-offset-2">
           termos de uso
         </Link>
         . Meus posts aparecem sem meu nome e somem do mapa em 12h.
@@ -54,80 +67,94 @@ export default function AuthSheet({ session, onClose, onDone }: Props) {
     </label>
   );
 
+  const titles = { email: "Entrar para registrar", code: "Confira seu e-mail", terms: "Só mais um passo" };
+
   return (
-    <Sheet title="Entrar para postar" onClose={onClose}>
+    <Sheet eyebrow="Conta" title={titles[step]} onClose={onClose}>
       {step === "email" && (
         <form
-          className="flex flex-col gap-3"
+          className="flex flex-col gap-4"
           onSubmit={(e) => {
             e.preventDefault();
             run(async () => {
-              const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+              const { error } = await supabase.auth.signInWithOtp({
+                email,
+                options: { shouldCreateUser: true, captchaToken: captcha ?? undefined },
+              });
+              setCaptchaReset((n) => n + 1);
               if (error) throw error;
               setStep("code");
             });
           }}
         >
-          <input
-            type="email"
-            required
-            autoComplete="email"
-            placeholder="seu@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="rounded-lg border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800"
-          />
+          <label className="flex flex-col gap-1.5">
+            <span className="rotulo">E-mail</span>
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              placeholder="voce@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={FIELD}
+            />
+          </label>
           {terms}
-          <button disabled={busy || !accepted} className="rounded-lg bg-blue-600 py-2.5 font-medium text-white disabled:opacity-50">
-            {busy ? "Enviando…" : "Receber código"}
-          </button>
+          <Captcha onToken={setCaptcha} resetKey={captchaReset} />
+          <Button type="submit" size="lg" disabled={busy || !accepted || needsCaptcha}>
+            {busy ? "Enviando…" : needsCaptcha && accepted ? "Verificando que você é gente…" : "Receber código"}
+          </Button>
+          <p className="text-xs text-muted">Sem senha: mandamos um código de 6 dígitos para o seu e-mail.</p>
         </form>
       )}
 
       {step === "code" && (
         <form
-          className="flex flex-col gap-3"
+          className="flex flex-col gap-4"
           onSubmit={(e) => {
             e.preventDefault();
             run(async () => {
-              const { error } = await supabase.auth.verifyOtp({ email, token: code, type: "email" });
+              const { data, error } = await supabase.auth.verifyOtp({ email, token: code, type: "email" });
               if (error) throw error;
-              await acceptTerms();
+              await acceptTerms(data.user!.id);
             });
           }}
         >
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">Enviamos um código de 6 dígitos para {email}.</p>
+          <p className="text-sm text-muted">
+            Enviamos um código para <span className="text-ink">{email}</span>. Ele vale por poucos minutos.
+          </p>
           <input
             inputMode="numeric"
             autoComplete="one-time-code"
             pattern="[0-9]{6}"
             maxLength={6}
             required
+            autoFocus
             placeholder="000000"
+            aria-label="Código de 6 dígitos"
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-            className="rounded-lg border border-neutral-300 px-3 py-2 text-center text-2xl tracking-[0.4em] dark:border-neutral-700 dark:bg-neutral-800"
+            className={`${FIELD} num text-center text-3xl tracking-[0.5em]`}
           />
-          <button disabled={busy || code.length !== 6} className="rounded-lg bg-blue-600 py-2.5 font-medium text-white disabled:opacity-50">
+          <Button type="submit" size="lg" disabled={busy || code.length !== 6}>
             {busy ? "Verificando…" : "Entrar"}
-          </button>
+          </Button>
+          <Button type="button" variant="fantasma" onClick={() => setStep("email")}>
+            Usar outro e-mail
+          </Button>
         </form>
       )}
 
-      {step === "terms" && (
-        <div className="flex flex-col gap-3">
+      {step === "terms" && session && (
+        <div className="flex flex-col gap-4">
           {terms}
-          <button
-            disabled={busy || !accepted}
-            onClick={() => run(acceptTerms)}
-            className="rounded-lg bg-blue-600 py-2.5 font-medium text-white disabled:opacity-50"
-          >
+          <Button size="lg" disabled={busy || !accepted} onClick={() => run(() => acceptTerms(session.user.id))}>
             Continuar
-          </button>
+          </Button>
         </div>
       )}
 
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-3 text-sm text-danger">{error}</p>}
     </Sheet>
   );
 }

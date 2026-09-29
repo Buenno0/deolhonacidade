@@ -1,26 +1,269 @@
 @import "tailwindcss";
+@import "./tokens.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Tema por classe no <html>, não por prefers-color-scheme: escuro é o padrão
+   (o mapa escuro deixa a foto ser o assunto) e a escolha da pessoa vence o
+   sistema. Igual ao NAS. */
+@custom-variant light (&:where(.light, .light *));
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-elev: var(--elev);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+
+  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-display: var(--fonte-archivo), var(--font-sans);
+  --font-mono: var(--fonte-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
+}
+
+@layer components {
+  /* Micro-rótulo: o mono maiúsculo espaçado de seção, metadado e status.
+     Na camada components para que utilitários (text-accent...) ainda vençam. */
+  .rotulo {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  /* Número que não dança quando o minuto vira (contagens, relógios). */
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--accent) 40%, transparent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- pins do mapa ----------
+
+   O pin é a própria foto. O anel em volta é o tempo: cheio quando o post
+   nasce, vazio quando ele some. A cor do anel é a severidade da categoria
+   (perigo, aviso ou acento), nunca uma cor por categoria. Como carrega foto,
+   o pin mora dentro de .sala-escura (tokens fixos do escuro). */
+.pin {
+  --tam: 52px;
+  position: relative;
+  width: var(--tam);
+  height: var(--tam);
+  padding: 3px;
+  border-radius: 9999px;
+  background: conic-gradient(
+    var(--sev) calc(var(--restante, 1) * 1turn),
+    color-mix(in oklab, var(--sev) 22%, var(--bg)) 0
+  );
+  cursor: pointer;
+  transition: transform 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.pin:hover,
+.pin[data-ativo="sim"] {
+  transform: scale(1.12);
+  z-index: 2;
+}
+.pin::after {
+  /* a ponta: o pin aponta para o lugar exato */
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  background: var(--sev);
+  transform: translateX(-50%) rotate(45deg);
+  border-radius: 2px;
+  z-index: -1;
+}
+.pin img,
+.pin .pin-vazio {
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  object-fit: cover;
+  border: 2px solid var(--bg);
+  background: var(--elev);
+  display: block;
+}
+.pin-cluster {
+  --tam: 60px;
+}
+.pin-cluster::before {
+  /* a pilha: uma segunda foto "por baixo", deslocada */
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 9999px;
+  border: 2px solid var(--bg);
+  background: var(--elev);
+  transform: translate(7px, -5px);
+  z-index: -1;
+}
+.pin-contagem {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  border: 2px solid var(--bg);
+  font: 500 11px/18px var(--font-mono);
+  text-align: center;
+}
+/* Na faixa ao vivo: menor e sem a ponta. */
+.pin-mini {
+  --tam: 56px;
+  display: block;
+}
+.pin-mini::after {
+  display: none;
+}
+
+/* Recém-postado (< 10 min): o anel respira. */
+.pin[data-novo="sim"] {
+  animation: pin-respira 2.4s ease-in-out infinite;
+}
+.pin[data-pousando="sim"] {
+  animation: pin-pousa 520ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+@keyframes pin-respira {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--sev) 55%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 9px color-mix(in oklab, var(--sev) 0%, transparent);
+  }
+}
+@keyframes pin-pousa {
+  from {
+    transform: translateY(-28px) scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* "Alguém aí?": balão tracejado em acento, com o número de respostas.
+   É o único marcador sem foto: um pedido ainda não tem imagem. */
+.pedido {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px 14px 14px 4px;
+  background: var(--surface);
+  color: var(--accent);
+  border: 2px dashed var(--accent);
+  cursor: pointer;
+  animation: pin-pousa 520ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+.pedido:hover {
+  transform: scale(1.08);
+}
+.pedido-n:not(:empty) {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 9999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 500 11px/20px var(--font-mono);
+  text-align: center;
+}
+
+/* Você está aqui: ponto de acento com halo. */
+.voce {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--accent);
+  border: 3px solid var(--bg);
+  box-shadow: 0 0 0 6px color-mix(in oklab, var(--accent) 25%, transparent);
+}
+
+/* Créditos do mapa no idioma visual do app */
+.maplibregl-ctrl-attrib.maplibregl-compact {
+  background: var(--surface) !important;
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+.maplibregl-ctrl-attrib a {
+  color: var(--muted) !important;
+}
+
+/* ---------- troca de tema (View Transitions) ----------
+   O tema novo nasce num círculo a partir do botão (lib/theme.tsx). Sem o
+   esmaecimento cruzado padrão, que lava a tela no meio do caminho. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 2;
+}
+:root[data-tema-trocando="sim"],
+:root[data-tema-trocando="sim"] * {
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
 }

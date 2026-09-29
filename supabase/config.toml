@@ -34,3 +34,11 @@ content_path = "./supabase/templates/codigo-login.html"
 [auth.email.template.confirmation]
 subject = "Seu código: {{ .Token }}"
 content_path = "./supabase/templates/codigo-login.html"
+
+# Captcha no login (Cloudflare Turnstile). O segredo vem de supabase/.env
+# (SUPABASE_AUTH_CAPTCHA_SECRET); o site key, de NEXT_PUBLIC_TURNSTILE_SITE_KEY.
+# Localmente usamos as chaves de teste da Cloudflare, que sempre passam.
+[auth.captcha]
+enabled = true
+provider = "turnstile"
+secret = "env(SUPABASE_AUTH_CAPTCHA_SECRET)"

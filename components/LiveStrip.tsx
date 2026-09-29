@@ -1,0 +1,45 @@
+"use client";
+
+import { severityVar } from "@/lib/categories";
+import { photoUrl, thumbUrl } from "@/lib/media";
+import { isFresh, remaining, timeAgo, type PostFeature } from "@/lib/posts";
+
+// Os posts mais recentes, como fila de "stories". Mesmo anel de tempo do pin.
+export default function LiveStrip({ posts, onOpen }: { posts: PostFeature[]; onOpen: (id: string) => void }) {
+  if (posts.length === 0) return null;
+  return (
+    <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 pt-1">
+      {posts.map((f) => {
+        const p = f.properties;
+        return (
+          <button
+            key={p.id}
+            onClick={() => onOpen(p.id)}
+            className="sala-escura flex shrink-0 flex-col items-center gap-1"
+            aria-label={`Ver post de ${timeAgo(p.created_at)}`}
+          >
+            <span
+              className="pin pin-mini"
+              data-novo={isFresh(p.created_at) ? "sim" : "nao"}
+              style={{ "--sev": severityVar(p.category), "--restante": remaining(p) } as React.CSSProperties}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={thumbUrl(p.photo_path)}
+                alt=""
+                onError={(e) => {
+                  const img = e.currentTarget;
+                  if (!img.dataset.fallback) {
+                    img.dataset.fallback = "1";
+                    img.src = photoUrl(p.photo_path);
+                  }
+                }}
+              />
+            </span>
+            <span className="rotulo rounded-full bg-black/55 px-1.5 text-[9px] text-ink">{timeAgo(p.created_at)}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}

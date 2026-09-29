@@ -1,0 +1,41 @@
+/* GERADO por scripts/gerar-tokens.mjs a partir de design/tokens.mjs.
+   Não edite aqui: mude lá e rode `npm run tokens`. */
+
+:root,
+.dark {
+  --bg: #0c0a08;
+  --surface: #16130f;
+  --elev: #211c15;
+  --line: #40372b;
+  --ink: #f4efe4;
+  --muted: #a99a84;
+  --accent: #d29a44;
+  --accent-ink: #1a1206;
+  --ok: #7fb79a;
+  --warn: #dca84a;
+  --danger: #e08163;
+}
+
+.light {
+  --bg: #f6f3ee;
+  --surface: #fdfbf7;
+  --elev: #efe9df;
+  --line: #d0c4b1;
+  --ink: #241e17;
+  --muted: #6b6154;
+  --accent: #9d5a26;
+  --accent-ink: #fdfbf7;
+  --ok: #2f6f52;
+  --warn: #8a5a12;
+  --danger: #9c3f1d;
+}
+
+.sala-escura {
+  --accent: #d29a44;
+  --accent-ink: #1a1206;
+  --ink: #f4efe4;
+  --muted: #a99a84;
+  --ok: #7fb79a;
+  --warn: #dca84a;
+  --danger: #e08163;
+}

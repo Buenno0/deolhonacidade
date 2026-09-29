@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npm run contraste
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: build-only
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: checks
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: npm ci
+      # Chave de teste do Turnstile: aceita o token de teste que os testes mandam
+      - run: echo "SUPABASE_AUTH_CAPTCHA_SECRET=1x0000000000000000000000000000000AA" > supabase/.env
+      - run: supabase start
+      - name: .env.local a partir do Supabase local
+        run: |
+          eval "$(supabase status -o env)"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "CRON_SECRET=ci-secret"
+            echo "NEXT_PUBLIC_SITE_URL=http://localhost:3000"
+            echo "NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000BB"
+          } > .env.local
+      - run: npm run build
+      - run: npm start &
+      - run: npx wait-on http://localhost:3000 --timeout 60000
+      - run: npm run test:e2e

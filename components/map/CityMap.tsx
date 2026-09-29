@@ -2,22 +2,24 @@
 
 import { useEffect, useRef } from "react";
 import {
-  GeolocateControl,
   MapLibreMap,
-  NavigationControl,
+  Marker,
   setWorkerUrl,
-  type ExpressionSpecification,
   type GeoJSONSource,
-  type MapLayerMouseEvent,
+  type LayerSpecification,
+  type SourceSpecification,
+  type StyleSpecification,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { CITY } from "@/lib/city";
-import { CATEGORIES } from "@/lib/categories";
-import type { PostProperties, PostsCollection } from "@/lib/posts";
+import { severityVar } from "@/lib/categories";
+import { thumbUrl, photoUrl } from "@/lib/media";
+import { buildMapStyle, mapTone, type MapType } from "@/lib/map/style";
+import { isFresh, remaining, type PostFeature, type PostProperties, type RequestFeature } from "@/lib/posts";
+import type { Theme } from "@/lib/theme";
 
 setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
 
-const MAP_STYLE = process.env.NEXT_PUBLIC_MAP_STYLE ?? "https://tiles.openfreemap.org/styles/liberty";
 const WORLD_RING = [
   [-180, -85],
   [180, -85],
@@ -25,150 +27,406 @@ const WORLD_RING = [
   [-180, 85],
   [-180, -85],
 ];
+const OUR_SOURCES = ["city-mask", "city-boundary", "posts", "posts-now", "heat-history"];
+const EMPTY: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
-const categoryColor = [
-  "match",
-  ["get", "category"],
-  ...Object.entries(CATEGORIES).flatMap(([key, c]) => [key, c.color]),
-  "#64748b",
-] as unknown as ExpressionSpecification;
+export type HeatState = { now: boolean; history: GeoJSON.FeatureCollection | null };
+const CLUSTER_MAX_ZOOM = 17;
 
 type Props = {
-  posts: PostsCollection;
+  posts: PostFeature[];
+  theme: Theme;
+  mapType: MapType;
   focus: [number, number] | null;
-  onSelect: (post: PostProperties) => void;
+  activeId: string | null;
+  userPos: [number, number] | null;
+  requests: RequestFeature[];
+  heat: HeatState;
+  onSelect: (id: string) => void;
+  onSelectMany: (ids: string[]) => void;
+  onSelectRequest: (id: string) => void;
+  onMove?: (center: [number, number]) => void;
 };
 
-export default function CityMap({ posts, focus, onSelect }: Props) {
+// Calor: âmbar → óxido → vermelho, transparente onde não há nada
+const HEAT_COLOR = [
+  "interpolate",
+  ["linear"],
+  ["heatmap-density"],
+  0, "rgba(0,0,0,0)",
+  0.15, "rgba(220,168,74,0.35)",
+  0.45, "rgba(224,129,99,0.6)",
+  0.75, "rgba(214,72,56,0.8)",
+  1, "rgba(255,226,160,0.95)",
+];
+function heatLayer(id: string, source: string, visible: boolean, weight: unknown): LayerSpecification {
+  return {
+    id,
+    type: "heatmap",
+    source,
+    layout: { visibility: visible ? "visible" : "none" },
+    paint: {
+      "heatmap-weight": weight,
+      "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 10, 1, 16, 2.2],
+      // raio grande de propósito: numa cidade com poucos registros, o calor
+      // precisa aparecer em volta dos pins, não escondido embaixo deles
+      "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 10, 28, 14, 70, 17, 120],
+      "heatmap-color": HEAT_COLOR,
+      "heatmap-opacity": 0.85,
+    },
+  } as unknown as LayerSpecification;
+}
+
+// Camadas nossas por cima do estilo base. Seguem o tom do mapa desenhado
+// (escuro, claro ou satélite), não o tema da interface.
+function ourLayers(theme: Theme, type: MapType, heat: HeatState): LayerSpecification[] {
+  const tone = mapTone(theme, type);
+  const mask =
+    type === "satelite" ? { c: "#000000", o: 0.5 } : tone === "dark" ? { c: "#0b0c0f", o: 0.62 } : { c: "#f3f0e9", o: 0.66 };
+  return [
+    heatLayer("heat-history", "heat-history", Boolean(heat.history), ["interpolate", ["linear"], ["get", "n"], 3, 0.5, 20, 1]),
+    heatLayer("heat-now", "posts-now", heat.now, 1),
+    {
+      id: "city-mask",
+      type: "fill",
+      source: "city-mask",
+      paint: { "fill-color": mask.c, "fill-opacity": mask.o },
+    },
+    {
+      id: "city-boundary",
+      type: "line",
+      source: "city-boundary",
+      paint: { "line-color": tone === "dark" ? "#e0a84e" : "#9d5a26", "line-width": 2, "line-dasharray": [3, 2], "line-opacity": 0.8 },
+    },
+    // Invisível: só existe para o MapLibre carregar e agrupar o source dos posts
+    { id: "posts-hit", type: "circle", source: "posts", paint: { "circle-radius": 0, "circle-opacity": 0 } },
+  ];
+}
+
+function postsSource(posts: PostFeature[]): SourceSpecification {
+  return {
+    type: "geojson",
+    data: toData(posts),
+    cluster: true,
+    clusterRadius: 56,
+    clusterMaxZoom: CLUSTER_MAX_ZOOM - 1,
+    // O cluster carrega o horário do post mais novo: é a foto que ele mostra
+    clusterProperties: { newest: ["max", ["get", "t"]] },
+  };
+}
+
+const toData = (posts: PostFeature[]): GeoJSON.FeatureCollection => ({
+  type: "FeatureCollection",
+  features: posts.map((f) => ({ ...f, properties: { ...f.properties, t: new Date(f.properties.created_at).getTime() } })),
+});
+
+function pinElement(post: PostProperties, count?: number) {
+  const el = document.createElement("button");
+  el.type = "button";
+  el.className = `pin sala-escura${count ? " pin-cluster" : ""}`;
+  el.setAttribute("aria-label", count ? `${count} posts aqui` : "Ver post");
+  const img = document.createElement("img");
+  img.alt = "";
+  img.decoding = "async";
+  img.src = thumbUrl(post.photo_path);
+  // Post sem miniatura (anterior a ela existir): cai para a foto inteira
+  img.onerror = () => {
+    img.onerror = null;
+    img.src = photoUrl(post.photo_path);
+  };
+  el.appendChild(img);
+  if (count) {
+    const badge = document.createElement("span");
+    badge.className = "pin-contagem";
+    badge.textContent = count > 99 ? "99+" : String(count);
+    el.appendChild(badge);
+  }
+  return el;
+}
+
+function paintPin(el: HTMLElement, post: PostProperties, active: boolean) {
+  el.style.setProperty("--sev", severityVar(post.category));
+  el.style.setProperty("--restante", remaining(post).toFixed(3));
+  el.dataset.novo = isFresh(post.created_at) ? "sim" : "nao";
+  el.dataset.ativo = active ? "sim" : "nao";
+}
+
+export default function CityMap({
+  posts,
+  theme,
+  mapType,
+  focus,
+  activeId,
+  userPos,
+  requests,
+  heat,
+  onSelect,
+  onSelectMany,
+  onSelectRequest,
+  onMove,
+}: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<MapLibreMap | null>(null);
-  const ready = useRef(false);
-  const latestPosts = useRef(posts);
-  const onSelectRef = useRef(onSelect);
+  const markers = useRef(new Map<string, { marker: Marker; postId: string }>());
+  const byId = useRef(new Map<string, PostProperties>());
+  const byTime = useRef(new Map<number, PostProperties>());
+  // Ids já vistos: um post que chega depois disso "pousa" com animação
+  const known = useRef<Set<string> | null>(null);
+  const latest = useRef({ posts, activeId, theme, mapType, heat, onSelect, onSelectMany, onSelectRequest, onMove });
+  const requestMarkers = useRef(new Map<string, Marker>());
+  const syncRef = useRef<() => void>(() => {});
+  const userMarker = useRef<Marker | null>(null);
 
   useEffect(() => {
-    onSelectRef.current = onSelect;
-  }, [onSelect]);
+    latest.current = { posts, activeId, theme, mapType, heat, onSelect, onSelectMany, onSelectRequest, onMove };
+  });
 
+  // Cria o mapa uma vez
   useEffect(() => {
-    const m = new MapLibreMap({
-      container: container.current!,
-      style: MAP_STYLE,
-      center: CITY.center,
-      zoom: CITY.zoom,
-      maxBounds: CITY.maxBounds,
-      minZoom: 10,
-      attributionControl: { compact: true },
-    });
-    map.current = m;
+    let m: MapLibreMap | null = null;
+    let cancelled = false;
+    let tick: ReturnType<typeof setInterval> | undefined;
+    const markerMap = markers.current;
 
-    m.addControl(new NavigationControl({ showCompass: false }), "top-right");
-    m.addControl(
-      new GeolocateControl({
-        positionOptions: { enableHighAccuracy: true },
-        trackUserLocation: true,
-      }),
-      "top-right",
-    );
+    // Marcadores HTML acompanham o que o agrupamento nativo decidiu mostrar
+    const sync = () => {
+      if (!m || !m.getSource("posts") || !m.isSourceLoaded("posts")) return;
+      const seen = new Set<string>();
+      const active = latest.current.activeId;
+      for (const f of m.querySourceFeatures("posts")) {
+        const props = f.properties as Record<string, unknown>;
+        const coords = (f.geometry as GeoJSON.Point).coordinates as [number, number];
+        const isCluster = Boolean(props.cluster);
+        const key = isCluster ? `c${props.cluster_id}` : `p${props.id}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
 
-    m.on("load", async () => {
-      const boundary = (await fetch(`/cities/${CITY.slug}.geojson`).then((r) =>
-        r.json(),
-      )) as GeoJSON.FeatureCollection<GeoJSON.Polygon | GeoJSON.MultiPolygon>;
+        const post = isCluster ? byTime.current.get(props.newest as number) : byId.current.get(props.id as string);
+        if (!post) continue;
+        let entry = markerMap.get(key);
+        if (!entry || entry.postId !== post.id) {
+          entry?.marker.remove();
+          const el = pinElement(post, isCluster ? (props.point_count as number) : undefined);
+          if (!isCluster && known.current && !known.current.has(post.id)) el.dataset.pousando = "sim";
+          el.addEventListener("click", async (ev) => {
+            ev.stopPropagation();
+            if (!isCluster) return latest.current.onSelect(post.id);
+            const source = m!.getSource<GeoJSONSource>("posts")!;
+            const clusterId = props.cluster_id as number;
+            const zoom = await source.getClusterExpansionZoom(clusterId);
+            if (zoom < CLUSTER_MAX_ZOOM) {
+              m!.easeTo({ center: coords, zoom: zoom + 0.3 });
+            } else {
+              // Tudo no mesmo ponto: abre a sequência de fotos direto
+              const leaves = await source.getClusterLeaves(clusterId, 100, 0);
+              latest.current.onSelectMany(leaves.map((l) => l.properties!.id as string));
+            }
+          });
+          entry = {
+            marker: new Marker({ element: el, anchor: "bottom", offset: [0, -5] }).setLngLat(coords).addTo(m),
+            postId: post.id,
+          };
+          markerMap.set(key, entry);
+        } else {
+          entry.marker.setLngLat(coords);
+        }
+        paintPin(entry.marker.getElement(), post, !isCluster && post.id === active);
+      }
+      for (const [key, entry] of markerMap) {
+        if (!seen.has(key)) {
+          entry.marker.remove();
+          markerMap.delete(key);
+        }
+      }
+      if (!known.current) known.current = new Set(byId.current.keys());
+      else for (const id of byId.current.keys()) known.current.add(id);
+    };
+    syncRef.current = sync;
+
+    (async () => {
+      let styleKey = `${latest.current.theme}/${latest.current.mapType}`;
+      let styleTheme = latest.current.theme;
+      let styleType = latest.current.mapType;
+      const [firstBase, boundary] = await Promise.all([
+        buildMapStyle(styleTheme, styleType),
+        fetch(`/cities/${CITY.slug}.geojson`).then(
+          (r) => r.json() as Promise<GeoJSON.FeatureCollection<GeoJSON.Polygon | GeoJSON.MultiPolygon>>,
+        ),
+      ]);
+      let base = firstBase;
+      // Na hidratação o tema começa no valor do servidor e logo vira o salvo:
+      // se mudou enquanto o estilo carregava, monta com o atual
+      while (!cancelled && `${latest.current.theme}/${latest.current.mapType}` !== styleKey) {
+        styleTheme = latest.current.theme;
+        styleType = latest.current.mapType;
+        styleKey = `${styleTheme}/${styleType}`;
+        base = await buildMapStyle(styleTheme, styleType);
+      }
+      if (cancelled) return;
       const geom = boundary.features[0].geometry;
       const holes = geom.type === "Polygon" ? [geom.coordinates[0]] : geom.coordinates.map((p) => p[0]);
 
-      m.addSource("city-mask", {
-        type: "geojson",
-        data: { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [WORLD_RING, ...holes] } },
-      });
-      m.addLayer({ id: "city-mask", type: "fill", source: "city-mask", paint: { "fill-color": "#0f172a", "fill-opacity": 0.45 } });
-      m.addSource("city-boundary", { type: "geojson", data: boundary });
-      m.addLayer({
-        id: "city-boundary",
-        type: "line",
-        source: "city-boundary",
-        paint: { "line-color": "#0f172a", "line-width": 2, "line-opacity": 0.7 },
-      });
-
-      m.addSource("posts", {
-        type: "geojson",
-        data: latestPosts.current,
-        cluster: true,
-        clusterRadius: 45,
-        clusterMaxZoom: 16,
-      });
-      m.addLayer({
-        id: "clusters",
-        type: "circle",
-        source: "posts",
-        filter: ["has", "point_count"],
-        paint: {
-          "circle-color": "#2563eb",
-          "circle-opacity": 0.9,
-          "circle-radius": ["step", ["get", "point_count"], 16, 10, 22, 50, 28],
-          "circle-stroke-width": 3,
-          "circle-stroke-color": "#ffffff",
+      const style: StyleSpecification = {
+        ...base,
+        sources: {
+          ...base.sources,
+          "city-mask": {
+            type: "geojson",
+            data: { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [WORLD_RING, ...holes] } },
+          },
+          "city-boundary": { type: "geojson", data: boundary },
+          posts: postsSource(latest.current.posts),
+          "posts-now": { type: "geojson", data: toData(latest.current.posts) },
+          "heat-history": { type: "geojson", data: latest.current.heat.history ?? EMPTY },
         },
-      });
-      m.addLayer({
-        id: "cluster-count",
-        type: "symbol",
-        source: "posts",
-        filter: ["has", "point_count"],
-        layout: { "text-field": ["get", "point_count_abbreviated"], "text-font": ["Noto Sans Bold"], "text-size": 13 },
-        paint: { "text-color": "#ffffff" },
-      });
-      m.addLayer({
-        id: "post-points",
-        type: "circle",
-        source: "posts",
-        filter: ["!", ["has", "point_count"]],
-        paint: {
-          "circle-color": categoryColor,
-          "circle-radius": 10,
-          "circle-stroke-width": 3,
-          "circle-stroke-color": "#ffffff",
-        },
-      });
+        layers: [...base.layers, ...ourLayers(styleTheme, styleType, latest.current.heat)],
+      };
 
-      m.on("click", "clusters", async (e: MapLayerMouseEvent) => {
-        const feature = e.features?.[0];
-        if (!feature) return;
-        const source = m.getSource<GeoJSONSource>("posts")!;
-        const zoom = await source.getClusterExpansionZoom(feature.properties.cluster_id);
-        m.easeTo({ center: (feature.geometry as GeoJSON.Point).coordinates as [number, number], zoom });
+      m = new MapLibreMap({
+        container: container.current!,
+        style,
+        center: CITY.center,
+        zoom: CITY.zoom,
+        maxBounds: CITY.maxBounds,
+        minZoom: 10,
+        maxZoom: 19,
+        attributionControl: { compact: true },
       });
-      m.on("click", "post-points", (e: MapLayerMouseEvent) => {
-        const props = e.features?.[0]?.properties as PostProperties | undefined;
-        if (props) onSelectRef.current(props);
+      map.current = m;
+      m.on("data", (e) => {
+        if ((e as { sourceId?: string }).sourceId === "posts") sync();
       });
-      for (const layer of ["clusters", "post-points"]) {
-        m.on("mouseenter", layer, () => (m.getCanvas().style.cursor = "pointer"));
-        m.on("mouseleave", layer, () => (m.getCanvas().style.cursor = ""));
-      }
-
-      ready.current = true;
-    });
+      m.on("moveend", sync);
+      const reportCenter = () => {
+        const c = m!.getCenter();
+        latest.current.onMove?.([c.lng, c.lat]);
+      };
+      m.on("load", reportCenter);
+      m.on("moveend", reportCenter);
+      tick = setInterval(sync, 60_000);
+    })();
 
     return () => {
-      ready.current = false;
-      m.remove();
+      cancelled = true;
+      clearInterval(tick);
+      for (const { marker } of markerMap.values()) marker.remove();
+      markerMap.clear();
+      m?.remove();
       map.current = null;
     };
   }, []);
 
+  // Dados novos
   useEffect(() => {
-    latestPosts.current = posts;
-    if (ready.current) map.current?.getSource<GeoJSONSource>("posts")?.setData(posts);
+    byId.current = new Map(posts.map((f) => [f.properties.id, f.properties]));
+    byTime.current = new Map(posts.map((f) => [new Date(f.properties.created_at).getTime(), f.properties]));
+    map.current?.getSource<GeoJSONSource>("posts")?.setData(toData(posts));
+    map.current?.getSource<GeoJSONSource>("posts-now")?.setData(toData(posts));
+    syncRef.current();
   }, [posts]);
 
+  // Camadas de calor
   useEffect(() => {
-    if (focus) map.current?.flyTo({ center: focus, zoom: Math.max(map.current.getZoom(), 16) });
+    const m = map.current;
+    if (!m || !m.getLayer("heat-now")) return;
+    m.setLayoutProperty("heat-now", "visibility", heat.now ? "visible" : "none");
+    m.setLayoutProperty("heat-history", "visibility", heat.history ? "visible" : "none");
+    m.getSource<GeoJSONSource>("heat-history")?.setData(heat.history ?? EMPTY);
+  }, [heat]);
+
+  // "Alguém aí?": um balão por pedido aberto (são poucos, sem agrupamento)
+  useEffect(() => {
+    const m = map.current;
+    const markerMap = requestMarkers.current;
+    const seen = new Set<string>();
+    const place = (mm: MapLibreMap) => {
+      for (const r of requests) {
+        const id = r.properties.id;
+        seen.add(id);
+        let marker = markerMap.get(id);
+        if (!marker) {
+          const el = document.createElement("button");
+          el.type = "button";
+          el.className = "pedido";
+          el.setAttribute("aria-label", `Pedido: ${r.properties.question}`);
+          el.innerHTML =
+            '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4V5z"/><path d="M10 9a2 2 0 1 1 2.8 1.8c-.5.3-.8.7-.8 1.2M12 14h.01"/></svg><span class="pedido-n"></span>';
+          el.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            latest.current.onSelectRequest(id);
+          });
+          marker = new Marker({ element: el, anchor: "bottom", offset: [0, -4] }).setLngLat(r.geometry.coordinates as [number, number]).addTo(mm);
+          markerMap.set(id, marker);
+        }
+        const n = marker.getElement().querySelector(".pedido-n")!;
+        n.textContent = r.properties.answer_count ? String(r.properties.answer_count) : "";
+      }
+      for (const [id, marker] of markerMap) {
+        if (!seen.has(id)) {
+          marker.remove();
+          markerMap.delete(id);
+        }
+      }
+    };
+    if (m) place(m);
+    else {
+      // o mapa nasce assíncrono: tenta de novo quando existir
+      const t = setInterval(() => {
+        if (map.current) {
+          clearInterval(t);
+          place(map.current);
+        }
+      }, 300);
+      return () => clearInterval(t);
+    }
+  }, [requests]);
+
+  // Pin ativo
+  useEffect(() => {
+    syncRef.current();
+  }, [activeId]);
+
+  // Tema ou tipo de mapa: troca o estilo base e mantém nossas fontes e camadas
+  useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+    let cancelled = false;
+    buildMapStyle(theme, mapType).then((base) => {
+      if (cancelled) return;
+      m.setStyle(base, {
+        transformStyle: (prev, next) => ({
+          ...next,
+          sources: {
+            ...next.sources,
+            ...Object.fromEntries(OUR_SOURCES.filter((id) => prev?.sources[id]).map((id) => [id, prev!.sources[id]])),
+          },
+          layers: [...next.layers, ...ourLayers(theme, mapType, latest.current.heat)],
+        }),
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [theme, mapType]);
+
+  useEffect(() => {
+    if (focus) map.current?.flyTo({ center: focus, zoom: Math.max(map.current.getZoom(), 16), speed: 1.4 });
   }, [focus]);
 
-  // O CSS do MapLibre (fora das layers do Tailwind) força position: relative
-  // no container, então quem ocupa a tela é o wrapper
+  // Você está aqui
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !userPos) return;
+    if (!userMarker.current) {
+      const el = document.createElement("div");
+      el.className = "voce";
+      el.setAttribute("aria-label", "Você está aqui");
+      userMarker.current = new Marker({ element: el }).setLngLat(userPos).addTo(m);
+    } else {
+      userMarker.current.setLngLat(userPos);
+    }
+  }, [userPos]);
+
   return (
     <div className="absolute inset-0">
       <div ref={container} className="h-full w-full" />

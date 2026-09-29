@@ -1,61 +1,170 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabase/client";
 import { CITY } from "@/lib/city";
-import type { PostProperties, PostsCollection } from "@/lib/posts";
+import { CATEGORIES, CATEGORY_KEYS, type Category } from "@/lib/categories";
+import { formatDistance, type PostFeature, type PostsCollection, type RequestFeature } from "@/lib/posts";
+import { useTheme } from "@/lib/theme";
+import { useMapType } from "@/lib/mapType";
+import AccountSheet from "./AccountSheet";
+import AlertsSheet from "./AlertsSheet";
+import AskPanel from "./AskPanel";
 import AuthSheet from "./AuthSheet";
+import LiveStrip from "./LiveStrip";
+import MapTypePicker, { type HeatMode } from "./MapTypePicker";
 import NewPostSheet from "./NewPostSheet";
-import PostSheet from "./PostSheet";
+import PostViewer from "./PostViewer";
+import RequestSheet from "./RequestSheet";
+import TrendsView from "./TrendsView";
+import Mark from "./ui/Mark";
+import { Button, Chip, EmptyState, IconButton, Spinner, cx } from "./ui";
+import {
+  BellIcon,
+  CameraIcon,
+  CategoryIcon,
+  FlagIcon,
+  LocateIcon,
+  MapIcon,
+  MoonIcon,
+  QuestionIcon,
+  SunIcon,
+  TrendIcon,
+  UserIcon,
+} from "./ui/icons";
 
 // MapLibre usa window/WebGL, então só roda no navegador
 const CityMap = dynamic(() => import("./map/CityMap"), { ssr: false });
 
-const EMPTY: PostsCollection = { type: "FeatureCollection", features: [] };
+type AfterLogin = "new" | "ask" | "alerts" | "account" | null;
+type Panel =
+  | { kind: "viewer"; ids: string[] | null; startId: string }
+  | { kind: "new"; request: { id: string; question: string } | null }
+  | { kind: "auth"; then: AfterLogin }
+  | { kind: "request"; id: string }
+  | { kind: "alerts" }
+  | { kind: "account" }
+  | null;
 
-async function fetchActivePosts(): Promise<PostsCollection> {
+type Toast = { text: string; postId?: string };
+
+async function fetchActivePosts(): Promise<PostFeature[]> {
   const { data, error } = await getSupabase().rpc("active_posts", { p_city_id: CITY.id });
   if (error) throw error;
-  const collection = data as PostsCollection;
   const now = Date.now();
-  // Tira do mapa o que venceu entre um carregamento e outro
-  collection.features = collection.features.filter((f) => new Date(f.properties.expires_at).getTime() > now);
-  return collection;
+  return (data as PostsCollection).features
+    .filter((f) => new Date(f.properties.expires_at).getTime() > now)
+    .sort((a, b) => b.properties.created_at.localeCompare(a.properties.created_at));
 }
 
-type Panel = { kind: "post"; post: PostProperties } | { kind: "new" } | { kind: "auth"; then: "new" | null } | null;
+async function fetchRequests(): Promise<RequestFeature[]> {
+  const { data, error } = await getSupabase().rpc("active_requests", { p_city_id: CITY.id });
+  if (error) throw error;
+  return (data as GeoJSON.FeatureCollection<GeoJSON.Point>).features as RequestFeature[];
+}
 
 export default function Home() {
   const supabase = getSupabase();
-  const [posts, setPosts] = useState<PostsCollection>(EMPTY);
+  const { theme, toggle } = useTheme();
+  const mapType = useMapType();
+  const params = useSearchParams();
+  const [posts, setPosts] = useState<PostFeature[] | null>(null);
+  const [requests, setRequests] = useState<RequestFeature[]>([]);
+  const [filter, setFilter] = useState<Category | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  // id do usuário que já aceitou os termos (evita estado sobrando após logout)
   const [termsUserId, setTermsUserId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const termsOk = Boolean(session && termsUserId === session.user.id);
   const [panel, setPanel] = useState<Panel>(null);
+  const [asking, setAsking] = useState(false);
+  const [tab, setTab] = useState<"mapa" | "trends">("mapa");
   const [focus, setFocus] = useState<[number, number] | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [userPos, setUserPos] = useState<[number, number] | null>(null);
+  const [heatMode, setHeatMode] = useState<HeatMode>("off");
+  const [heatHistory, setHeatHistory] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [toast, setToast] = useState<Toast | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const ownPosts = useRef(new Set<string>());
+  const knownIds = useRef<Set<string> | null>(null);
+  const center = useRef<[number, number] | null>(null);
+  // Link direto (/?post=… vindo da página de compartilhar, /?pedido=… do alerta)
+  const deepLink = useRef({ post: params.get("post"), pedido: params.get("pedido") });
+
+  const clearDeepLink = () => window.history.replaceState(null, "", "/");
 
   const loadPosts = useCallback(
     () =>
-      fetchActivePosts().then(setPosts, (error) => console.error("Falha ao carregar posts", error)),
+      fetchActivePosts().then(
+        (list) => {
+          setError(null);
+          setPosts(list);
+          // Post novo de outra pessoa: avisa, com atalho para ver
+          const known = knownIds.current;
+          if (known) {
+            const fresh = list.find((f) => !known.has(f.properties.id) && !ownPosts.current.has(f.properties.id));
+            if (fresh) setToast({ text: `Novo: ${CATEGORIES[fresh.properties.category].label}`, postId: fresh.properties.id });
+          }
+          knownIds.current = new Set(list.map((f) => f.properties.id));
+          const wanted = deepLink.current.post;
+          if (wanted) {
+            deepLink.current.post = null;
+            clearDeepLink();
+            const f = list.find((x) => x.properties.id === wanted);
+            if (f) setPanel({ kind: "viewer", ids: null, startId: wanted });
+            else setToast({ text: "Esse registro já sumiu do mapa" });
+          }
+        },
+        (e) => {
+          console.error("Falha ao carregar posts", e);
+          setError("Não foi possível carregar o mapa agora.");
+        },
+      ),
+    [],
+  );
+
+  const loadRequests = useCallback(
+    () =>
+      fetchRequests().then(
+        (list) => {
+          setRequests(list);
+          const wanted = deepLink.current.pedido;
+          if (wanted) {
+            deepLink.current.pedido = null;
+            clearDeepLink();
+            const r = list.find((x) => x.properties.id === wanted);
+            if (r) {
+              setPanel({ kind: "request", id: wanted });
+              setFocus(r.geometry.coordinates as [number, number]);
+            } else setToast({ text: "Esse pedido já fechou" });
+          }
+        },
+        (e) => console.error("Falha ao carregar pedidos", e),
+      ),
     [],
   );
 
   useEffect(() => {
     loadPosts();
-    const interval = setInterval(loadPosts, 60_000);
+    loadRequests();
+    const interval = setInterval(() => {
+      loadPosts();
+      loadRequests();
+    }, 60_000);
     const channel = supabase
       .channel(`city:${CITY.id}`)
       .on("broadcast", { event: "post_changed" }, () => loadPosts())
+      .on("broadcast", { event: "request_changed" }, () => loadRequests())
       .subscribe();
     return () => {
       clearInterval(interval);
       supabase.removeChannel(channel);
     };
-  }, [supabase, loadPosts]);
+  }, [supabase, loadPosts, loadRequests]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -71,66 +180,381 @@ export default function Home() {
       .eq("id", session.user.id)
       .single()
       .then(({ data }) => setTermsUserId(data?.accepted_terms_at ? session.user.id : null));
+    supabase.rpc("am_i_admin").then(({ data }) => setIsAdmin(Boolean(data)));
   }, [supabase, session]);
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 3000);
+    const t = setTimeout(() => setToast(null), 5000);
     return () => clearTimeout(t);
   }, [toast]);
 
-  const startPost = () => setPanel(session && termsOk ? { kind: "new" } : { kind: "auth", then: "new" });
+  function chooseHeat(mode: HeatMode) {
+    setHeatMode(mode);
+    if (mode === "historico" && !heatHistory) {
+      supabase.rpc("heat_history", { p_city_id: CITY.id, p_days: 30 }).then(({ data, error }) => {
+        if (error) return setToast({ text: "Não foi possível carregar o histórico" });
+        const fc = data as GeoJSON.FeatureCollection;
+        setHeatHistory(fc);
+        if (fc.features.length === 0) setToast({ text: "Ainda não há histórico suficiente (mínimo de 3 registros por lugar)" });
+      });
+    }
+  }
+
+  const visible = useMemo(
+    () => (posts ?? []).filter((f) => !filter || f.properties.category === filter),
+    [posts, filter],
+  );
+  const counts = useMemo(() => {
+    const c: Partial<Record<Category, number>> = {};
+    for (const f of posts ?? []) c[f.properties.category] = (c[f.properties.category] ?? 0) + 1;
+    return c;
+  }, [posts]);
+  // O número no balão conta só respostas visíveis (o banco não desconta as escondidas)
+  const requestsShown = useMemo(
+    () =>
+      requests.map((r) => ({
+        ...r,
+        properties: {
+          ...r.properties,
+          answer_count: (posts ?? []).filter((f) => f.properties.request_id === r.properties.id).length,
+        },
+      })),
+    [requests, posts],
+  );
+  const heat = useMemo(
+    () => ({ now: heatMode === "agora", history: heatMode === "historico" ? heatHistory : null }),
+    [heatMode, heatHistory],
+  );
+
+  const needLogin = (then: AfterLogin) => setPanel({ kind: "auth", then });
+  const requireLogin = (then: Exclude<AfterLogin, null>, run: () => void) => (session && termsOk ? run() : needLogin(then));
+  const startPost = () => requireLogin("new", () => setPanel({ kind: "new", request: null }));
+  const startAsk = () =>
+    requireLogin("ask", () => {
+      setPanel(null);
+      setAsking(true);
+    });
+  const openAlerts = () => requireLogin("alerts", () => setPanel({ kind: "alerts" }));
+  const openAccount = () => requireLogin("account", () => setPanel({ kind: "account" }));
+  const openViewer = (startId: string, ids: string[] | null = null) => setPanel({ kind: "viewer", ids, startId });
+
+  function locate() {
+    navigator.geolocation?.getCurrentPosition(
+      (p) => {
+        const at: [number, number] = [p.coords.longitude, p.coords.latitude];
+        setUserPos(at);
+        setFocus(at);
+      },
+      () => setToast({ text: "Não foi possível obter sua localização" }),
+      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 30_000 },
+    );
+  }
+
+  const viewerPosts =
+    panel?.kind === "viewer"
+      ? panel.ids
+        ? panel.ids.map((id) => (posts ?? []).find((f) => f.properties.id === id)).filter((f): f is PostFeature => Boolean(f))
+        : visible.some((f) => f.properties.id === panel.startId)
+          ? visible
+          : (posts ?? []) // o post pedido está fora do filtro: mostra todos
+      : [];
+  const openRequest = panel?.kind === "request" ? requests.find((r) => r.properties.id === panel.id) : undefined;
+  const answersOf = (requestId: string) => (posts ?? []).filter((f) => f.properties.request_id === requestId);
 
   return (
-    <main className="relative h-dvh w-full overflow-hidden">
-      <CityMap posts={posts} focus={focus} onSelect={(post) => setPanel({ kind: "post", post })} />
+    <main className="relative h-dvh w-full overflow-hidden bg-bg">
+      <CityMap
+        posts={visible}
+        theme={theme}
+        mapType={mapType}
+        focus={focus}
+        activeId={activeId}
+        userPos={userPos}
+        requests={requestsShown}
+        heat={heat}
+        onSelect={(id) => openViewer(id)}
+        onSelectMany={(ids) => openViewer(ids[0], ids)}
+        onSelectRequest={(id) => setPanel({ kind: "request", id })}
+        onMove={(c) => (center.current = c)}
+      />
 
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-10 p-3">
-        <div className="pointer-events-auto inline-flex flex-col rounded-xl bg-white/90 px-3 py-2 shadow backdrop-blur dark:bg-neutral-900/90">
-          <span className="text-sm font-semibold">👀 De Olho na Cidade</span>
-          <span className="text-xs text-neutral-500">
-            {CITY.name}/{CITY.uf} · {posts.features.length} {posts.features.length === 1 ? "post agora" : "posts agora"}
-          </span>
+      {/* Topo: marca, cidade, status ao vivo e filtros */}
+      <header className="pointer-events-none absolute inset-x-0 top-0 z-10 px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <div className="pointer-events-auto mx-auto flex max-w-lg items-center gap-3 rounded-2xl border border-line bg-surface/90 py-2 pl-3 pr-2 backdrop-blur">
+          <Mark size={40} className="shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="font-display text-base font-bold leading-tight">De Olho</p>
+            <p className="rotulo truncate">
+              {CITY.name} · {CITY.uf}
+            </p>
+          </div>
+          <div
+            className="flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1"
+            aria-live="polite"
+            aria-label={`${posts?.length ?? 0} posts ao vivo`}
+          >
+            {posts === null ? (
+              <Spinner className="text-xs" />
+            ) : (
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-danger opacity-60" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-danger" />
+              </span>
+            )}
+            <span className="rotulo hidden text-ink sm:inline">ao vivo</span>
+            <span className="num text-xs text-ink">{String(posts?.length ?? 0).padStart(2, "0")}</span>
+          </div>
+          <IconButton label={theme === "dark" ? "Tema claro" : "Tema escuro"} onClick={toggle}>
+            {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+          </IconButton>
         </div>
+
+        {!asking && (
+          <nav
+            aria-label="Filtrar por categoria"
+            className="no-scrollbar pointer-events-auto mx-auto mt-2 flex max-w-lg items-center gap-2 overflow-x-auto pb-1"
+          >
+            {/* Mapa | Trends */}
+            <div role="tablist" className="flex shrink-0 rounded-full border border-line bg-surface/90 p-0.5 backdrop-blur">
+              {(
+                [
+                  ["mapa", "Mapa", MapIcon],
+                  ["trends", "Trends", TrendIcon],
+                ] as const
+              ).map(([id, label, Icon]) => (
+                <button
+                  key={id}
+                  role="tab"
+                  aria-selected={tab === id}
+                  onClick={() => setTab(id)}
+                  className={cx(
+                    "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition",
+                    tab === id ? "bg-accent font-medium text-accent-ink" : "text-muted hover:text-ink",
+                  )}
+                >
+                  <Icon width="1.1em" height="1.1em" /> {label}
+                </button>
+              ))}
+            </div>
+            {tab === "mapa" && (
+              <Chip active={filter === null} onClick={() => setFilter(null)}>
+                Tudo
+              </Chip>
+            )}
+            {tab === "mapa" && CATEGORY_KEYS.filter((k) => counts[k]).map((k) => (
+              <Chip key={k} active={filter === k} onClick={() => setFilter(filter === k ? null : k)}>
+                <CategoryIcon category={k} />
+                {CATEGORIES[k].label}
+                <span className="num opacity-70">{counts[k]}</span>
+              </Chip>
+            ))}
+          </nav>
+        )}
       </header>
 
-      <button
-        onClick={startPost}
-        className="absolute bottom-[max(1.5rem,env(safe-area-inset-bottom))] left-1/2 z-10 -translate-x-1/2 rounded-full bg-blue-600 px-6 py-3.5 text-base font-semibold text-white shadow-lg active:scale-95"
-      >
-        📷 Postar
-      </button>
-
-      {toast && (
-        <div className="absolute left-1/2 top-20 z-30 -translate-x-1/2 rounded-full bg-neutral-900 px-4 py-2 text-sm text-white shadow">{toast}</div>
+      {tab === "trends" && (
+        <section
+          aria-label="Trends"
+          className="absolute inset-0 z-[9] overflow-y-auto bg-bg px-4 pb-32 pt-[calc(max(0.75rem,env(safe-area-inset-top))+7.5rem)]"
+        >
+          <div className="mx-auto max-w-lg">
+            <TrendsView posts={posts ?? []} onOpen={(id, ids) => openViewer(id, ids)} />
+          </div>
+        </section>
       )}
 
-      {panel?.kind === "post" && (
-        <PostSheet
-          post={panel.post}
-          loggedIn={Boolean(session && termsOk)}
+      <div className={cx("absolute right-3 top-40 z-20 flex flex-col gap-2", tab === "trends" && "hidden")}>
+        <IconButton label="Minha localização" onClick={locate} className="h-11 w-11">
+          <LocateIcon />
+        </IconButton>
+        <MapTypePicker theme={theme} heat={heatMode} onHeat={chooseHeat} />
+        <IconButton label="Alertas perto de você" onClick={openAlerts} className="h-11 w-11">
+          <BellIcon />
+        </IconButton>
+        <IconButton label="Minha conta" onClick={openAccount} className="h-11 w-11">
+          <UserIcon />
+        </IconButton>
+        {isAdmin && (
+          <Link
+            href="/admin"
+            aria-label="Moderação"
+            title="Moderação"
+            className="grid h-11 w-11 place-items-center rounded-full border border-line bg-surface text-muted hover:text-ink"
+          >
+            <FlagIcon />
+          </Link>
+        )}
+      </div>
+
+      {/* Estado vazio / erro, no meio do mapa */}
+      {!asking && tab === "mapa" && (error || (posts !== null && visible.length === 0 && requests.length === 0 && heatMode === "off")) && (
+        <div className="pointer-events-none absolute inset-x-0 top-1/2 z-10 -translate-y-1/2 px-6">
+          <div className="pointer-events-auto mx-auto max-w-xs">
+            {error ? (
+              <EmptyState title="Sem sinal" action={<Button variant="secundario" onClick={loadPosts}>Tentar de novo</Button>}>
+                {error}
+              </EmptyState>
+            ) : filter ? (
+              <EmptyState
+                title={`Nada de ${CATEGORIES[filter].label.toLowerCase()} agora`}
+                action={<Button variant="secundario" onClick={() => setFilter(null)}>Ver tudo</Button>}
+              />
+            ) : (
+              <EmptyState
+                title="Tudo calmo por aqui"
+                action={
+                  <Button variant="secundario" onClick={startAsk}>
+                    <QuestionIcon /> Perguntar o que está rolando
+                  </Button>
+                }
+              >
+                Nenhum registro agora. Viu algo acontecendo? Registre. Quer saber de algum lugar? Pergunte.
+              </EmptyState>
+            )}
+          </div>
+        </div>
+      )}
+
+      {asking ? (
+        <>
+          {/* A mira: o pedido vai para o centro do mapa */}
+          <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-full">
+            <div className="pedido" style={{ animation: "none" }}>
+              <QuestionIcon width="20" height="20" />
+            </div>
+          </div>
+          <footer className="pointer-events-none absolute inset-x-0 bottom-0 z-10 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <AskPanel
+              getCenter={() => center.current}
+              onCancel={() => setAsking(false)}
+              onCreated={(id, at) => {
+                setAsking(false);
+                setToast({ text: "Pergunta no mapa por 2h · avisamos quem está perto" });
+                setFocus(at);
+                loadRequests();
+                setPanel({ kind: "request", id });
+              }}
+            />
+          </footer>
+        </>
+      ) : (
+        <footer className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-bg via-bg/70 to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10">
+          <div className="pointer-events-auto mx-auto max-w-lg">
+            {tab === "mapa" && <LiveStrip posts={visible.slice(0, 20)} onOpen={(id) => openViewer(id)} />}
+            <div className="mt-3 flex gap-2">
+              <Button size="lg" variant="secundario" onClick={startAsk} aria-label="Perguntar: alguém aí?" className="px-4">
+                <QuestionIcon />
+                <span className="hidden sm:inline">Alguém aí?</span>
+              </Button>
+              <Button size="lg" onClick={startPost} className="flex-1 whitespace-nowrap">
+                <CameraIcon />
+                Registrar<span className="hidden sm:inline"> o que está rolando</span>
+              </Button>
+            </div>
+          </div>
+        </footer>
+      )}
+
+      {toast && (
+        <div className="absolute inset-x-0 top-36 z-30 flex justify-center px-4">
+          <button
+            onClick={() => {
+              if (toast.postId) openViewer(toast.postId);
+              setToast(null);
+            }}
+            className="flex items-center gap-2 rounded-full border border-line bg-surface px-4 py-2 text-sm"
+          >
+            <span className="h-2 w-2 shrink-0 rounded-full bg-accent" />
+            {toast.text}
+            {toast.postId && <span className="rotulo text-accent">ver</span>}
+          </button>
+        </div>
+      )}
+
+      {panel?.kind === "viewer" && viewerPosts.length > 0 && (
+        <PostViewer
+          posts={viewerPosts}
+          startId={panel.startId}
+          userPos={userPos}
+          loggedIn={termsOk}
+          onActive={(f) => {
+            setActiveId(f.properties.id);
+            setFocus(f.geometry.coordinates as [number, number]);
+          }}
+          onClose={() => {
+            setPanel(null);
+            setActiveId(null);
+          }}
+          onNeedLogin={() => needLogin(null)}
+          onChanged={loadPosts}
+        />
+      )}
+      {panel?.kind === "request" && openRequest && (
+        <RequestSheet
+          request={openRequest.properties}
+          answers={answersOf(openRequest.properties.id)}
+          loggedIn={termsOk}
           onClose={() => setPanel(null)}
-          onNeedLogin={() => setPanel({ kind: "auth", then: null })}
+          onNeedLogin={() => needLogin(null)}
+          onAnswer={() => setPanel({ kind: "new", request: { id: openRequest.properties.id, question: openRequest.properties.question } })}
+          onOpenAnswer={(postId) => openViewer(postId, answersOf(openRequest.properties.id).map((f) => f.properties.id))}
+        />
+      )}
+      {panel?.kind === "alerts" && (
+        <AlertsSheet
+          getMapCenter={() => center.current}
+          onClose={() => setPanel(null)}
+          onSaved={(text) => {
+            setPanel(null);
+            setToast({ text });
+          }}
+        />
+      )}
+      {panel?.kind === "account" && session && (
+        <AccountSheet
+          session={session}
+          onClose={() => setPanel(null)}
+          onChanged={loadPosts}
+          onSignedOut={(text) => {
+            setPanel(null);
+            setSession(null);
+            setTermsUserId(null);
+            setIsAdmin(false);
+            setToast({ text });
+            loadPosts();
+          }}
         />
       )}
       {panel?.kind === "auth" && (
         <AuthSheet
           session={session}
           onClose={() => setPanel(null)}
-          onDone={() => {
-            if (session) setTermsUserId(session.user.id);
-            setPanel(panel.then === "new" ? { kind: "new" } : null);
+          onDone={(userId) => {
+            setTermsUserId(userId);
+            const then = panel.then;
+            if (then === "new") setPanel({ kind: "new", request: null });
+            else if (then === "alerts") setPanel({ kind: "alerts" });
+            else if (then === "account") setPanel({ kind: "account" });
+            else if (then === "ask") {
+              setPanel(null);
+              setAsking(true);
+            } else setPanel(null);
           }}
         />
       )}
       {panel?.kind === "new" && (
         <NewPostSheet
+          request={panel.request}
           onClose={() => setPanel(null)}
-          onPosted={(at) => {
+          onPosted={(id, at, accuracy) => {
+            ownPosts.current.add(id);
             setPanel(null);
-            setToast("Postado! Some do mapa em 12h");
+            setToast({ text: `Publicado${accuracy > 100 ? ` · ±${formatDistance(accuracy)}` : ""}`, postId: id });
+            setUserPos(at);
             setFocus(at);
             loadPosts();
+            loadRequests();
           }}
         />
       )}

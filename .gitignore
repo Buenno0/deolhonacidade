@@ -48,3 +48,9 @@ next-env.d.ts
 # supabase local
 supabase/.branches
 supabase/.temp
+
+# terraform / opentofu
+infra/.terraform/
+infra/*.tfstate*
+infra/terraform.tfvars
+infra/.terraform.lock.hcl.bak
