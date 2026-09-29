@@ -6,6 +6,7 @@ import { photoUrl } from "@/lib/media";
 import { timeAgo, timeLeftShort } from "@/lib/posts";
 import { getPublicPost } from "@/lib/server/publicPost";
 import Mark from "@/components/ui/Mark";
+import BetaTag from "@/components/ui/BetaTag";
 import { CategoryIcon } from "@/components/ui/icons";
 import RecordView from "./RecordView";
 
@@ -48,7 +49,9 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
       <header className="flex items-center gap-3 py-3">
         <Mark size={36} className="shrink-0" />
         <div>
-          <p className="font-display text-base font-bold leading-tight">De Olho</p>
+          <p className="flex items-center gap-2 font-display text-base font-bold leading-tight">
+            De Olho <BetaTag />
+          </p>
           <p className="rotulo">
             {CITY.name} · {CITY.uf}
           </p>

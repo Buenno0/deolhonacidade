@@ -31,6 +31,7 @@ import PostViewer from "./PostViewer";
 import RequestSheet from "./RequestSheet";
 import TrendsView from "./TrendsView";
 import Mark from "./ui/Mark";
+import BetaTag from "./ui/BetaTag";
 import { Button, Chip, EmptyState, IconButton, Spinner, cx } from "./ui";
 import {
   ArchiveIcon,
@@ -435,7 +436,9 @@ export default function Home() {
         <div className="pointer-events-auto mx-auto flex max-w-lg items-center gap-3 rounded-2xl border border-line bg-surface/90 py-2 pl-3 pr-2 backdrop-blur">
           <Mark size={40} className="shrink-0" />
           <div className="min-w-0 flex-1">
-            <p className="font-display text-base font-bold leading-tight">De Olho</p>
+            <p className="flex items-center gap-2 font-display text-base font-bold leading-tight">
+              De Olho <BetaTag />
+            </p>
             <p className="rotulo truncate">
               {CITY.name} · {CITY.uf}
             </p>
