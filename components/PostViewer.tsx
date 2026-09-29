@@ -6,8 +6,9 @@ import { recordInteraction } from "@/lib/interactions";
 import { CATEGORIES, severityVar } from "@/lib/categories";
 import { photoUrl } from "@/lib/media";
 import { levelName } from "@/lib/progress";
-import { countdown, distance, formatDistance, remaining, timeAgo, type PostFeature } from "@/lib/posts";
-import { CategoryIcon, ChevronIcon, CloseIcon, FlagIcon } from "./ui/icons";
+import { countdown, distance, formatDistance, isFresh, remaining, timeAgo, type PostFeature } from "@/lib/posts";
+import { CategoryIcon, ChevronIcon, CloseIcon, FlagIcon, PinIcon } from "./ui/icons";
+import { Tag } from "./ui/Tag";
 import { Button, IconButton } from "./ui";
 import ShareButton from "./viewer/ShareButton";
 import StillThere from "./viewer/StillThere";
@@ -21,11 +22,18 @@ type Props = {
   onClose: () => void;
   onNeedLogin: () => void;
   onChanged: () => void;
+  // Em alta: posição de cada post no Trends (só os 3 primeiros)
+  ranks?: Map<string, number>;
+  // Histórico: posts que já saíram do mapa
+  archive?: boolean;
 };
+
+const whenFmt = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
+const registered = (iso: string) => whenFmt.format(new Date(iso)).replace(",", " às");
 
 // Tela cheia sobre a foto: sala-escura, porque a foto manda na luz.
 // Um carrossel com scroll-snap nativo: arrastar no celular, setas no teclado.
-export default function PostViewer({ posts, startId, userPos, loggedIn, onActive, onClose, onNeedLogin, onChanged }: Props) {
+export default function PostViewer({ posts, startId, userPos, loggedIn, onActive, onClose, onNeedLogin, onChanged, ranks, archive = false }: Props) {
   const track = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(() => Math.max(0, posts.findIndex((p) => p.properties.id === startId)));
   const [reported, setReported] = useState<Record<string, "sending" | "done">>({});
@@ -44,7 +52,8 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
   useEffect(() => {
     if (current) {
       onActive(current);
-      recordInteraction(current.properties.id, "view");
+      // Vista no histórico não conta: o arquivo não compete com o agora
+      if (!archive) recordInteraction(current.properties.id, "view");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.properties.id]);
@@ -72,7 +81,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
 
   async function report(id: string) {
     if (!loggedIn) return onNeedLogin();
-    if (!confirm("Denunciar este post como impróprio ou falso? Com 3 denúncias ele sai do mapa.")) return;
+    if (!confirm(`Denunciar este post como impróprio ou falso? Com 3 denúncias ele sai ${archive ? "do histórico" : "do mapa"}.`)) return;
     setReported((r) => ({ ...r, [id]: "sending" }));
     const { error } = await getSupabase().rpc("report_post", { p_id: id });
     setReported((r) => {
@@ -88,6 +97,10 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
   const p = { ...current.properties, ...overrides[current.properties.id] };
   const cat = CATEGORIES[p.category];
   const coords = current.geometry.coordinates as [number, number];
+  const promo = p.category === "estabelecimento";
+  const rank = archive ? undefined : ranks?.get(p.id);
+  const fresh = !archive && !promo && isFresh(p.created_at, now);
+  const color = archive ? "var(--muted)" : promo ? "var(--ink)" : severityVar(p.category);
 
   return (
     <div role="dialog" aria-label="Post" className="sala-escura fixed inset-0 z-40 bg-black text-ink">
@@ -116,15 +129,18 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
       {/* Topo */}
       <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/80 to-transparent px-4 pb-12 pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="pointer-events-auto flex items-center justify-between gap-3">
-          <span
-            className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5"
-            style={{ borderColor: severityVar(p.category), color: severityVar(p.category) }}
-          >
-            <CategoryIcon category={p.category} />
-            <span className="rotulo" style={{ color: "inherit" }}>
-              {cat.label}
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5" style={{ borderColor: color, color }}>
+              <CategoryIcon category={p.category} />
+              <span className="rotulo" style={{ color: "inherit" }}>
+                {promo ? (p.business_name ?? cat.label) : cat.label}
+              </span>
             </span>
-          </span>
+            {promo && <Tag kind="divulgacao" />}
+            {rank && <Tag kind="alta" rank={rank} />}
+            {fresh && <Tag kind="agora" />}
+            {archive && <span className="tag tag-divulgacao">Histórico</span>}
+          </div>
           <div className="flex items-center gap-2">
             {posts.length > 1 && (
               <span className="num text-xs text-muted">
@@ -165,37 +181,83 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
         <div className="mx-auto max-w-lg">
           {p.caption && <p className="mb-3 font-display text-xl font-semibold leading-snug">{p.caption}</p>}
           <p className="rotulo flex flex-wrap gap-x-3 gap-y-1">
-            <span className="text-ink">
-              {p.author_nickname ? `@${p.author_nickname} · ` : ""}
-              {levelName(p.author_level ?? 1)}
-            </span>
-            <span>{timeAgo(p.created_at, now)}</span>
-            <span>
-              some em <span className="num text-ink">{countdown(p.expires_at, now)}</span>
-            </span>
+            {promo ? (
+              p.business_segment && <span className="text-ink">{p.business_segment}</span>
+            ) : archive ? null : (
+              <span className="text-ink">
+                {p.author_nickname ? `@${p.author_nickname} · ` : ""}
+                {levelName(p.author_level ?? 1)}
+              </span>
+            )}
+            {archive ? (
+              <span>
+                registrado em <span className="num text-ink">{registered(p.created_at)}</span>
+              </span>
+            ) : (
+              <>
+                <span>{timeAgo(p.created_at, now)}</span>
+                <span>
+                  some em <span className="num text-ink">{countdown(p.expires_at, now)}</span>
+                </span>
+              </>
+            )}
             {userPos && <span>{formatDistance(distance(userPos, coords))} de você</span>}
           </p>
           {/* A vida do post: a mesma medida do anel no pin */}
-          <div className="mt-3 h-[3px] w-full overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full"
-              style={{ width: `${remaining(p, now) * 100}%`, background: severityVar(p.category) }}
-            />
-          </div>
-          <div className="mt-4">
-            <StillThere
-              key={p.id}
-              post={p}
-              loggedIn={loggedIn}
-              onNeedLogin={onNeedLogin}
-              onVoted={(id, v) => {
-                setOverrides((o) => ({ ...o, [id]: v }));
-                onChanged();
-              }}
-            />
-          </div>
+          {!archive && (
+            <div className="mt-3 h-[3px] w-full overflow-hidden rounded-full bg-white/10">
+              <div className="h-full rounded-full" style={{ width: `${remaining(p, now) * 100}%`, background: color }} />
+            </div>
+          )}
+          {promo ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${coords[1]},${coords[0]}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-black/40 px-3 py-2 text-sm"
+              >
+                <PinIcon /> Como chegar
+              </a>
+              {p.business_whatsapp && (
+                <a
+                  href={`https://wa.me/${p.business_whatsapp.replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-black/40 px-3 py-2 text-sm"
+                >
+                  WhatsApp
+                </a>
+              )}
+              {p.business_instagram && (
+                <a
+                  href={`https://instagram.com/${p.business_instagram.replace(/^@/, "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-black/40 px-3 py-2 text-sm"
+                >
+                  Instagram
+                </a>
+              )}
+            </div>
+          ) : (
+            !archive && (
+              <div className="mt-4">
+                <StillThere
+                  key={p.id}
+                  post={p}
+                  loggedIn={loggedIn}
+                  onNeedLogin={onNeedLogin}
+                  onVoted={(id, v) => {
+                    setOverrides((o) => ({ ...o, [id]: v }));
+                    onChanged();
+                  }}
+                />
+              </div>
+            )
+          )}
           <div className="mt-3 flex items-center justify-between">
-            <ShareButton post={p} onShared={onChanged} />
+            <ShareButton post={p} onShared={onChanged} archive={archive} />
             <Button
               variant="perigo"
               onClick={() => report(p.id)}

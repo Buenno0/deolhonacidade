@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CATEGORIES, severityVar } from "@/lib/categories";
+import { CATEGORIES, isSpecial, severityVar } from "@/lib/categories";
 import { photoUrl, thumbUrl } from "@/lib/media";
-import { engagement, hotness, remaining, timeAgo, timeLeftShort, type PostFeature } from "@/lib/posts";
+import { engagement, hotness, isFresh, remaining, timeAgo, timeLeftShort, trendingRanks, type PostFeature } from "@/lib/posts";
+import { Tag } from "./ui/Tag";
 import { Chip, EmptyState } from "./ui";
 import { CategoryIcon, CheckIcon, EyeIcon, ShareIcon } from "./ui/icons";
 
@@ -59,11 +60,20 @@ export default function TrendsView({ posts, onOpen }: Props) {
 
   const ranked = useMemo(() => {
     const key = SORTS.find((s) => s.id === sort)!.key;
-    return [...posts]
+    // Divulgação não concorre no Trends
+    return posts
+      .filter((f) => !isSpecial(f.properties.category))
       .filter((f) => sort === "alta" || key(f, now) > 0)
       .sort((a, b) => key(b, now) - key(a, now) || engagement(b.properties) - engagement(a.properties));
   }, [posts, sort, now]);
   const ids = ranked.map((f) => f.properties.id);
+  const ranks = useMemo(() => trendingRanks(posts, now), [posts, now]);
+  const tags = (p: PostFeature["properties"]) => (
+    <>
+      {ranks.get(p.id) && <Tag kind="alta" rank={ranks.get(p.id)} />}
+      {isFresh(p.created_at, now) && <Tag kind="agora" />}
+    </>
+  );
   const [first, ...rest] = ranked;
 
   return (
@@ -100,6 +110,7 @@ export default function TrendsView({ posts, onOpen }: Props) {
                     {CATEGORIES[first.properties.category].label}
                   </span>
                 </span>
+                {tags(first.properties)}
               </div>
               {first.properties.caption && (
                 <p className="mt-1 font-display text-lg font-semibold leading-snug text-ink">{first.properties.caption}</p>
@@ -137,6 +148,7 @@ export default function TrendsView({ posts, onOpen }: Props) {
                           <span className="text-muted">· {timeAgo(p.created_at, now)}</span>
                         </span>
                         {p.caption && <span className="block truncate text-sm text-ink">{p.caption}</span>}
+                        <span className="sala-escura mt-1 flex flex-wrap gap-1.5 empty:hidden">{tags(p)}</span>
                         <span className="mt-0.5 block">
                           <Metrics p={p} />
                         </span>

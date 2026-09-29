@@ -22,6 +22,9 @@ export const tema = {
     ok: "#7fb79a", // pátina de bronze
     warn: "#dca84a", // ocre
     danger: "#e08163", // óxido
+    marco: "#3563d9", // azul azulejo: só os marcos da cidade
+    marcoInk: "#f4efe4",
+    marcoTexto: "#8fb0f5",
   },
   claro: {
     bg: "#f6f3ee", // papel morno
@@ -35,6 +38,9 @@ export const tema = {
     ok: "#2f6f52",
     warn: "#8a5a12",
     danger: "#9c3f1d",
+    marco: "#3563d9",
+    marcoInk: "#f4efe4",
+    marcoTexto: "#2f5fd0",
   },
 };
 

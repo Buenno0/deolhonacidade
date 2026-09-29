@@ -48,9 +48,10 @@ const NOTURNO: Record<Role, string> = {
   majorCasing: "#0d0f12",
   major: "#4d5461",
   majorSubtle: "#3a404a",
+  // A rodovia tem a cor das outras ruas; a largura já basta para destacá-la
   motorwayCasing: "#0d0f12",
-  motorway: "#b98a3e",
-  motorwaySubtle: "#7a5c2c",
+  motorway: "#4d5461",
+  motorwaySubtle: "#3a404a",
   rail: "#3a3f47",
   railDash: "#15171b",
   boundary: "#5a616c",
@@ -78,9 +79,9 @@ const DIA: Record<Role, string> = {
   majorCasing: "#cfc6b8",
   major: "#ffffff",
   majorSubtle: "#e6e0d5",
-  motorwayCasing: "#d59c52",
-  motorway: "#fbd494",
-  motorwaySubtle: "#f1c47f",
+  motorwayCasing: "#cfc6b8",
+  motorway: "#ffffff",
+  motorwaySubtle: "#e6e0d5",
   rail: "#cbc4b7",
   railDash: "#f3f0e9",
   boundary: "#a39b8e",
@@ -187,8 +188,19 @@ function paintPositron(base: StyleSpecification, pal: Record<Role, string>, with
   return base;
 }
 
+// No colorido, rodovias e avenidas vêm em amarelo e laranja: ficam brancas
+// com o mesmo contorno das ruas comuns
+function neutralRoads(style: StyleSpecification) {
+  for (const layer of style.layers) {
+    if (layer.type !== "line" || !/^(road|tunnel|bridge)_/.test(layer.id) || /rail|path|pedestrian/.test(layer.id)) continue;
+    const paint = ((layer as { paint?: Record<string, unknown> }).paint ??= {});
+    paint["line-color"] = layer.id.endsWith("_casing") ? "#cfcdca" : "#ffffff";
+  }
+  return style;
+}
+
 export async function buildMapStyle(theme: Theme, type: MapType): Promise<StyleSpecification> {
-  if (type === "colorido") return load(LIBERTY);
+  if (type === "colorido") return neutralRoads(await load(LIBERTY));
 
   const base = await load(POSITRON);
   if (type === "padrao") return paintPositron(base, theme === "dark" ? NOTURNO : DIA, theme === "light");

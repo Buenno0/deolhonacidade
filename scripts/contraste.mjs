@@ -34,6 +34,9 @@ const pares = (p) => [
   ["aviso sobre superfície", p.warn, p.surface, 4.5],
   ["perigo sobre superfície", p.danger, p.surface, 4.5],
   ["perigo sobre fundo", p.danger, p.bg, 4.5],
+  ["glifo do marco", p.marcoInk, p.marco, 4.5],
+  ["marco como texto sobre superfície", p.marcoTexto, p.surface, 4.5],
+  ["marco como texto sobre fundo", p.marcoTexto, p.bg, 4.5],
   ["borda sobre superfície", p.line, p.surface, 1.4],
   ["borda sobre fundo", p.line, p.bg, 1.4],
 ];

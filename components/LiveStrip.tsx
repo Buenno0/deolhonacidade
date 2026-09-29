@@ -20,8 +20,14 @@ export default function LiveStrip({ posts, onOpen }: { posts: PostFeature[]; onO
           >
             <span
               className="pin pin-mini"
-              data-novo={isFresh(p.created_at) ? "sim" : "nao"}
-              style={{ "--sev": severityVar(p.category), "--restante": remaining(p) } as React.CSSProperties}
+              data-novo={p.category !== "estabelecimento" && isFresh(p.created_at) ? "sim" : "nao"}
+              data-divulgacao={p.category === "estabelecimento" ? "sim" : "nao"}
+              style={
+                {
+                  "--sev": p.category === "estabelecimento" ? "var(--ink)" : severityVar(p.category),
+                  "--restante": remaining(p),
+                } as React.CSSProperties
+              }
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img

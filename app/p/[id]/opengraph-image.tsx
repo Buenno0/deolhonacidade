@@ -32,8 +32,9 @@ async function photoData(path: string) {
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const post = await getPublicPost(id);
-  const photo = post?.alive && post.photo_path ? await photoData(post.photo_path).catch(() => null) : null;
-  const label = post ? CATEGORIES[post.category].label : "De Olho na Cidade";
+  const shown = post && (post.alive || post.archived);
+  const photo = shown && post.photo_path ? await photoData(post.photo_path).catch(() => null) : null;
+  const label = post ? (post.business_name ?? CATEGORIES[post.category].label) : "De Olho na Cidade";
 
   return new ImageResponse(
     (
@@ -59,14 +60,18 @@ export default async function Image({ params }: { params: Promise<{ id: string }
             <div style={{ display: "flex", border: `3px solid ${GOLD}`, color: GOLD, borderRadius: 999, padding: "6px 18px", fontSize: 26, letterSpacing: 3 }}>
               {label.toUpperCase()}
             </div>
-            {post?.alive && (
+            {shown && (
               <div style={{ display: "flex", fontSize: 26, color: INK, letterSpacing: 2, background: "rgba(0,0,0,0.55)", borderRadius: 999, padding: "8px 18px" }}>
-                {`SOME EM ${timeLeftShort(post.expires_at).toUpperCase()}`}
+                {post.alive ? `SOME EM ${timeLeftShort(post.expires_at).toUpperCase()}` : "DO HISTÓRICO"}
               </div>
             )}
           </div>
           <div style={{ display: "flex", fontSize: 64, lineHeight: 1.08, marginTop: 20, maxWidth: 1060, letterSpacing: -1 }}>
-            {post?.alive ? (post.caption ?? `${label} agora em ${CITY.name}`) : post ? "Esse registro já sumiu do mapa" : "O que está acontecendo agora"}
+            {shown
+              ? (post.caption ?? (post.alive ? `${label} agora em ${CITY.name}` : `${label} em ${CITY.name}`))
+              : post
+                ? "Esse registro já sumiu do mapa"
+                : "O que está acontecendo agora"}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 28 }}>
             <img src={markSvg} width={64} height={56} alt="" />

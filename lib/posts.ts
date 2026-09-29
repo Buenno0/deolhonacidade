@@ -17,6 +17,13 @@ export type PostProperties = {
   share_count: number;
   author_level?: number;
   author_nickname?: string | null;
+  // Divulgação (categoria estabelecimento)
+  business_name?: string | null;
+  business_segment?: string | null;
+  business_whatsapp?: string | null;
+  business_instagram?: string | null;
+  // Histórico: até quando a foto fica guardada depois de sumir do mapa
+  archived_until?: string | null;
 };
 
 export type PostsCollection = GeoJSON.FeatureCollection<GeoJSON.Point, PostProperties>;
@@ -82,4 +89,16 @@ export function engagement(p: PostProperties) {
 export function hotness(p: PostProperties, now = Date.now()) {
   const hours = Math.max(0, (now - new Date(p.created_at).getTime()) / 36e5);
   return (Math.max(0, engagement(p)) + 1) / Math.pow(hours + 2, 1.3);
+}
+
+// Em alta: os 3 primeiros por hotness entre os posts ativos que já tiveram
+// algum engajamento de verdade. Divulgação não concorre.
+export const TRENDING_TOP = 3;
+export const TRENDING_MIN_ENGAGEMENT = 5;
+export function trendingRanks(posts: PostFeature[], now = Date.now()) {
+  const ranked = posts
+    .filter((f) => f.properties.category !== "estabelecimento" && engagement(f.properties) >= TRENDING_MIN_ENGAGEMENT)
+    .sort((a, b) => hotness(b.properties, now) - hotness(a.properties, now))
+    .slice(0, TRENDING_TOP);
+  return new Map(ranked.map((f, i) => [f.properties.id, i + 1]));
 }

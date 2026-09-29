@@ -3,7 +3,7 @@ import { THUMB_SUFFIX } from "./media";
 import type { Category } from "./categories";
 import type { PreparedPhoto } from "./image/compress";
 
-type Draft = { lat: number; lng: number; category: Category; caption: string; requestId?: string | null } & PreparedPhoto;
+type Draft = { lat: number; lng: number; category: Category; caption: string; requestId?: string | null; keepHistory?: boolean } & PreparedPhoto;
 type PresignedPost = { url: string; fields: Record<string, string> };
 
 // O caminho de uma postagem, do navegador:
@@ -24,6 +24,7 @@ export async function submitPost(draft: Draft, onStep: (s: string) => void): Pro
     p_category: draft.category,
     p_caption: draft.caption,
     p_request_id: draft.requestId ?? null,
+    p_keep_history: Boolean(draft.keepHistory),
   });
   if (error) throw error;
   const { id, photo_path } = data as { id: string; photo_path: string };

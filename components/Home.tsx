@@ -7,8 +7,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabase/client";
 import { CITY } from "@/lib/city";
-import { CATEGORIES, CATEGORY_KEYS, type Category } from "@/lib/categories";
-import { formatDistance, type PostFeature, type PostsCollection, type RequestFeature } from "@/lib/posts";
+import { ALL_CATEGORY_KEYS, CATEGORIES, type Category } from "@/lib/categories";
+import { formatDistance, trendingRanks, type PostFeature, type PostsCollection, type RequestFeature } from "@/lib/posts";
+import type { Business } from "@/lib/business";
+import BusinessSheet from "./BusinessSheet";
+import { HistoryList, HistoryRuler, cityDay, shortDay } from "./HistoryView";
 import { useTheme } from "@/lib/theme";
 import { useMapType } from "@/lib/mapType";
 import AccountSheet from "./AccountSheet";
@@ -30,6 +33,7 @@ import TrendsView from "./TrendsView";
 import Mark from "./ui/Mark";
 import { Button, Chip, EmptyState, IconButton, Spinner, cx } from "./ui";
 import {
+  ArchiveIcon,
   BellIcon,
   CameraIcon,
   CategoryIcon,
@@ -55,7 +59,10 @@ type Panel =
   | { kind: "alerts" }
   | { kind: "account" }
   | { kind: "landmark"; id: string }
+  | { kind: "business" }
   | null;
+
+type Tab = "mapa" | "trends" | "historico";
 
 type Toast = { text: string; postId?: string };
 
@@ -66,6 +73,12 @@ async function fetchActivePosts(): Promise<PostFeature[]> {
   return (data as PostsCollection).features
     .filter((f) => new Date(f.properties.expires_at).getTime() > now)
     .sort((a, b) => b.properties.created_at.localeCompare(a.properties.created_at));
+}
+
+async function fetchHistory(day: string): Promise<PostFeature[]> {
+  const { data, error } = await getSupabase().rpc("history_posts", { p_city_id: CITY.id, p_day: day });
+  if (error) throw error;
+  return (data as PostsCollection).features;
 }
 
 async function fetchRequests(): Promise<RequestFeature[]> {
@@ -89,7 +102,16 @@ export default function Home() {
   const termsOk = Boolean(session && termsUserId === session.user.id);
   const [panel, setPanel] = useState<Panel>(null);
   const [asking, setAsking] = useState(false);
-  const [tab, setTab] = useState<"mapa" | "trends">("mapa");
+  const [tab, setTab] = useState<Tab>(params.get("historico") ? "historico" : "mapa");
+  const [today] = useState(() => cityDay(new Date()));
+  const [historyCounts, setHistoryCounts] = useState<Record<string, number> | null>(null);
+  const [historyDay, setHistoryDay] = useState<string | null>(() => {
+    const d = params.get("historico");
+    return d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null;
+  });
+  const [historyPosts, setHistoryPosts] = useState<PostFeature[] | null>(null);
+  const [historyList, setHistoryList] = useState(false);
+  const [business, setBusiness] = useState<Business | null>(null);
   const [focus, setFocus] = useState<[number, number] | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
@@ -106,7 +128,7 @@ export default function Home() {
   const knownIds = useRef<Set<string> | null>(null);
   const center = useRef<[number, number] | null>(null);
   // Link direto (/?post=… vindo da página de compartilhar, /?pedido=… do alerta)
-  const deepLink = useRef({ post: params.get("post"), pedido: params.get("pedido") });
+  const deepLink = useRef({ post: params.get("post"), pedido: params.get("pedido"), historico: params.get("historico") });
 
   const clearDeepLink = () => window.history.replaceState(null, "", "/");
 
@@ -123,7 +145,7 @@ export default function Home() {
             if (fresh) setToast({ text: `Novo: ${CATEGORIES[fresh.properties.category].label}`, postId: fresh.properties.id });
           }
           knownIds.current = new Set(list.map((f) => f.properties.id));
-          const wanted = deepLink.current.post;
+          const wanted = deepLink.current.historico ? null : deepLink.current.post;
           if (wanted) {
             deepLink.current.post = null;
             clearDeepLink();
@@ -160,6 +182,44 @@ export default function Home() {
       ),
     [],
   );
+
+  // Histórico: os dias com algo guardado, e os posts do dia escolhido
+  useEffect(() => {
+    if (tab !== "historico" || historyCounts) return;
+    supabase.rpc("history_days", { p_city_id: CITY.id }).then(({ data }) => {
+      const list = (data as { day: string; n: number }[]) ?? [];
+      setHistoryCounts(Object.fromEntries(list.map((d) => [d.day, d.n])));
+      setHistoryDay((cur) => cur ?? list[0]?.day ?? null);
+    });
+  }, [supabase, tab, historyCounts]);
+
+  useEffect(() => {
+    if (tab !== "historico" || !historyDay) return;
+    let off = false;
+    fetchHistory(historyDay).then(
+      (list) => {
+        if (off) return;
+        setHistoryPosts(list);
+        // Leva o mapa até o registro mais recente do dia
+        const last = list[list.length - 1];
+        if (last) setFocus(last.geometry.coordinates as [number, number]);
+        const wanted = deepLink.current.historico ? deepLink.current.post : null;
+        if (deepLink.current.historico) {
+          deepLink.current = { ...deepLink.current, historico: null, post: null };
+          // O dia fica no endereço (dá para compartilhar); o post sai
+          window.history.replaceState(null, "", `/?historico=${historyDay}`);
+        }
+        if (wanted) {
+          if (list.some((f) => f.properties.id === wanted)) setPanel({ kind: "viewer", ids: null, startId: wanted });
+          else setToast({ text: "Esse registro saiu do histórico" });
+        }
+      },
+      () => !off && setToast({ text: "Não foi possível carregar o histórico" }),
+    );
+    return () => {
+      off = true;
+    };
+  }, [tab, historyDay]);
 
   // Marcos: fixos, carregados uma vez
   useEffect(() => {
@@ -206,7 +266,8 @@ export default function Home() {
         if (stored && p.level > stored && fresh(`nivel:${p.level}`)) queue.push({ kind: "level", level: p.level });
         if (queue.length) {
           setCelebrations((q) => [...q, ...queue]);
-          supabase.rpc("mark_badges_seen");
+          // O builder do supabase-js só executa com then/await
+          supabase.rpc("mark_badges_seen").then(() => {});
         }
       }),
     [supabase],
@@ -256,6 +317,7 @@ export default function Home() {
       .single()
       .then(({ data }) => setTermsUserId(data?.accepted_terms_at ? session.user.id : null));
     supabase.rpc("am_i_admin").then(({ data }) => setIsAdmin(Boolean(data)));
+    supabase.rpc("my_business").then(({ data }) => setBusiness((data as Business | null) ?? null));
   }, [supabase, session]);
 
   useEffect(() => {
@@ -297,6 +359,8 @@ export default function Home() {
       })),
     [requests, posts],
   );
+  const ranks = useMemo(() => trendingRanks(posts ?? []), [posts]);
+  const inHistory = tab === "historico";
   const heat = useMemo(
     () => ({ now: heatMode === "agora", history: heatMode === "historico" ? heatHistory : null }),
     [heatMode, heatHistory],
@@ -312,6 +376,12 @@ export default function Home() {
     });
   const openAlerts = () => requireLogin("alerts", () => setPanel({ kind: "alerts" }));
   const openAccount = () => requireLogin("account", () => setPanel({ kind: "account" }));
+  const pickTab = (t: Tab) => {
+    if (t !== "historico" && window.location.search.includes("historico")) clearDeepLink();
+    setTab(t);
+    setPanel(null);
+    setActiveId(null);
+  };
   const openViewer = (startId: string, ids: string[] | null = null) => setPanel({ kind: "viewer", ids, startId });
 
   function locate() {
@@ -322,13 +392,15 @@ export default function Home() {
     );
   }
 
+  const pool = inHistory ? (historyPosts ?? []) : (posts ?? []);
+  const shown = inHistory ? pool : visible;
   const viewerPosts =
     panel?.kind === "viewer"
       ? panel.ids
-        ? panel.ids.map((id) => (posts ?? []).find((f) => f.properties.id === id)).filter((f): f is PostFeature => Boolean(f))
-        : visible.some((f) => f.properties.id === panel.startId)
-          ? visible
-          : (posts ?? []) // o post pedido está fora do filtro: mostra todos
+        ? panel.ids.map((id) => pool.find((f) => f.properties.id === id)).filter((f): f is PostFeature => Boolean(f))
+        : shown.some((f) => f.properties.id === panel.startId)
+          ? shown
+          : pool // o post pedido está fora do filtro: mostra todos
       : [];
   const openRequest = panel?.kind === "request" ? requests.find((r) => r.properties.id === panel.id) : undefined;
   const answersOf = (requestId: string) => (posts ?? []).filter((f) => f.properties.request_id === requestId);
@@ -336,13 +408,14 @@ export default function Home() {
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-bg">
       <CityMap
-        posts={visible}
+        posts={shown}
+        archive={inHistory}
         theme={theme}
         mapType={mapType}
         focus={focus}
         activeId={activeId}
         userPos={userPos}
-        requests={requestsShown}
+        requests={inHistory ? [] : requestsShown}
         heat={heat}
         onSelect={(id) => openViewer(id)}
         onSelectMany={(ids) => openViewer(ids[0], ids)}
@@ -393,19 +466,20 @@ export default function Home() {
             aria-label="Filtrar por categoria"
             className="no-scrollbar pointer-events-auto mx-auto mt-2 flex max-w-lg items-center gap-2 overflow-x-auto pb-1"
           >
-            {/* Mapa | Trends */}
+            {/* Mapa | Trends | Histórico */}
             <div role="tablist" className="flex shrink-0 rounded-full border border-line bg-surface/90 p-0.5 backdrop-blur">
               {(
                 [
                   ["mapa", "Mapa", MapIcon],
                   ["trends", "Trends", TrendIcon],
+                  ["historico", "Histórico", ArchiveIcon],
                 ] as const
               ).map(([id, label, Icon]) => (
                 <button
                   key={id}
                   role="tab"
                   aria-selected={tab === id}
-                  onClick={() => setTab(id)}
+                  onClick={() => pickTab(id)}
                   className={cx(
                     "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition",
                     tab === id ? "bg-accent font-medium text-accent-ink" : "text-muted hover:text-ink",
@@ -420,7 +494,15 @@ export default function Home() {
                 Tudo
               </Chip>
             )}
-            {tab === "mapa" && CATEGORY_KEYS.filter((k) => counts[k]).map((k) => (
+            {inHistory && historyDay && (
+              <span className="tag shrink-0 border border-line bg-surface/90 text-ink">Histórico · {shortDay(historyDay)}</span>
+            )}
+            {inHistory && historyPosts && historyPosts.length > 0 && (
+              <Chip active={historyList} onClick={() => setHistoryList((v) => !v)}>
+                {historyList ? "Ver no mapa" : "Lista"}
+              </Chip>
+            )}
+            {tab === "mapa" && ALL_CATEGORY_KEYS.filter((k) => counts[k]).map((k) => (
               <Chip key={k} active={filter === k} onClick={() => setFilter(filter === k ? null : k)}>
                 <CategoryIcon category={k} />
                 {CATEGORIES[k].label}
@@ -442,7 +524,18 @@ export default function Home() {
         </section>
       )}
 
-      <div className={cx("absolute right-3 top-40 z-20 flex flex-col gap-2", tab === "trends" && "hidden")}>
+      {inHistory && historyList && historyPosts && (
+        <section
+          aria-label="Histórico do dia"
+          className="absolute inset-0 z-[9] overflow-y-auto bg-bg px-4 pb-40 pt-[calc(max(0.75rem,env(safe-area-inset-top))+7.5rem)]"
+        >
+          <div className="mx-auto max-w-lg">
+            <HistoryList posts={historyPosts} onOpen={(id, ids) => openViewer(id, ids)} />
+          </div>
+        </section>
+      )}
+
+      <div className={cx("absolute right-3 top-40 z-20 flex flex-col gap-2", (tab === "trends" || (inHistory && historyList)) && "hidden")}>
         <IconButton label="Minha localização" onClick={locate} className="h-11 w-11">
           <LocateIcon />
         </IconButton>
@@ -464,6 +557,16 @@ export default function Home() {
           </Link>
         )}
       </div>
+
+      {inHistory && historyCounts && Object.keys(historyCounts).length === 0 && (
+        <div className="pointer-events-none absolute inset-x-0 top-1/2 z-10 -translate-y-1/2 px-6">
+          <div className="pointer-events-auto mx-auto max-w-xs">
+            <EmptyState title="O histórico começa agora">
+              Quem publica escolhe guardar a foto por 30 dias. Os registros guardados aparecem aqui, dia a dia, depois que somem do mapa.
+            </EmptyState>
+          </div>
+        </div>
+      )}
 
       {/* Estado vazio / erro, no meio do mapa */}
       {!asking && tab === "mapa" && (error || (posts !== null && visible.length === 0 && requests.length === 0 && heatMode === "off")) && (
@@ -517,6 +620,21 @@ export default function Home() {
             />
           </footer>
         </>
+      ) : inHistory ? (
+        <footer className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-bg via-bg/70 to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10">
+          <div className="pointer-events-auto mx-auto max-w-lg">
+            <p className="rotulo mb-2">Últimos 30 dias · só o que quem postou escolheu guardar</p>
+            <HistoryRuler
+              counts={historyCounts ?? {}}
+              day={historyDay}
+              today={today}
+              onPick={(d) => {
+                setHistoryPosts(null);
+                setHistoryDay(d);
+              }}
+            />
+          </div>
+        </footer>
       ) : (
         <footer className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-bg via-bg/70 to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10">
           <div className="pointer-events-auto mx-auto max-w-lg">
@@ -546,7 +664,7 @@ export default function Home() {
             }}
             onGo={() => {
               dismiss();
-              setTab("mapa");
+              pickTab("mapa");
               setFocus([outside.nearest.lng, outside.nearest.lat]);
               setOutside(null);
             }}
@@ -576,6 +694,8 @@ export default function Home() {
           startId={panel.startId}
           userPos={userPos}
           loggedIn={termsOk}
+          ranks={ranks}
+          archive={inHistory}
           onActive={(f) => {
             setActiveId(f.properties.id);
             setFocus(f.geometry.coordinates as [number, number]);
@@ -586,7 +706,7 @@ export default function Home() {
           }}
           onNeedLogin={() => needLogin(null)}
           onChanged={() => {
-            loadPosts();
+            if (!inHistory) loadPosts();
             refreshMine();
           }}
         />
@@ -634,6 +754,8 @@ export default function Home() {
           session={session}
           progress={progress}
           onProgressChanged={refreshMine}
+          business={business}
+          onOpenBusiness={() => setPanel({ kind: "business" })}
           onClose={() => setPanel(null)}
           onChanged={loadPosts}
           onSignedOut={(text) => {
@@ -642,6 +764,7 @@ export default function Home() {
             setProgress(null);
             setTermsUserId(null);
             setIsAdmin(false);
+            setBusiness(null);
             setToast({ text });
             loadPosts();
           }}
@@ -664,9 +787,21 @@ export default function Home() {
           }}
         />
       )}
+      {panel?.kind === "business" && (
+        <BusinessSheet
+          business={business}
+          onClose={() => setPanel({ kind: "account" })}
+          onSaved={(b) => {
+            setBusiness(b);
+            setPanel({ kind: "account" });
+            setToast({ text: "Pedido enviado · a moderação vai conferir" });
+          }}
+        />
+      )}
       {panel?.kind === "new" && (
         <NewPostSheet
           request={panel.request}
+          business={business?.status === "approved" ? business : null}
           onClose={() => setPanel(null)}
           onOutOfArea={(at) => {
             setPanel(null);

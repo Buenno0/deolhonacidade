@@ -21,12 +21,16 @@ type Props = {
   // Tentou postar de fora da cidade: o Home mostra o aviso de fora da área
   onOutOfArea?: (at: [number, number]) => void;
   onPosted: (id: string, at: [number, number], accuracy: number) => void;
+  // Estabelecimento aprovado: libera a divulgação
+  business?: { name: string } | null;
 };
 
-export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted }: Props) {
+export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted, business }: Props) {
   const [photo, setPhoto] = useState<File | null>(null);
   const [category, setCategory] = useState<Category | null>(null);
   const [caption, setCaption] = useState("");
+  const [keepHistory, setKeepHistory] = useState(false);
+  const promo = category === "estabelecimento";
   const { position, error: geoError, elapsed, retry } = useLocation();
   const [step, setStep] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +55,15 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted }
       setStep("Preparando a foto…");
       const prepared = await preparePhoto(photo);
       const id = await submitPost(
-        { lat: position.lat, lng: position.lng, category, caption, requestId: request?.id ?? null, ...prepared },
+        {
+          lat: position.lat,
+          lng: position.lng,
+          category,
+          caption,
+          requestId: request?.id ?? null,
+          keepHistory: keepHistory && !promo,
+          ...prepared,
+        },
         setStep,
       );
       onPosted(id, [position.lng, position.lat], position.accuracy);
@@ -100,6 +112,12 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted }
         <fieldset>
           <legend className="rotulo mb-2">O que é</legend>
           <div className="flex flex-wrap gap-2">
+            {business && !request && (
+              <Chip type="button" active={promo} onClick={() => setCategory("estabelecimento")} className="py-2 text-sm">
+                <CategoryIcon category="estabelecimento" />
+                Divulgação · {business.name}
+              </Chip>
+            )}
             {CATEGORY_KEYS.map((key) => (
               <Chip key={key} type="button" active={category === key} onClick={() => setCategory(key)} className="py-2 text-sm">
                 <CategoryIcon category={key} />
@@ -123,6 +141,27 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted }
             className="w-full resize-none rounded-lg border border-line bg-bg px-3 py-2 text-base outline-none transition focus:border-accent"
           />
         </label>
+
+        {promo ? (
+          <p className="rounded-xl border border-line bg-bg px-3 py-2.5 text-sm text-muted">
+            Aparece no mapa com a tag Divulgação e o nome do estabelecimento. Uma por dia, tirada no endereço cadastrado.
+          </p>
+        ) : (
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-bg px-3 py-2.5 text-sm">
+            <input
+              type="checkbox"
+              checked={keepHistory}
+              onChange={(e) => setKeepHistory(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]"
+            />
+            <span>
+              <span className="font-medium text-ink">Guardar no histórico por 30 dias</span>
+              <span className="mt-0.5 block text-muted">
+                Depois de sumir do mapa, a foto fica no histórico da cidade. Você tira quando quiser em Meus posts.
+              </span>
+            </span>
+          </label>
+        )}
 
         {/* Localização */}
         <div className="flex items-start gap-3 rounded-xl border border-line bg-bg px-3 py-2.5 text-sm">
@@ -178,7 +217,7 @@ export default function NewPostSheet({ request, onClose, onOutOfArea, onPosted }
                 {step}
               </>
             ) : (
-              (missing ?? `Publicar · some em ${LIFETIME_HOURS[category!]}h`)
+              (missing ?? `${promo ? "Publicar divulgação" : "Publicar"} · some em ${LIFETIME_HOURS[category!]}h`)
             )}
           </Button>
           {error && <p className="mt-3 text-sm text-danger">{error}</p>}

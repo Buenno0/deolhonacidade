@@ -15,7 +15,8 @@ import { CITY } from "@/lib/city";
 import { severityVar } from "@/lib/categories";
 import { thumbUrl, photoUrl } from "@/lib/media";
 import { buildMapStyle, mapTone, type MapType } from "@/lib/map/style";
-import { isFresh, remaining, type PostFeature, type PostProperties, type RequestFeature } from "@/lib/posts";
+import { isFresh, remaining, trendingRanks, type PostFeature, type PostProperties, type RequestFeature } from "@/lib/posts";
+import { tagHtml, type TagKind } from "@/components/ui/Tag";
 import { KIND_LABEL, LANDMARK_MIN_ZOOM, landmarkSvg, type Landmark } from "@/lib/landmarks";
 import type { Theme } from "@/lib/theme";
 
@@ -49,6 +50,8 @@ type Props = {
   landmarks: Landmark[];
   activeLandmark: string | null;
   onSelectLandmark: (id: string) => void;
+  // Histórico: pins de um dia que já passou (anel neutro, sem tempo nem tags)
+  archive?: boolean;
   onMove?: (center: [number, number]) => void;
 };
 
@@ -126,6 +129,9 @@ const toData = (posts: PostFeature[]): GeoJSON.FeatureCollection => ({
   features: posts.map((f) => ({ ...f, properties: { ...f.properties, t: new Date(f.properties.created_at).getTime() } })),
 });
 
+// O calor é de acontecimento: divulgação não esquenta o mapa
+const happenings = (posts: PostFeature[]) => posts.filter((f) => f.properties.category !== "estabelecimento");
+
 function pinElement(post: PostProperties, count?: number) {
   const el = document.createElement("button");
   el.type = "button";
@@ -150,11 +156,23 @@ function pinElement(post: PostProperties, count?: number) {
   return el;
 }
 
-function paintPin(el: HTMLElement, post: PostProperties, active: boolean) {
-  el.style.setProperty("--sev", severityVar(post.category));
-  el.style.setProperty("--restante", remaining(post).toFixed(3));
-  el.dataset.novo = isFresh(post.created_at) ? "sim" : "nao";
+// Pin: anel na cor da severidade e no tempo que resta. No histórico, anel
+// cheio e neutro. Uma tag no máximo: Divulgação, senão Em alta, senão Agora.
+function paintPin(el: HTMLElement, post: PostProperties, active: boolean, opts: { rank?: number; archive: boolean; cluster: boolean }) {
+  const promo = post.category === "estabelecimento";
+  el.style.setProperty("--sev", opts.archive ? "var(--muted)" : promo ? "var(--ink)" : severityVar(post.category));
+  el.style.setProperty("--restante", opts.archive ? "1" : remaining(post).toFixed(3));
+  const tag: TagKind | null =
+    opts.archive || opts.cluster ? null : promo ? "divulgacao" : opts.rank ? "alta" : isFresh(post.created_at) ? "agora" : null;
+  el.dataset.novo = tag === "agora" ? "sim" : "nao";
+  el.dataset.alta = tag === "alta" ? "sim" : "nao";
+  el.dataset.divulgacao = promo && !opts.cluster ? "sim" : "nao";
   el.dataset.ativo = active ? "sim" : "nao";
+  if ((el.dataset.tag ?? "") !== (tag ?? "")) {
+    el.querySelector(".pin-tag")?.remove();
+    if (tag) el.insertAdjacentHTML("beforeend", tagHtml(tag));
+    el.dataset.tag = tag ?? "";
+  }
 }
 
 export default function CityMap({
@@ -173,6 +191,7 @@ export default function CityMap({
   activeLandmark,
   onSelectLandmark,
   onMove,
+  archive = false,
 }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<MapLibreMap | null>(null);
@@ -181,14 +200,14 @@ export default function CityMap({
   const byTime = useRef(new Map<number, PostProperties>());
   // Ids já vistos: um post que chega depois disso "pousa" com animação
   const known = useRef<Set<string> | null>(null);
-  const latest = useRef({ posts, activeId, theme, mapType, heat, onSelect, onSelectMany, onSelectRequest, onSelectLandmark, onMove });
+  const latest = useRef({ posts, activeId, theme, mapType, heat, archive, onSelect, onSelectMany, onSelectRequest, onSelectLandmark, onMove });
   const landmarkMarkers = useRef(new Map<string, Marker>());
   const requestMarkers = useRef(new Map<string, Marker>());
   const syncRef = useRef<() => void>(() => {});
   const userMarker = useRef<Marker | null>(null);
 
   useEffect(() => {
-    latest.current = { posts, activeId, theme, mapType, heat, onSelect, onSelectMany, onSelectRequest, onSelectLandmark, onMove };
+    latest.current = { posts, activeId, theme, mapType, heat, archive, onSelect, onSelectMany, onSelectRequest, onSelectLandmark, onMove };
   });
 
   // Cria o mapa uma vez
@@ -203,6 +222,7 @@ export default function CityMap({
       if (!m || !m.getSource("posts") || !m.isSourceLoaded("posts")) return;
       const seen = new Set<string>();
       const active = latest.current.activeId;
+      const ranks = latest.current.archive ? new Map<string, number>() : trendingRanks(latest.current.posts);
       for (const f of m.querySourceFeatures("posts")) {
         const props = f.properties as Record<string, unknown>;
         const coords = (f.geometry as GeoJSON.Point).coordinates as [number, number];
@@ -240,7 +260,11 @@ export default function CityMap({
         } else {
           entry.marker.setLngLat(coords);
         }
-        paintPin(entry.marker.getElement(), post, !isCluster && post.id === active);
+        paintPin(entry.marker.getElement(), post, !isCluster && post.id === active, {
+          rank: ranks.get(post.id),
+          archive: latest.current.archive,
+          cluster: isCluster,
+        });
       }
       for (const [key, entry] of markerMap) {
         if (!seen.has(key)) {
@@ -286,7 +310,7 @@ export default function CityMap({
           },
           "city-boundary": { type: "geojson", data: boundary },
           posts: postsSource(latest.current.posts),
-          "posts-now": { type: "geojson", data: toData(latest.current.posts) },
+          "posts-now": { type: "geojson", data: toData(happenings(latest.current.posts)) },
           "heat-history": { type: "geojson", data: latest.current.heat.history ?? EMPTY },
         },
         layers: [...base.layers, ...ourLayers(styleTheme, styleType, latest.current.heat)],
@@ -331,7 +355,7 @@ export default function CityMap({
     byId.current = new Map(posts.map((f) => [f.properties.id, f.properties]));
     byTime.current = new Map(posts.map((f) => [new Date(f.properties.created_at).getTime(), f.properties]));
     map.current?.getSource<GeoJSONSource>("posts")?.setData(toData(posts));
-    map.current?.getSource<GeoJSONSource>("posts-now")?.setData(toData(posts));
+    map.current?.getSource<GeoJSONSource>("posts-now")?.setData(toData(happenings(posts)));
     syncRef.current();
   }, [posts]);
 
@@ -349,24 +373,35 @@ export default function CityMap({
     const markerMap = landmarkMarkers.current;
     let cleanupZoom: (() => void) | undefined;
     const place = (mm: MapLibreMap) => {
-      for (const l of landmarks) {
-        if (markerMap.has(l.id)) continue;
+      landmarks.forEach((l, i) => {
+        if (markerMap.has(l.id)) return;
         const el = document.createElement("button");
         el.type = "button";
         el.className = "marco";
         el.setAttribute("aria-label", `${KIND_LABEL[l.kind]}: ${l.name}`);
         el.title = l.name;
-        el.innerHTML = landmarkSvg(l.kind);
+        el.innerHTML = `<span class="marco-face">${landmarkSvg(l.kind)}</span>`;
+        // Cada marco reflete num momento diferente: o mapa nunca pisca inteiro
+        el.style.setProperty("--atraso", `${((i * 2.7) % 8).toFixed(1)}s`);
+        el.addEventListener("animationend", (ev) => {
+          if (ev.animationName === "marco-assenta") delete el.dataset.assenta;
+        });
         if (l.heritage) el.dataset.tombado = "sim";
         el.addEventListener("click", (ev) => {
           ev.stopPropagation();
           latest.current.onSelectLandmark(l.id);
         });
-        markerMap.set(l.id, new Marker({ element: el, anchor: "bottom", offset: [0, -6] }).setLngLat([l.lng, l.lat]).addTo(mm));
-      }
+        markerMap.set(l.id, new Marker({ element: el, anchor: "bottom", offset: [0, -5] }).setLngLat([l.lng, l.lat]).addTo(mm));
+      });
       const byZoom = () => {
         const show = mm.getZoom() >= LANDMARK_MIN_ZOOM;
-        for (const m of markerMap.values()) m.getElement().style.display = show ? "" : "none";
+        for (const m of markerMap.values()) {
+          const el = m.getElement();
+          const hidden = el.style.display === "none";
+          // Ao passar do zoom 13, o marco nasce da ponta
+          if (show && hidden) el.dataset.assenta = "sim";
+          el.style.display = show ? "" : "none";
+        }
       };
       byZoom();
       mm.on("zoom", byZoom);

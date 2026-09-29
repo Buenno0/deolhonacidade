@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   // Links absolutos nas prévias (og:image) precisam da origem pública do app
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: "De Olho na Cidade",
-  description: "O que está acontecendo agora em Itapetininga, em fotos que somem em 12h.",
+  description: "O que está acontecendo agora em Itapetininga, em fotos que somem do mapa em até 12h.",
   appleWebApp: { capable: true, title: "De Olho", statusBarStyle: "black-translucent" },
 };
 

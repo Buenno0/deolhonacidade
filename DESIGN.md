@@ -83,9 +83,9 @@ escolhidos pelo botão de camadas e lembrados por navegador:
 
 | tipo | base | como é |
 |---|---|---|
-| Padrão, escuro | positron repintado ("noturno") | carvão `#15171b`, ruas `#343a44`, avenidas `#4d5461`, rodovia em âmbar `#b98a3e`, água `#0e2a3f`, parque `#172a20`, rótulos `#e6e9ed` |
-| Padrão, claro | positron repintado ("dia") | papel `#f3f0e9`, ruas brancas com contorno `#dcd5c9`, rodovia `#fbd494`, água `#a8d2e6`, parque `#d6eacd`, rótulos `#2d3136` |
-| Colorido | liberty do OpenFreeMap, sem mexer | o mapa familiar, com comércios e pontos |
+| Padrão, escuro | positron repintado ("noturno") | carvão `#15171b`, ruas `#343a44`, avenidas e rodovias `#4d5461` (a rodovia só é mais larga), água `#0e2a3f`, parque `#172a20`, rótulos `#e6e9ed` |
+| Padrão, claro | positron repintado ("dia") | papel `#f3f0e9`, ruas, avenidas e rodovias brancas com contorno, água `#a8d2e6`, parque `#d6eacd`, rótulos `#2d3136` |
+| Colorido | liberty do OpenFreeMap | o mapa familiar, com comércios e pontos; rodovias e avenidas brancas como as outras ruas |
 | Satélite | Esri World Imagery + rótulos do positron | nomes em branco com halo preto a 78% |
 
 As ruas locais são 30% mais largas que no positron original, e as avenidas
@@ -213,6 +213,43 @@ tempo restante num selo escuro, a legenda grande e a marca com o nome da
 cidade. A fonte é a padrão do gerador (ele não lê WOFF2 nem fontes variáveis),
 então a hierarquia vem só do tamanho.
 
+### 5.7 O marco (azulejo)
+
+Um ladrilho de 40px, raio 11, em `marco` (#3563d9, fixo nos dois temas),
+com borda creme de 2px (`marco-ink`), um fio escuro por fora e um filete de ouro
+de 1px por dentro, como a moldura de um azulejo. O glifo do tipo (igreja,
+estátua, monumento, patrimônio, marco) vai em creme, e uma ponta aponta o
+lugar. Patrimônio tombado ganha uma estrela de ouro no canto. O azul é a única
+cor fria sobre a interface quente: o ouro já é do acento, do anel de evento e
+da marca, e um marco dourado virava um story sem foto. Texto sobre fundo de
+interface usa `marco-texto`.
+
+Movimento: um reflexo de ouro atravessa o ladrilho em 0,9s a cada 8s, com
+atraso diferente por marco (`--atraso`), para o mapa nunca piscar inteiro.
+Aberto, ele sobe 3px, o filete engrossa e um anel de ouro abre uma vez. Ao
+passar do zoom 13, nasce da ponta em 360ms.
+
+### 5.8 Tags do story
+
+| tag | quando | desenho | gesto |
+|---|---|---|---|
+| Agora | publicado há menos de 10 min | pílula escura, ponto em `danger` | o ponto ecoa para fora a cada 1,6s; o anel do pin respira em coral |
+| Em alta | entre os 3 primeiros do Trends, com engajamento ≥ 5 | pílula cheia em `accent`, seta | a seta sobe em loop; no pin, um brilho gira no anel e o pin vai a 58px |
+| Divulgação | categoria estabelecimento | pílula escura, contorno creme, ícone de loja | nenhum: publicidade identificada, não acontecimento |
+
+Um pin mostra no máximo uma tag (Divulgação, senão Em alta, senão Agora). No
+visualizador e no Trends cabem todas, e Em alta mostra a posição (1º, 2º, 3º).
+Regra de movimento: story pulsa para fora (é o agora), marco reflete por
+dentro (é o que fica); nunca os dois com o mesmo gesto.
+
+### 5.9 Histórico
+
+A aba Histórico mostra um dia dos últimos 30 no mapa, escolhido numa régua de
+dias no rodapé (dia vazio fica apagado). Os pins do histórico têm o anel cheio
+em `muted`, sem tempo e sem tags, e o topo mostra "Histórico · 28/09" para
+ninguém confundir com o agora. No visualizador, "registrado em 28/09 às
+18:40" toma o lugar do relógio, sem "Ainda está rolando?".
+
 ---
 
 ## 6. Movimento
@@ -221,7 +258,10 @@ então a hierarquia vem só do tamanho.
 |---|---|
 | 160ms | hover, escala do pin |
 | 520ms | círculo da troca de tema (View Transitions, portado do NAS), pouso do pin |
-| 2,4s | respiração do pin novo |
+| 2,4s | respiração do pin novo (Agora), brilho que gira no anel (Em alta) |
+| 1,6s / 1,8s | eco do ponto de Agora / seta de Em alta |
+| 0,9s a cada 8s | reflexo do marco |
+| 360ms | marco nascendo ao passar do zoom 13 |
 | ~1s | ponto "ao vivo" (`animate-ping`) |
 
 `prefers-reduced-motion: reduce` desliga tudo, inclusive o círculo do tema.

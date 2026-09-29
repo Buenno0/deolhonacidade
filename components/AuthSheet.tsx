@@ -62,7 +62,7 @@ export default function AuthSheet({ session, onClose, onDone }: Props) {
         <Link href="/termos" target="_blank" className="text-accent underline underline-offset-2">
           termos de uso
         </Link>
-        . Meus posts aparecem sem meu nome e somem do mapa em 12h.
+        . Meus posts aparecem sem meu nome e somem do mapa em até 12h; guardar no histórico é escolha minha.
       </span>
     </label>
   );

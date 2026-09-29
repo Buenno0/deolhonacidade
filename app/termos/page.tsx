@@ -18,7 +18,13 @@ export default function Termos() {
         </div>
       </div>
       <ul className="mt-6 space-y-3 rounded-xl border border-line bg-surface p-5 text-sm leading-relaxed">
-        <li>Os posts aparecem no mapa sem o seu nome e saem do ar 12 horas depois de publicados.</li>
+        <li>Os posts aparecem no mapa sem o seu nome e saem do ar em até 12 horas depois de publicados.</li>
+        <li>
+          Se, ao publicar, você marcar &quot;Guardar no histórico&quot;, a foto fica visível para todos no histórico da cidade por
+          até 30 dias depois de sair do mapa, também sem o seu nome. O histórico guarda no máximo 500 registros por cidade, e
+          pode sair antes. Você tira do histórico quando quiser, em Meus posts, e a foto é apagada. Posts escondidos,
+          denunciados ou negados nunca entram.
+        </li>
         <li>
           Para cumprir o Marco Civil da Internet (Lei 12.965/2014, art. 15), guardamos de forma privada, por 6 meses,
           registros de acesso (IP, data e hora) e os dados do post, sem a foto. Eles só são entregues mediante ordem judicial.
@@ -39,6 +45,12 @@ export default function Termos() {
         <li>É proibido postar conteúdo ilegal, violento, sexual, discriminatório, que exponha a intimidade de alguém ou que seja falso.</li>
         <li>Evite fotos em que pessoas ou placas de veículos possam ser identificadas.</li>
         <li>Posts denunciados por várias pessoas saem do ar automaticamente, e contas que abusam podem ser suspensas.</li>
+        <li>
+          Estabelecimentos verificados pela moderação podem publicar divulgação: uma por dia, tirada no endereço cadastrado.
+          Ela aparece sempre com a tag Divulgação e o nome do estabelecimento (Código de Defesa do Consumidor, art. 36), some
+          em 12 horas e não entra no Trends, no mapa de calor, nos alertas nem no histórico. O estabelecimento responde pelo
+          que anuncia; divulgação enganosa leva à suspensão.
+        </li>
         <li>Você pode pedir a exclusão da sua conta a qualquer momento (LGPD).</li>
       </ul>
     </main>

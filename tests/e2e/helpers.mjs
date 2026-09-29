@@ -71,13 +71,17 @@ export async function login(name, { terms = true } = {}) {
 const fakeImage = () => new Blob([new Uint8Array(1024)], { type: "image/webp" });
 
 // Posta pelo mesmo caminho do app: RPC, upload das duas imagens e publicação no servidor
-export async function publish(c, { lat = CENTER[0], lng = CENTER[1], category = "outro", caption = null, requestId = null } = {}) {
+export async function publish(
+  c,
+  { lat = CENTER[0], lng = CENTER[1], category = "outro", caption = null, requestId = null, keepHistory = false } = {},
+) {
   const { data, error } = await c.rpc("create_post", {
     p_lat: lat,
     p_lng: lng,
     p_category: category,
     p_caption: caption,
     p_request_id: requestId,
+    p_keep_history: keepHistory,
   });
   if (error) return { error };
   const bucket = c.storage.from("posts");

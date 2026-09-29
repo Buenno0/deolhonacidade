@@ -6,9 +6,17 @@ import { APP, CITY, anon } from "./helpers.mjs";
 test("marcos públicos, com posição e página da Wikipédia quando existe", async () => {
   const { data, error } = await anon().rpc("city_landmarks", { p_city_id: CITY });
   assert.ifError(error);
-  assert.ok(data.length >= 12);
+  assert.ok(data.length >= 15);
+  // Quem o marco homenageia fica em "sobre", separado do texto do lugar
   const aviadora = data.find((l) => l.id === "aviadora");
-  assert.equal(aviadora.wiki_title, "Anésia_Pinheiro_Machado");
+  assert.equal(aviadora.about_title, "Anésia_Pinheiro_Machado");
+  assert.ok(aviadora.about_label.startsWith("Quem foi"));
+  // Patrimônio tombado: selo, endereço, fonte e foto do próprio lugar com crédito
+  const escolas = data.find((l) => l.id === "tres-escolas");
+  assert.equal(escolas.kind, "patrimonio");
+  assert.match(escolas.heritage, /CONDEPHAAT/);
+  assert.ok(escolas.address && escolas.wikidata);
+  assert.ok(escolas.photos.length >= 1 && escolas.photos[0].author && escolas.photos[0].license);
   assert.ok(Math.abs(aviadora.lat + 23.59) < 0.02 && Math.abs(aviadora.lng + 48.05) < 0.02, "fica no centro");
   const w = await anon().from("landmarks").insert({ id: "x", city_id: CITY, name: "x", kind: "marco", location: "POINT(0 0)" });
   assert.ok(w.error, "ninguém escreve marco pelo navegador");

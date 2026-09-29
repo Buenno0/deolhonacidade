@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "De Olho na Cidade",
     short_name: "De Olho",
-    description: "O que está acontecendo agora na cidade, em fotos que somem em 12h.",
+    description: "O que está acontecendo agora na cidade, em fotos que somem do mapa em até 12h.",
     start_url: "/",
     display: "standalone",
     orientation: "portrait",

@@ -225,6 +225,13 @@ const CATEGORY_PATHS: Record<Category, ReactNode> = {
       <path d="M7 14h10M6.5 17h11" />
     </>
   ),
+  estabelecimento: (
+    <>
+      <path d="M3 9.5 5 4h14l2 5.5" />
+      <path d="M3 9.5a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0" />
+      <path d="M5 12v8h14v-8M10 20v-5h4v5" />
+    </>
+  ),
   outro: (
     <>
       <circle cx="12" cy="12" r="9" />
@@ -237,4 +244,11 @@ const CATEGORY_PATHS: Record<Category, ReactNode> = {
 
 export const CategoryIcon = ({ category, ...p }: P & { category: Category }) => (
   <Icon {...p}>{CATEGORY_PATHS[category]}</Icon>
+);
+
+export const ArchiveIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M3 4h18v4H3zM5 8v12h14V8" />
+    <path d="M10 12h4" />
+  </Icon>
 );

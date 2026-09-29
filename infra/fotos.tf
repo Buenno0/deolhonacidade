@@ -45,8 +45,9 @@ resource "aws_s3_bucket_cors_configuration" "fotos" {
 resource "aws_s3_bucket_lifecycle_configuration" "fotos" {
   bucket = aws_s3_bucket.fotos.id
 
-  # Rede de segurança: quem apaga em 12h é a rota /api/cron/expire. Se ela
-  # parar, o S3 apaga sozinho em 1 dia (a menor unidade do lifecycle).
+  # Rede de segurança: quem apaga no dia certo é a rota /api/cron/expire (a
+  # foto comum quando sai do mapa, a do histórico em até 30 dias). Se ela
+  # parar, o S3 apaga sozinho em 31 dias.
   rule {
     id     = "posts-expiram"
     status = "Enabled"
@@ -54,7 +55,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "fotos" {
       prefix = "posts/"
     }
     expiration {
-      days = 1
+      days = 31
     }
   }
 

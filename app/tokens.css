@@ -14,6 +14,9 @@
   --ok: #7fb79a;
   --warn: #dca84a;
   --danger: #e08163;
+  --marco: #3563d9;
+  --marco-ink: #f4efe4;
+  --marco-texto: #8fb0f5;
 }
 
 .light {
@@ -28,6 +31,9 @@
   --ok: #2f6f52;
   --warn: #8a5a12;
   --danger: #9c3f1d;
+  --marco: #3563d9;
+  --marco-ink: #f4efe4;
+  --marco-texto: #2f5fd0;
 }
 
 .sala-escura {

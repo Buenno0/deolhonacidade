@@ -85,7 +85,7 @@ export default function LandmarkSheet({ landmark: l, posts, onClose, onOpenPost,
           </div>
         ) : (
           <div className="flex items-center gap-3 rounded-xl border border-dashed border-line p-3">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-accent text-accent-ink">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-marco text-marco-ink">
               <Glyph kind={l.kind} size={26} />
             </span>
             <p className="text-sm text-muted">Ainda não temos uma foto deste lugar. As fotos de quem passa por aqui aparecem abaixo.</p>
@@ -96,7 +96,7 @@ export default function LandmarkSheet({ landmark: l, posts, onClose, onOpenPost,
         {(l.heritage || l.address) && (
           <div className="flex flex-col gap-2">
             {l.heritage && (
-              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-accent px-3 py-1 text-xs font-medium text-accent">
+              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-marco-texto px-3 py-1 text-xs font-medium text-marco-texto">
                 <span aria-hidden="true">★</span> {l.heritage}
               </span>
             )}

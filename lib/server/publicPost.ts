@@ -11,6 +11,9 @@ export type PublicPost = {
   created_at: string;
   expires_at: string;
   alive: boolean;
+  // Saiu do mapa mas está no histórico (a foto continua)
+  archived: boolean;
+  business_name: string | null;
   confirm_count: number;
   lng: number;
   lat: number;

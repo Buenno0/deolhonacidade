@@ -6,6 +6,7 @@ import { getSupabase } from "@/lib/supabase/client";
 import { CATEGORIES, type Category } from "@/lib/categories";
 import { photoUrl, thumbUrl } from "@/lib/media";
 import { timeAgo, timeLeftShort } from "@/lib/posts";
+import { BUSINESS_STATUS, type Business } from "@/lib/business";
 import ProgressCard from "./ProgressCard";
 import Sheet from "./Sheet";
 import type { Progress } from "@/lib/progress";
@@ -23,7 +24,11 @@ type MyPost = {
   view_count: number;
   confirm_count: number;
   deny_count: number;
+  keep_history: boolean;
+  archived_until: string | null;
 };
+
+const dayFmt = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo" });
 
 const STATUS = {
   published: { label: "no ar", tone: "text-ok" },
@@ -38,9 +43,20 @@ type Props = {
   onSignedOut: (text: string) => void;
   onChanged: () => void;
   onProgressChanged: () => void;
+  business: Business | null;
+  onOpenBusiness: () => void;
 };
 
-export default function AccountSheet({ session, progress, onClose, onSignedOut, onChanged, onProgressChanged }: Props) {
+export default function AccountSheet({
+  session,
+  progress,
+  onClose,
+  onSignedOut,
+  onChanged,
+  onProgressChanged,
+  business,
+  onOpenBusiness,
+}: Props) {
   const supabase = getSupabase();
   const [posts, setPosts] = useState<MyPost[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -63,6 +79,15 @@ export default function AccountSheet({ session, progress, onClose, onSignedOut, 
     if (error) setError(error.message);
     await load();
     onChanged();
+    setBusy(null);
+  }
+
+  async function removeFromHistory(id: string) {
+    if (!confirm("Tirar este post do histórico? A foto é apagada e não volta.")) return;
+    setBusy(id);
+    const { error } = await supabase.rpc("remove_from_history", { p_id: id });
+    if (error) setError(error.message);
+    await load();
     setBusy(null);
   }
 
@@ -93,8 +118,25 @@ export default function AccountSheet({ session, progress, onClose, onSignedOut, 
       <div className="flex flex-col gap-5">
         {progress ? <ProgressCard progress={progress} onChanged={onProgressChanged} /> : <Spinner />}
 
+        <section className="flex items-center gap-3 rounded-xl border border-line bg-bg p-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-elev text-ink">
+            <CategoryIcon category="estabelecimento" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium">{business ? business.name : "Tem um estabelecimento?"}</span>
+            {business ? (
+              <span className={cx("rotulo", BUSINESS_STATUS[business.status].tone)}>{BUSINESS_STATUS[business.status].label}</span>
+            ) : (
+              <span className="block text-xs text-muted">Divulgue no mapa, com a tag Divulgação, depois da verificação.</span>
+            )}
+          </span>
+          <Button variant="secundario" className="px-3 py-1.5 text-xs" onClick={onOpenBusiness}>
+            {business ? "Ver" : "Cadastrar"}
+          </Button>
+        </section>
+
         <section>
-          <p className="rotulo mb-2">Meus posts · últimos 7 dias</p>
+          <p className="rotulo mb-2">Meus posts · últimos 7 dias e histórico</p>
           {posts === null ? (
             <Spinner />
           ) : posts.length === 0 ? (
@@ -130,6 +172,7 @@ export default function AccountSheet({ session, progress, onClose, onSignedOut, 
                     <span className="rotulo mt-0.5 flex flex-wrap gap-x-3">
                       <span>{timeAgo(p.created_at)}</span>
                       {p.status === "published" && <span>some em {timeLeftShort(p.expires_at)}</span>}
+                      {p.archived_until && <span className="text-marco-texto">no histórico até {dayFmt.format(new Date(p.archived_until))}</span>}
                       <span className="inline-flex items-center gap-1">
                         <EyeIcon width="1em" height="1em" /> {p.view_count}
                       </span>
@@ -138,10 +181,16 @@ export default function AccountSheet({ session, progress, onClose, onSignedOut, 
                       </span>
                     </span>
                   </span>
-                  {p.status !== "expired" && (
+                  {p.status !== "expired" ? (
                     <Button variant="perigo" className="px-2.5 py-1.5 text-xs" disabled={busy !== null} onClick={() => removePost(p.id)}>
                       {busy === p.id ? <Spinner /> : "Apagar"}
                     </Button>
+                  ) : (
+                    p.archived_until && (
+                      <Button variant="secundario" className="px-2.5 py-1.5 text-xs" disabled={busy !== null} onClick={() => removeFromHistory(p.id)}>
+                        {busy === p.id ? <Spinner /> : "Tirar do histórico"}
+                      </Button>
+                    )
                   )}
                 </li>
               ))}
