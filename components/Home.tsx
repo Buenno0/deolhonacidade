@@ -27,6 +27,7 @@ import LandmarkSheet from "./LandmarkSheet";
 import NewPostSheet from "./NewPostSheet";
 import type { Landmark } from "@/lib/landmarks";
 import OutOfArea from "./OutOfArea";
+import InstallHint, { shouldOfferInstall } from "./InstallHint";
 import { dismiss, locateCity, onLocationGranted, silentPosition, wasDismissed, type NearestCity } from "@/lib/cityCheck";
 import PostViewer from "./PostViewer";
 import RequestSheet from "./RequestSheet";
@@ -55,7 +56,7 @@ const CityMap = dynamic(() => import("./map/CityMap"), { ssr: false });
 type AfterLogin = "new" | "ask" | "alerts" | "account" | null;
 type Panel =
   | { kind: "viewer"; ids: string[] | null; startId: string }
-  | { kind: "new"; request: { id: string; question: string } | null }
+  | { kind: "new"; request: { id: string; question: string } | null; photo?: File | null }
   | { kind: "auth"; then: AfterLogin }
   | { kind: "request"; id: string }
   | { kind: "alerts" }
@@ -124,6 +125,7 @@ export default function Home() {
   const [celebrations, setCelebrations] = useState<Celebration[]>([]);
   // O que já foi festejado nesta visita (duas buscas seguidas não repetem a festa)
   const celebrated = useRef(new Set<string>());
+  const [installHint, setInstallHint] = useState(false);
   const [outside, setOutside] = useState<{ nearest: NearestCity; from: [number, number] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const ownPosts = useRef(new Set<string>());
@@ -402,7 +404,16 @@ export default function Home() {
 
   const needLogin = (then: AfterLogin) => setPanel({ kind: "auth", then });
   const requireLogin = (then: Exclude<AfterLogin, null>, run: () => void) => (session && termsOk ? run() : needLogin(then));
-  const startPost = () => requireLogin("new", () => setPanel({ kind: "new", request: null }));
+  // Câmera primeiro: o toque em Registrar já abre a câmera (o navegador só
+  // deixa abrir dentro do próprio toque); a foto chega pronta no formulário
+  const camera = useRef<HTMLInputElement>(null);
+  const startPost = () =>
+    requireLogin("new", () => {
+      if (camera.current) {
+        camera.current.value = "";
+        camera.current.click();
+      } else setPanel({ kind: "new", request: null });
+    });
   const startAsk = () =>
     requireLogin("ask", () => {
       setPanel(null);
@@ -695,6 +706,11 @@ export default function Home() {
         </footer>
       )}
 
+      {installHint && !panel && !outside && (
+        <div className="absolute inset-x-0 bottom-0 z-20 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <InstallHint onClose={() => setInstallHint(false)} />
+        </div>
+      )}
       {outside && !panel && (
         <div className="absolute inset-x-0 bottom-0 z-20 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <OutOfArea
@@ -841,8 +857,22 @@ export default function Home() {
           }}
         />
       )}
+      <input
+        ref={camera}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden="true"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) setPanel({ kind: "new", request: null, photo: f });
+        }}
+      />
       {panel?.kind === "new" && (
         <NewPostSheet
+          initialPhoto={panel.photo ?? null}
           request={panel.request}
           business={business?.status === "approved" ? business : null}
           onClose={() => setPanel(null)}
@@ -853,6 +883,8 @@ export default function Home() {
           onPosted={(id, at, accuracy, processing) => {
             ownPosts.current.add(id);
             setPanel(null);
+            // Depois do primeiro post, o convite para instalar
+            if (shouldOfferInstall()) setTimeout(() => setInstallHint(true), 4000);
             const near = accuracy > 100 ? ` · ±${formatDistance(accuracy)}` : "";
             if (processing) {
               // Rostos e placas sendo desfocados no servidor; o pin já aparece para você

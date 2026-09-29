@@ -11,11 +11,14 @@ export default function Sheet({
   eyebrow,
   onClose,
   children,
+  footer,
 }: {
   title: string;
   eyebrow?: string;
   onClose: () => void;
   children: ReactNode;
+  // Fica preso embaixo, sempre visível (a ação principal do formulário)
+  footer?: ReactNode;
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -29,8 +32,10 @@ export default function Sheet({
       <section
         role="dialog"
         aria-label={title}
-        className="relative w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-t-2xl border border-line bg-surface p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-2xl"
+        // dvh desconta as barras do navegador do celular (vh não desconta)
+        className={`relative flex max-h-[calc(100dvh-0.75rem)] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-line bg-surface sm:max-h-[90dvh] sm:rounded-2xl`}
       >
+        <div className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-5 ${footer ? "pb-4" : "pb-[max(1.25rem,env(safe-area-inset-bottom))]"}`}>
         <header className="mb-4 flex items-start justify-between gap-3">
           <div>
             {eyebrow && <p className="rotulo mb-1">{eyebrow}</p>}
@@ -41,6 +46,10 @@ export default function Sheet({
           </IconButton>
         </header>
         {children}
+        </div>
+        {footer && (
+          <div className="shrink-0 border-t border-line bg-surface px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">{footer}</div>
+        )}
       </section>
     </div>
   );
