@@ -2,7 +2,7 @@ import "server-only";
 import sharp from "sharp";
 import type { Box } from "./moderation";
 
-const THUMB = 192;
+const THUMB = 384;
 
 // Folga em volta da área detectada, em proporção dela. Rosto: pouca nas
 // laterais, um pouco mais em cima (cabelo e testa) e embaixo (queixo e barba,
@@ -68,7 +68,11 @@ export async function blurAreas(bytes: Uint8Array, boxes: Box[]) {
       .composite(patches.filter((p): p is NonNullable<typeof p> => p !== null))
       .toBuffer();
   }
-  const photo = await sharp(out).webp({ quality: 80 }).toBuffer();
-  const thumb = await sharp(out).resize(THUMB, THUMB, { fit: "cover" }).webp({ quality: 70 }).toBuffer();
-  return { photo: new Uint8Array(photo), thumb: new Uint8Array(thumb) };
+  // Sem rosto nem placa, a foto segue como veio do aparelho: comprimir de novo
+  // só perderia qualidade. Com desfoque, uma recompressão, e alta.
+  const clean = boxes.length === 0;
+  const format = (await sharp(bytes).metadata()).format === "jpeg" ? "image/jpeg" : "image/webp";
+  const photo = clean ? Buffer.from(bytes) : await sharp(out).webp({ quality: 88, smartSubsample: true }).toBuffer();
+  const thumb = await sharp(out).resize(THUMB, THUMB, { fit: "cover" }).webp({ quality: 82 }).toBuffer();
+  return { photo: new Uint8Array(photo), thumb: new Uint8Array(thumb), photoType: clean ? format : "image/webp" };
 }

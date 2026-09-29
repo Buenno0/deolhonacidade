@@ -1,9 +1,12 @@
 // Prepara a foto no próprio aparelho. Redesenhar no canvas descarta todo o
 // EXIF (GPS da casa, modelo do celular, data original).
-//  - photo: até 1280px no maior lado, para o visualizador
-//  - thumb: quadrado de 192px com recorte central, para o pin e a faixa ao vivo
-const MAX_SIDE = 1280;
-const THUMB_SIDE = 192;
+//  - photo: até 2048px no maior lado, para o visualizador (o story preenche a
+//    tela do celular, que tem uns 1170 × 2530 pixels reais; com 1280 px a foto
+//    era ampliada mais de 2 vezes e ficava borrada)
+//  - thumb: quadrado de 384px com recorte central, para o pin, a faixa e a
+//    grade do histórico (nítido em telas de alta densidade)
+const MAX_SIDE = 2048;
+const THUMB_SIDE = 384;
 
 export type PreparedPhoto = { photo: Blob; thumb: Blob };
 
@@ -18,7 +21,7 @@ export async function preparePhoto(file: File): Promise<PreparedPhoto> {
     const side = Math.min(bitmap.width, bitmap.height);
     const sx = (bitmap.width - side) / 2;
     const sy = (bitmap.height - side) / 2;
-    const thumb = await encode(THUMB_SIDE, THUMB_SIDE, (ctx, w, h) => ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, w, h), 0.7);
+    const thumb = await encode(THUMB_SIDE, THUMB_SIDE, (ctx, w, h) => ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, w, h), 0.82);
     return { photo, thumb };
   } finally {
     bitmap.close();
@@ -29,12 +32,16 @@ async function encode(
   width: number,
   height: number,
   draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void,
-  quality = 0.8,
+  quality = 0.86,
 ): Promise<Blob> {
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
-  draw(canvas.getContext("2d")!, width, height);
+  const ctx = canvas.getContext("2d")!;
+  // Reduzir em alta qualidade: o padrão de alguns navegadores serrilha
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  draw(ctx, width, height);
   const webp = await toBlob(canvas, "image/webp", quality);
   // Alguns Safaris não codificam WebP e devolvem PNG; nesse caso vai JPEG
   if (webp?.type === "image/webp") return webp;

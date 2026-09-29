@@ -46,7 +46,7 @@ async function processPhoto(id: string, original: string) {
       const safe = await blurAreas(bytes, boxes);
       photoPath = `${original}-b`;
       await Promise.all([
-        writeBytes(photoPath, safe.photo, "image/webp"),
+        writeBytes(photoPath, safe.photo, safe.photoType),
         writeBytes(photoPath + THUMB_SUFFIX, safe.thumb, "image/webp"),
       ]);
     }

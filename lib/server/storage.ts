@@ -12,7 +12,8 @@ export const storageProvider = (process.env.STORAGE_PROVIDER ?? "supabase") as S
 
 const BUCKET = process.env.S3_BUCKET ?? "";
 const PREFIX = "posts/"; // o CloudFront serve este prefixo como raiz
-const MAX_BYTES = 1024 * 1024;
+// Foto de até 2048 px: uns 400 a 800 KB; 3 MB dá folga
+const MAX_BYTES = 3 * 1024 * 1024;
 // O CDN pode segurar uma cópia por no máximo 10 min depois que o post some
 const CACHE_CONTROL = "public, max-age=600";
 // A versão desfocada tem endereço único e nunca muda: 12 h no aparelho, 1 h no
