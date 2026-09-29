@@ -22,7 +22,7 @@ const POSITRON = process.env.NEXT_PUBLIC_MAP_STYLE ?? "https://tiles.openfreemap
 const LIBERTY = "https://tiles.openfreemap.org/styles/liberty";
 // Esri World Imagery: livre para testar. Em produção, use uma chave gratuita
 // do ArcGIS Location Platform (ou MapTiler) e troque a URL pela variável.
-const SATELLITE_TILES =
+export const SATELLITE_TILES =
   process.env.NEXT_PUBLIC_SATELLITE_TILES ??
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 

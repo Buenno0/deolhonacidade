@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { KIND_LABEL, LANDMARK_PATHS, LANDMARK_RADIUS_M, type Landmark, type WikiSummary } from "@/lib/landmarks";
+import { KIND_LABEL, LANDMARK_RADIUS_M, type Landmark, type WikiSummary } from "@/lib/landmarks";
 import { photoUrl, thumbUrl } from "@/lib/media";
 import { distance, timeAgo, type PostFeature } from "@/lib/posts";
+import AerialView from "./AerialView";
 import Sheet from "./Sheet";
 import { Button, Spinner } from "./ui";
 import { CameraIcon, PinIcon, QuestionIcon } from "./ui/icons";
@@ -32,21 +33,6 @@ function useWiki(title: string | null) {
   }, [title]);
   return w;
 }
-
-const Glyph = ({ kind, size }: { kind: Landmark["kind"]; size: number }) => (
-  <svg
-    viewBox="0 0 24 24"
-    width={size}
-    height={size}
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={2}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-    dangerouslySetInnerHTML={{ __html: LANDMARK_PATHS[kind] }}
-  />
-);
 
 // A ficha de um marco. Regra: foto só do próprio lugar (com autor e licença);
 // texto principal só quando fala do lugar; o que é sobre quem é homenageado
@@ -84,12 +70,7 @@ export default function LandmarkSheet({ landmark: l, posts, onClose, onOpenPost,
             ))}
           </div>
         ) : (
-          <div className="flex items-center gap-3 rounded-xl border border-dashed border-line p-3">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-marco text-marco-ink">
-              <Glyph kind={l.kind} size={26} />
-            </span>
-            <p className="text-sm text-muted">Ainda não temos uma foto deste lugar. As fotos de quem passa por aqui aparecem abaixo.</p>
-          </div>
+          <AerialView lng={l.lng} lat={l.lat} kind={l.kind} name={l.name} />
         )}
 
         {/* Fatos */}
