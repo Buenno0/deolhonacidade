@@ -114,21 +114,25 @@ function ourLayers(theme: Theme, type: MapType, heat: HeatState): LayerSpecifica
   ];
 }
 
-function postsSource(posts: PostFeature[]): SourceSpecification {
+function postsSource(posts: PostFeature[], seen?: Set<string>): SourceSpecification {
   return {
     type: "geojson",
-    data: toData(posts),
+    data: toData(posts, seen),
     cluster: true,
     clusterRadius: 56,
     clusterMaxZoom: CLUSTER_MAX_ZOOM - 1,
     // O cluster carrega o horário do post mais novo: é a foto que ele mostra
-    clusterProperties: { newest: ["max", ["get", "t"]] },
+    // e quantos ainda não foram vistos (0 = grupo todo visto, anel cinza)
+    clusterProperties: { newest: ["max", ["get", "t"]], unseen: ["+", ["get", "u"]] },
   };
 }
 
-const toData = (posts: PostFeature[]): GeoJSON.FeatureCollection => ({
+const toData = (posts: PostFeature[], seen?: Set<string>): GeoJSON.FeatureCollection => ({
   type: "FeatureCollection",
-  features: posts.map((f) => ({ ...f, properties: { ...f.properties, t: new Date(f.properties.created_at).getTime() } })),
+  features: posts.map((f) => ({
+    ...f,
+    properties: { ...f.properties, t: new Date(f.properties.created_at).getTime(), u: seen?.has(f.properties.id) ? 0 : 1 },
+  })),
 });
 
 // O calor é de acontecimento: divulgação não esquenta o mapa
@@ -303,7 +307,7 @@ export default function CityMap({
           rank: ranks.get(post.id),
           archive: latest.current.archive,
           cluster: isCluster,
-          seen: !isCluster && Boolean(latest.current.seen?.has(post.id)),
+          seen: isCluster ? props.unseen === 0 : Boolean(latest.current.seen?.has(post.id)),
         });
       }
       for (const [key, entry] of markerMap) {
@@ -349,7 +353,7 @@ export default function CityMap({
             data: { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [WORLD_RING, ...holes] } },
           },
           "city-boundary": { type: "geojson", data: boundary },
-          posts: postsSource(latest.current.posts),
+          posts: postsSource(latest.current.posts, latest.current.seen),
           "posts-now": { type: "geojson", data: toData(happenings(latest.current.posts)) },
           "heat-history": { type: "geojson", data: latest.current.heat.history ?? EMPTY },
         },
@@ -394,13 +398,14 @@ export default function CityMap({
   useEffect(() => {
     byId.current = new Map(posts.map((f) => [f.properties.id, f.properties]));
     byTime.current = new Map(posts.map((f) => [new Date(f.properties.created_at).getTime(), f.properties]));
-    map.current?.getSource<GeoJSONSource>("posts")?.setData(toData(posts));
+    map.current?.getSource<GeoJSONSource>("posts")?.setData(toData(posts, latest.current.seen));
     map.current?.getSource<GeoJSONSource>("posts-now")?.setData(toData(happenings(posts)));
     syncRef.current();
   }, [posts]);
 
-  // Visto agora: o anel fica cinza
+  // Visto agora: o anel fica cinza (também nos grupos, que somam os não vistos)
   useEffect(() => {
+    map.current?.getSource<GeoJSONSource>("posts")?.setData(toData(latest.current.posts, seen));
     syncRef.current();
   }, [seen]);
 
