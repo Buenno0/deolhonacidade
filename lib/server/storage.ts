@@ -16,6 +16,7 @@ const PREFIX = "posts/"; // o CloudFront serve este prefixo como raiz
 const MAX_BYTES = 3 * 1024 * 1024;
 // O CDN pode segurar uma cópia por no máximo 10 min depois que o post some
 const CACHE_CONTROL = "public, max-age=600";
+const UPLOAD_TYPE = "application/octet-stream";
 // A versão desfocada tem endereço único e nunca muda: 12 h no aparelho, 1 h no
 // CDN (uma foto removida sai da borda em até 1 h)
 const CACHE_SAFE = "public, max-age=43200, s-maxage=3600, immutable";
@@ -24,10 +25,17 @@ let s3: S3Client | undefined;
 const client = () => (s3 ??= new S3Client({ region: awsRegion, credentials: awsCredentials() }));
 
 export const s3Key = (path: string) => PREFIX + path;
-export const allPaths = (photoPath: string) => [photoPath, photoPath + THUMB_SUFFIX];
+// A original enviada pelo navegador (com rostos, EXIF e o que mais vier) mora
+// em up/, que o CloudFront não serve (infra/fotos.tf). Só o servidor lê, e o
+// público só vê a cópia refeita e desfocada.
+export const originalPath = (path: string) => (storageProvider === "s3" ? `up/${path}` : path);
+// Tudo o que um post pode ter deixado no bucket: a publicada e a original
+export const allPaths = (photoPath: string) =>
+  [...new Set([photoPath, originalPath(photoPath)])].flatMap((p) => [p, p + THUMB_SUFFIX]);
 
-// Formulários de upload direto do navegador para o S3, com tamanho e tipo
-// travados na assinatura (o navegador não consegue mandar outra coisa)
+// Formulários de upload direto do navegador para o S3, com tamanho travado na
+// assinatura. O tipo é fixo e neutro: o arquivo é só matéria-prima para o
+// servidor (um SVG com script, por exemplo, nunca é servido como imagem)
 export async function presignUploads(photoPath: string): Promise<Record<"photo" | "thumb", PresignedPost>> {
   const sign = (path: string) =>
     createPresignedPost(client(), {
@@ -35,13 +43,14 @@ export async function presignUploads(photoPath: string): Promise<Record<"photo" 
       Key: s3Key(path),
       Conditions: [
         ["content-length-range", 1, MAX_BYTES],
-        ["starts-with", "$Content-Type", "image/"],
+        ["eq", "$Content-Type", UPLOAD_TYPE],
         ["eq", "$Cache-Control", CACHE_CONTROL],
       ],
-      Fields: { "Cache-Control": CACHE_CONTROL },
+      Fields: { "Cache-Control": CACHE_CONTROL, "Content-Type": UPLOAD_TYPE },
       Expires: 300,
     });
-  const [photo, thumb] = await Promise.all(allPaths(photoPath).map(sign));
+  const original = originalPath(photoPath);
+  const [photo, thumb] = await Promise.all([original, original + THUMB_SUFFIX].map(sign));
   return { photo, thumb };
 }
 

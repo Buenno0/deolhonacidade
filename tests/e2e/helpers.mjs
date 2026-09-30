@@ -1,5 +1,6 @@
 // Base dos testes de ponta a ponta. Precisam do Supabase local (supabase start)
 // e do app (npm run dev) rodando; usam o Mailpit para ler o código de login.
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { after } from "node:test";
 import { createClient } from "@supabase/supabase-js";
@@ -20,6 +21,7 @@ export const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54
 export const ANON = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 export const APP = env.E2E_APP_URL ?? "http://localhost:3000";
 export const MAIL = env.E2E_MAIL_URL ?? "http://127.0.0.1:54324";
+export const DB_URL = env.E2E_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 export const CITY = 3522307;
 export const CENTER = [-23.5917, -48.0531];
 // Token de teste do Cloudflare Turnstile (a chave secreta de teste aceita)
@@ -56,7 +58,7 @@ after(async () => {
 });
 
 // Usuário logado e com os termos aceitos (a menos que terms = false)
-export async function login(name, { terms = true } = {}) {
+export async function login(name, { terms = true, aged = true } = {}) {
   const c = anon();
   const email = `e2e-${name}-${uniq()}@example.test`;
   const { error } = await c.auth.signInWithOtp({ email, options: { shouldCreateUser: true, captchaToken: CAPTCHA } });
@@ -65,6 +67,10 @@ export async function login(name, { terms = true } = {}) {
   if (vErr) throw vErr;
   if (terms) await c.rpc("accept_terms");
   created.add(data.user.id);
+  // Denúncia e voto exigem conta com mais de 24 h: a conta de teste "nasce" antes
+  if (aged) {
+    execFileSync("psql", [DB_URL, "-qc", `update auth.users set created_at = now() - interval '2 days' where id = '${data.user.id}'`]);
+  }
   return Object.assign(c, { uid: data.user.id, token: data.session.access_token, email });
 }
 

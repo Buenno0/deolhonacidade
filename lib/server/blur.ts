@@ -3,6 +3,24 @@ import sharp from "sharp";
 import type { Box } from "./moderation";
 
 const THUMB = 384;
+// O aparelho manda até 2048 px (uns 4 MP); acima disso é arquivo montado para
+// derrubar o servidor (uma "bomba" que descompacta para gigabytes)
+const MAX_SIDE = 4096;
+export const SHARP_OPTS = { limitInputPixels: MAX_SIDE * MAX_SIDE, animated: false, failOn: "error" } as const;
+
+// Só foto de verdade passa: JPEG ou WebP, um quadro só e tamanho de celular.
+// Animação ficaria de fora da moderação (ela só vê o primeiro quadro).
+export async function checkImage(bytes: Uint8Array): Promise<string | null> {
+  try {
+    const m = await sharp(bytes, SHARP_OPTS).metadata();
+    if (m.format !== "jpeg" && m.format !== "webp") return "formato";
+    if ((m.pages ?? 1) > 1) return "animada";
+    if (!m.width || !m.height || m.width > MAX_SIDE || m.height > MAX_SIDE) return "tamanho";
+    return null;
+  } catch {
+    return "ilegivel";
+  }
+}
 
 // Folga em volta da área detectada, em proporção dela. Rosto: pouca nas
 // laterais, um pouco mais em cima (cabelo e testa) e embaixo (queixo e barba,
@@ -36,9 +54,10 @@ function maskSvg(w: number, h: number, kind: Box["kind"]) {
 }
 
 // Desfoca cada rosto e placa só na própria área, com borda suave, e refaz a
-// miniatura a partir da foto desfocada (a do aparelho tinha o rosto).
+// miniatura a partir da foto desfocada (a do aparelho tinha o rosto). A foto é
+// sempre refeita: sai sem EXIF (GPS, aparelho) e sem nada anexado ao arquivo.
 export async function blurAreas(bytes: Uint8Array, boxes: Box[]) {
-  const base = await sharp(bytes).rotate().toBuffer();
+  const base = await sharp(bytes, SHARP_OPTS).rotate().toBuffer();
   const { width = 0, height = 0 } = await sharp(base).metadata();
   let out: Buffer = base;
   if (boxes.length && width && height) {
@@ -68,11 +87,8 @@ export async function blurAreas(bytes: Uint8Array, boxes: Box[]) {
       .composite(patches.filter((p): p is NonNullable<typeof p> => p !== null))
       .toBuffer();
   }
-  // Sem rosto nem placa, a foto segue como veio do aparelho: comprimir de novo
-  // só perderia qualidade. Com desfoque, uma recompressão, e alta.
-  const clean = boxes.length === 0;
-  const format = (await sharp(bytes).metadata()).format === "jpeg" ? "image/jpeg" : "image/webp";
-  const photo = clean ? Buffer.from(bytes) : await sharp(out).webp({ quality: 88, smartSubsample: true }).toBuffer();
+  // Uma recompressão só, e alta
+  const photo = await sharp(out).webp({ quality: 90, smartSubsample: true }).toBuffer();
   const thumb = await sharp(out).resize(THUMB, THUMB, { fit: "cover" }).webp({ quality: 82 }).toBuffer();
-  return { photo: new Uint8Array(photo), thumb: new Uint8Array(thumb), photoType: clean ? format : "image/webp" };
+  return { photo: new Uint8Array(photo), thumb: new Uint8Array(thumb), photoType: "image/webp" };
 }

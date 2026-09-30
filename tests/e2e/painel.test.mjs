@@ -12,8 +12,8 @@ const FNS = [
 ];
 
 test("painel: só a moderação entra, e o que ela faz fica no registro", async () => {
-  const comum = await login("painel-comum");
-  const mod = await login("painel-mod");
+  const comum = await login("painel-comum", { aged: false });
+  const mod = await login("painel-mod", { aged: false });
   const { id: postId, status } = await publish(comum, { caption: "painel" });
   assert.equal(status, "published");
 

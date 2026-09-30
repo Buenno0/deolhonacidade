@@ -146,8 +146,7 @@ export async function blurredPreview(thumb: Blob): Promise<string | null> {
 
 async function uploadToS3({ url, fields }: PresignedPost, blob: Blob) {
   const form = new FormData();
-  for (const [k, v] of Object.entries(fields)) form.append(k, v);
-  form.append("Content-Type", blob.type);
+  for (const [k, v] of Object.entries(fields)) form.append(k, v); // inclui o Content-Type assinado
   form.append("file", blob); // o arquivo tem que ser o último campo
   const res = await fetch(url, { method: "POST", body: form });
   if (!res.ok) throw new Error(`Falha no envio da foto (${res.status})`);

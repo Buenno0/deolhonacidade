@@ -1,10 +1,11 @@
+import { randomBytes } from "node:crypto";
 import { after } from "next/server";
 import type { Category } from "@/lib/categories";
 import { THUMB_SUFFIX, photoUrl, thumbUrl } from "@/lib/media";
-import { blurAreas } from "@/lib/server/blur";
+import { blurAreas, checkImage } from "@/lib/server/blur";
 import { inspect, type ModerationResult } from "@/lib/server/moderation";
 import { notifyPost } from "@/lib/server/push";
-import { exists, readBytes, remove, writeBytes } from "@/lib/server/storage";
+import { exists, originalPath, readBytes, remove, writeBytes } from "@/lib/server/storage";
 import { adminClient, ownPendingPost, userFromRequest } from "@/lib/server/supabase";
 
 // A análise roda depois da resposta: dá tempo mesmo com a AWS lenta
@@ -17,13 +18,14 @@ const WITH_REKOGNITION = (process.env.MODERATION_PROVIDER ?? "none") === "rekogn
 // placas desfocados numa cópia nova (caminho novo, para nenhum cache servir a
 // original), a original apagada e o post publicado. Quem postou vê o pin como
 // "processando" e o app pergunta o resultado. É o único caminho até "published".
+// A original fica em up/ (o CDN não serve) e só sai de lá depois de refeita.
 export async function POST(request: Request, ctx: RouteContext<"/api/posts/[id]/publish">) {
   const user = await userFromRequest(request);
   if (!user) return new Response("Unauthorized", { status: 401 });
   const { id } = await ctx.params;
   const post = await ownPendingPost(id, user.id);
   if (!post) return Response.json({ error: "Post não encontrado" }, { status: 404 });
-  if (!(await exists(post.photo_path))) return Response.json({ error: "A foto ainda não foi enviada" }, { status: 409 });
+  if (!(await exists(originalPath(post.photo_path)))) return Response.json({ error: "A foto ainda não foi enviada" }, { status: 409 });
 
   if (!WITH_REKOGNITION) {
     // Local, sem AWS: publica direto
@@ -31,37 +33,58 @@ export async function POST(request: Request, ctx: RouteContext<"/api/posts/[id]/
     return Response.json({ status });
   }
 
-  // Marca como em processamento: o pin aparece para quem postou
-  await adminClient().from("posts").update({ moderation: { processing: true } }).eq("id", id);
+  // Marca como em processamento (o pin aparece para quem postou). A troca é
+  // atômica: pedidos repetidos ou em paralelo não rodam a análise de novo.
+  const { data: claimed } = await adminClient()
+    .from("posts")
+    .update({ moderation: { processing: true } })
+    .eq("id", id)
+    .eq("status", "pending")
+    .or("moderation.is.null,moderation->>failed.eq.true")
+    .select("id");
+  if (!claimed?.length) return Response.json({ status: "processing" }, { status: 202 });
   after(() => processPhoto(id, post.photo_path));
   return Response.json({ status: "processing" }, { status: 202 });
 }
 
-async function processPhoto(id: string, original: string) {
+async function processPhoto(id: string, path: string) {
+  const original = originalPath(path);
   try {
     const bytes = await readBytes(original);
-    const { result, boxes } = await inspect(bytes);
-    let photoPath: string | null = null;
-    if (result.approved) {
-      const safe = await blurAreas(bytes, boxes);
-      photoPath = `${original}-b`;
-      await Promise.all([
-        writeBytes(photoPath, safe.photo, safe.photoType),
-        writeBytes(photoPath + THUMB_SUFFIX, safe.thumb, "image/webp"),
-      ]);
+    const bad = await checkImage(bytes);
+    if (bad) {
+      await finalize(id, { approved: false, provider: "formato", labels: [{ name: bad, confidence: 100 }], faces: 0, plates: 0 }, null);
+      await dropOriginal(original);
+      return;
     }
+    const { result, boxes } = await inspect(bytes);
+    // Recusada ou não, a foto é refeita e desfocada: o admin revisa (e pode
+    // restaurar) sem nunca ver nem publicar a original. O endereço novo é
+    // aleatório, sem relação com o id do post.
+    const safe = await blurAreas(bytes, boxes);
+    const photoPath = `${path}-${randomBytes(8).toString("hex")}`;
+    await Promise.all([
+      writeBytes(photoPath, safe.photo, safe.photoType),
+      writeBytes(photoPath + THUMB_SUFFIX, safe.thumb, "image/webp"),
+    ]);
     // Esquenta o CDN: a primeira busca de um endereço novo vai até o S3 (EUA) e
     // leva segundos. Pedindo daqui (a função roda em São Paulo), a cópia fica
     // no ponto do CloudFront que atende a cidade antes de o pin aparecer.
-    if (photoPath) await warmCdn([thumbUrl(photoPath), photoUrl(photoPath)]);
+    if (result.approved) await warmCdn([thumbUrl(photoPath), photoUrl(photoPath)]);
     await finalize(id, result, photoPath);
-    // A original (com rostos) não fica guardada; se foi recusada, sai também
-    await remove(photoPath ? [original, original + THUMB_SUFFIX] : []).catch((e) => console.error("apagar original falhou", e));
+    await dropOriginal(original);
   } catch (e) {
-    // Sem checagem, nada publica: o post fica pendente e a limpeza o encerra
+    // Sem checagem, nada publica: o post fica pendente (a original segue em
+    // up/, fora do CDN) e a limpeza o encerra
     console.error("processamento da foto falhou", e);
     await adminClient().from("posts").update({ moderation: { processing: false, failed: true } }).eq("id", id);
   }
+}
+
+// A original (com rostos) não fica guardada. Se apagar falhar, a limpeza de
+// posts vencidos tenta de novo (allPaths inclui up/)
+async function dropOriginal(original: string) {
+  await remove([original, original + THUMB_SUFFIX]).catch((e) => console.error("apagar original falhou", e));
 }
 
 async function warmCdn(urls: string[]) {

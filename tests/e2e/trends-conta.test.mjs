@@ -4,17 +4,18 @@ import assert from "node:assert/strict";
 import { APP, CITY, SUPABASE_URL, ANON, admin, anon, login, publish, row } from "./helpers.mjs";
 import { createClient } from "@supabase/supabase-js";
 
-test("uma visualização por aparelho; compartilhar conta à parte", async () => {
+test("uma visualização por pessoa; compartilhar conta à parte; sem login não conta", async () => {
   const a = await login("tc-a");
   const p = await publish(a, { category: "evento" });
-  const viewer = anon();
+  await anon().rpc("record_interaction", { p_id: p.id, p_kind: "view" });
+  const viewer = await login("tc-v");
   await viewer.rpc("record_interaction", { p_id: p.id, p_kind: "view" });
   await viewer.rpc("record_interaction", { p_id: p.id, p_kind: "view" });
   await viewer.rpc("record_interaction", { p_id: p.id, p_kind: "share" });
   const b = await login("tc-b");
   await b.rpc("record_interaction", { p_id: p.id, p_kind: "view" });
   const { view_count, share_count } = await row("posts", p.id, "view_count, share_count");
-  assert.equal(view_count, 2, "mesmo aparelho conta uma vez; outra conta soma");
+  assert.equal(view_count, 2, "a mesma conta conta uma vez; outra conta soma; visitante não");
   assert.equal(share_count, 1);
   const r = await viewer.rpc("record_interaction", { p_id: p.id, p_kind: "curtida" });
   assert.ok(r.error, "tipo inválido recusado");

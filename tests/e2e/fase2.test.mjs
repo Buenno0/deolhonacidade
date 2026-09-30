@@ -49,7 +49,7 @@ test("alguém aí: pedido, resposta perto e aviso só do autor", async () => {
 test("alertas: quem recebe e uma vez só", async () => {
   const [a, d] = await Promise.all(["f2h", "f2i"].map((n) => login(n)));
   let r = await d.rpc("save_push_subscription", {
-    p_endpoint: `https://push.example.test/${uniq()}`,
+    p_endpoint: `https://fcm.googleapis.com/fcm/send/${uniq()}`,
     p_p256dh: "x",
     p_auth: "y",
     ...at(),
@@ -60,6 +60,8 @@ test("alertas: quem recebe e uma vez só", async () => {
   assert.ifError(r.error);
   r = await d.rpc("save_push_subscription", { p_endpoint: "http://x", p_p256dh: "x", p_auth: "y", ...at(), p_radius_m: 1000 });
   assert.ok(r.error, "endpoint sem https recusado");
+  r = await d.rpc("save_push_subscription", { p_endpoint: "https://evil.example/x", p_p256dh: "x", p_auth: "y", ...at(), p_radius_m: 1000 });
+  assert.ok(r.error, "endpoint fora dos serviços de push recusado");
 
   const al = await publish(a, { lng: CENTER[1] + 0.003, category: "alagamento" });
   await sleep(1500);
@@ -68,7 +70,7 @@ test("alertas: quem recebe e uma vez só", async () => {
   assert.equal(again.length, 0, "cada post avisa uma vez");
   const ob = await publish(a, { category: "obra" });
   const { data: none } = await admin.rpc("push_targets_for_post", { p_id: ob.id });
-  assert.ok(!none.some((t) => t.endpoint.includes("push.example.test")), "obra não avisa quem só quer alagamento");
+  assert.ok(!none.some((t) => t.endpoint.includes("fcm.googleapis.com")), "obra não avisa quem só quer alagamento");
   r = await a.rpc("push_targets_for_post", { p_id: al.id });
   assert.ok(r.error, "usuário comum não lê os alvos");
 });

@@ -91,6 +91,15 @@ resource "aws_s3_bucket_policy" "fotos" {
         Resource  = "${aws_s3_bucket.fotos.arn}/posts/*"
         Condition = { StringEquals = { "AWS:SourceArn" = aws_cloudfront_distribution.fotos.arn } }
       },
+      {
+        # A original enviada pelo navegador (com rostos e EXIF) mora em
+        # posts/up/ e nunca sai pelo CDN: só o app lê, para refazer e desfocar
+        Sid       = "CloudFrontNaoLeOriginais"
+        Effect    = "Deny"
+        Principal = { Service = "cloudfront.amazonaws.com" }
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.fotos.arn}/posts/up/*"
+      },
     ]
   })
   depends_on = [aws_s3_bucket_public_access_block.fotos]
