@@ -12,10 +12,12 @@ import sharp from "sharp";
 import { awsCredentials, awsRegion } from "./aws";
 
 // MODERATION_PROVIDER=none (padrão, local) ou rekognition.
-// Numa foto, quatro perguntas em paralelo: é imprópria? onde há rostos? que
-// texto há nela? onde há veículos? Depois, uma segunda leitura de texto dentro
-// de cada veículo, recortado e ampliado: na foto inteira a placa de um carro a
-// poucos metros tem uns 50 px e o OCR não lê.
+// Duas rodadas, pagando só o que a foto pede (US$ 0,001 por chamada):
+// 1. é imprópria? e o que há nela (gente, veículos, placa)?
+// 2. rostos, só se há gente; placas, lendo cada veículo recortado e ampliado
+//    (até 4) e a foto inteira só se ele vê placa. Na foto inteira a placa de
+//    um carro a poucos metros tem uns 50 px e o OCR não lê; no recorte, lê.
+// Foto sem gente e sem veículo: 2 chamadas.
 // A foto vai nos bytes, sem o Rekognition buscar no S3.
 const provider = process.env.MODERATION_PROVIDER ?? "none";
 const MIN_CONFIDENCE = Number(process.env.MODERATION_MIN_CONFIDENCE ?? 80);
@@ -66,12 +68,15 @@ const toBox = (b: BoundingBox | undefined, kind: Box["kind"]): Box | null =>
 
 // OCR mais sensível que o padrão: placa pequena sai com confiança baixa
 const TEXT_FILTERS = { WordFilter: { MinConfidence: 40 } };
-const VEHICLES = ["Car", "Truck", "Bus", "Van", "Motorcycle", "License Plate"];
+const VEHICLES = ["Car", "Truck", "Bus", "Van", "Motorcycle"];
+// Se nada disso aparece na foto, não há rosto para procurar. Os nomes têm de
+// existir no catálogo do Rekognition ("Human" não existe e recusa o pedido todo).
+const PEOPLE = ["Person", "Adult", "Man", "Woman", "Male", "Female", "Boy", "Girl", "Child", "Baby", "Face", "Head", "Selfie", "Portrait", "Crowd"];
+const PLATE_LABEL = "License Plate";
 // Até 4 veículos por foto, os maiores. Com menos de 140 px de largura a placa
 // tem menos de ~25 px: nem o OCR nem uma pessoa leem, e a leitura só custaria.
 const MAX_VEHICLES = 4;
 const MIN_VEHICLE_PX = 140;
-
 // Placas lidas na foto inteira: linha ou palavra no formato brasileiro, e
 // também duas palavras vizinhas que juntas formam a placa ("ABC" "1D23")
 function platesInText(detections: TextDetection[]) {
@@ -147,21 +152,21 @@ export async function inspect(bytes: Uint8Array): Promise<{ result: ModerationRe
   const jpeg = await sharp(bytes).rotate().jpeg({ quality: 88 }).toBuffer();
   const { width: W = 0, height: H = 0 } = await sharp(jpeg).metadata();
   const Image = { Bytes: new Uint8Array(jpeg) };
-  const [mod, faces, text, objects] = await Promise.all([
+
+  // 1ª rodada: é imprópria? e o que há na foto (gente, veículos, placa)?
+  const [mod, objects] = await Promise.all([
     client().send(new DetectModerationLabelsCommand({ Image, MinConfidence: MIN_CONFIDENCE })),
-    client().send(new DetectFacesCommand({ Image })),
-    client().send(new DetectTextCommand({ Image, Filters: TEXT_FILTERS })),
-    // Sem os veículos, a foto ainda sai: só perde a segunda leitura
     client()
       .send(
         new DetectLabelsCommand({
           Image,
           MinConfidence: 50,
-          Settings: { GeneralLabels: { LabelInclusionFilters: VEHICLES } },
+          Settings: { GeneralLabels: { LabelInclusionFilters: [...VEHICLES, ...PEOPLE, PLATE_LABEL] } },
         }),
       )
       .catch((e) => {
-        console.warn("veículos indisponíveis", (e as Error).name);
+        // Sem essa resposta, faz como antes: procura rosto e placa na foto toda
+        console.warn("objetos indisponíveis", (e as Error).name);
         return null;
       }),
   ]);
@@ -173,31 +178,39 @@ export async function inspect(bytes: Uint8Array): Promise<{ result: ModerationRe
   }));
   const approved = !labels.some((l) => BLOCKED.has(l.parent || l.name) || BLOCKED.has(l.name));
 
-  const faceBoxes = (faces.FaceDetails ?? [])
-    .filter((f) => (f.Confidence ?? 0) >= 70)
-    .map((f) => toBox(f.BoundingBox, "face"))
-    .filter((b): b is Box => b !== null);
-
+  // Desfoca mesmo a foto recusada: a moderação pode restaurá-la depois
   const found = objects?.Labels ?? [];
-  // Placa que o Rekognition já reconhece como objeto vai direto
-  const labeledPlates = found
-    .filter((l) => l.Name === "License Plate")
-    .flatMap((l) => l.Instances ?? [])
-    .map((i) => toBox(i.BoundingBox, "plate"))
-    .filter((b): b is Box => b !== null);
+  const hasPeople = !objects || found.some((l) => PEOPLE.includes(l.Name ?? ""));
   const vehicles = found
-    .filter((l) => l.Name !== "License Plate")
+    .filter((l) => VEHICLES.includes(l.Name ?? ""))
     .flatMap((l) => l.Instances ?? [])
     .map((i) => i.BoundingBox)
     .filter((b): b is BoundingBox => Boolean(b?.Width && b?.Height && b.Width * W >= MIN_VEHICLE_PX))
     .sort((a, b) => b.Width! * b.Height! - a.Width! * a.Height!)
     .slice(0, MAX_VEHICLES);
-  const onVehicles =
-    approved && W && H
-      ? (await Promise.all(vehicles.map((v) => platesOnVehicle(jpeg, W, H, v).catch(() => [])))).flat()
-      : [];
+  // Se o Rekognition vê placa (ou não respondeu), lê também a foto toda: pega a
+  // placa de carro cortado na borda, que ele não aponta como veículo
+  const plateLabel = found.find((l) => l.Name === PLATE_LABEL);
+  const needFullText = !objects || Boolean(plateLabel);
 
-  const plateBoxes = dedupe([...platesInText(text.TextDetections ?? []), ...labeledPlates, ...onVehicles]);
+  // 2ª rodada, só o que a foto pede: rostos, o mosaico dos veículos e a leitura da foto toda
+  const [faces, onVehicles, text] = await Promise.all([
+    hasPeople ? client().send(new DetectFacesCommand({ Image })) : null,
+    // Um veículo por chamada: juntar os recortes num mosaico economizaria, mas
+    // o OCR reduz a imagem grande e deixou passar placa legível no teste
+    W && H ? Promise.all(vehicles.map((v) => platesOnVehicle(jpeg, W, H, v).catch(() => []))).then((r) => r.flat()) : [],
+    needFullText ? client().send(new DetectTextCommand({ Image, Filters: TEXT_FILTERS })) : null,
+  ]);
+
+  const faceBoxes = (faces?.FaceDetails ?? [])
+    .filter((f) => (f.Confidence ?? 0) >= 70)
+    .map((f) => toBox(f.BoundingBox, "face"))
+    .filter((b): b is Box => b !== null);
+  // Placa que o Rekognition já reconhece como objeto vai direto
+  const labeledPlates = (plateLabel?.Instances ?? [])
+    .map((i) => toBox(i.BoundingBox, "plate"))
+    .filter((b): b is Box => b !== null);
+  const plateBoxes = dedupe([...platesInText(text?.TextDetections ?? []), ...labeledPlates, ...onVehicles]);
 
   return {
     result: { approved, provider, labels, faces: faceBoxes.length, plates: plateBoxes.length, ms: Date.now() - t0 },
