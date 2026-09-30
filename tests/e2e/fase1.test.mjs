@@ -24,6 +24,16 @@ test("postar exige termos, cidade e limite; publicar só pelo servidor", async (
   assert.equal(semToken.status, 401);
 });
 
+test("limite de 7 posts por hora; o 8º é recusado", async () => {
+  const a = await login("f1lim");
+  for (let i = 0; i < 7; i++) {
+    const r = await a.rpc("create_post", { p_lat: CENTER[0], p_lng: CENTER[1], p_category: "outro" });
+    assert.ifError(r.error);
+  }
+  const r = await a.rpc("create_post", { p_lat: CENTER[0], p_lng: CENTER[1], p_category: "outro" });
+  assert.match(r.error?.message ?? "", /Limite de 7 posts por hora/);
+});
+
 test("leitura pública não expõe quem postou", async () => {
   const a = await login("f1b");
   const p = await publish(a, { category: "evento" });

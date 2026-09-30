@@ -60,7 +60,7 @@ Câmera e GPS só funcionam em HTTPS. Use um túnel (ex.: `cloudflared tunnel --
 **Postar** ([lib/posting.ts](lib/posting.ts))
 1. A câmera abre direto (`capture="environment"`). A localização aceita até 500 m de erro, com aviso acima de 100 m.
 2. No aparelho, a foto vira WebP de até 1280px (~10 KB a 100 KB) e uma miniatura quadrada de 192px (~1 KB) para o pin. Redesenhar no canvas apaga o EXIF ([lib/image/compress.ts](lib/image/compress.ts)).
-3. `create_post` (RPC) confere se o ponto está dentro do município, aplica o limite de 5 posts por hora e reserva o caminho da foto.
+3. `create_post` (RPC) confere se o ponto está dentro do município, aplica o limite de 7 posts por hora e reserva o caminho da foto.
 4. As duas imagens sobem direto para o Supabase Storage (policy `can_upload_post_photo`) ou para o S3 (formulário assinado por [/api/posts/[id]/uploads](app/api/posts/[id]/uploads/route.ts)).
 5. [/api/posts/[id]/publish](app/api/posts/[id]/publish/route.ts) confere a foto, passa pela moderação e chama `finalize_post` com a service_role. Esse é o único caminho até "publicado": o navegador não consegue pular a moderação. O Realtime avisa os mapas abertos.
 
