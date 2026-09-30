@@ -1,17 +1,21 @@
 import "server-only";
 import {
   DetectFacesCommand,
+  DetectLabelsCommand,
   DetectModerationLabelsCommand,
   DetectTextCommand,
   RekognitionClient,
   type BoundingBox,
+  type TextDetection,
 } from "@aws-sdk/client-rekognition";
 import sharp from "sharp";
 import { awsCredentials, awsRegion } from "./aws";
 
 // MODERATION_PROVIDER=none (padrão, local) ou rekognition.
-// Numa foto, três perguntas em paralelo (cerca de 1 s no total, em vez de 3
-// em sequência): é imprópria? onde há rostos? onde há placas?
+// Numa foto, quatro perguntas em paralelo: é imprópria? onde há rostos? que
+// texto há nela? onde há veículos? Depois, uma segunda leitura de texto dentro
+// de cada veículo, recortado e ampliado: na foto inteira a placa de um carro a
+// poucos metros tem uns 50 px e o OCR não lê.
 // A foto vai nos bytes, sem o Rekognition buscar no S3.
 const provider = process.env.MODERATION_PROVIDER ?? "none";
 const MIN_CONFIDENCE = Number(process.env.MODERATION_MIN_CONFIDENCE ?? 80);
@@ -25,11 +29,21 @@ const TO_LETTER: Record<string, string> = { "0": "O", "1": "I", "5": "S", "8": "
 const TO_DIGIT: Record<string, string> = { O: "0", Q: "0", D: "0", I: "1", L: "1", S: "5", B: "8", Z: "2", G: "6" };
 export function looksLikePlate(text: string) {
   const t = text.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  if (t.length !== 7) return false;
+  // Placa tem 4 números; sem ao menos 2 lidos como número, palavras de 7
+  // letras passariam pela troca de gêmeos ("CURIOSO" vira CUR1O50)
+  if (t.length !== 7 || (t.match(/\d/g) ?? []).length < 2) return false;
   const fixed = [...t]
     .map((c, i) => (i < 3 ? (TO_LETTER[c] ?? c) : i === 4 ? c : (TO_DIGIT[c] ?? c)))
     .join("");
   return PLATE.test(fixed);
+}
+
+// Dentro de um veículo a regra afrouxa: 5 a 8 letras e números misturados já é
+// placa (o OCR de uma placa pequena costuma comer ou trocar um caractere). Um
+// adesivo borrado por engano custa pouco; uma placa legível, não.
+export function looksLikePlateOnVehicle(text: string) {
+  const t = text.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return t.length >= 5 && t.length <= 8 && /[A-Z]/.test(t) && /\d/.test(t) && !/^BRASIL/.test(t);
 }
 
 export type Box = { left: number; top: number; width: number; height: number; kind: "face" | "plate" };
@@ -50,17 +64,106 @@ const client = () =>
 const toBox = (b: BoundingBox | undefined, kind: Box["kind"]): Box | null =>
   b && b.Width && b.Height ? { left: b.Left ?? 0, top: b.Top ?? 0, width: b.Width, height: b.Height, kind } : null;
 
+// OCR mais sensível que o padrão: placa pequena sai com confiança baixa
+const TEXT_FILTERS = { WordFilter: { MinConfidence: 40 } };
+const VEHICLES = ["Car", "Truck", "Bus", "Van", "Motorcycle", "License Plate"];
+// Até 4 veículos por foto, os maiores. Com menos de 140 px de largura a placa
+// tem menos de ~25 px: nem o OCR nem uma pessoa leem, e a leitura só custaria.
+const MAX_VEHICLES = 4;
+const MIN_VEHICLE_PX = 140;
+
+// Placas lidas na foto inteira: linha ou palavra no formato brasileiro, e
+// também duas palavras vizinhas que juntas formam a placa ("ABC" "1D23")
+function platesInText(detections: TextDetection[]) {
+  const boxes: Box[] = [];
+  for (const d of detections) {
+    if (looksLikePlate(d.DetectedText ?? "")) {
+      const b = toBox(d.Geometry?.BoundingBox, "plate");
+      if (b) boxes.push(b);
+    }
+  }
+  const words = detections.filter((d) => d.Type === "WORD");
+  for (let i = 0; i + 1 < words.length; i++) {
+    const [a, b] = [words[i], words[i + 1]];
+    if (a.ParentId !== b.ParentId || !looksLikePlate(`${a.DetectedText}${b.DetectedText}`)) continue;
+    const u = union(toBox(a.Geometry?.BoundingBox, "plate"), toBox(b.Geometry?.BoundingBox, "plate"));
+    if (u) boxes.push(u);
+  }
+  return boxes;
+}
+
+function union(a: Box | null, b: Box | null): Box | null {
+  if (!a || !b) return a ?? b;
+  const left = Math.min(a.left, b.left);
+  const top = Math.min(a.top, b.top);
+  return {
+    left,
+    top,
+    width: Math.max(a.left + a.width, b.left + b.width) - left,
+    height: Math.max(a.top + a.height, b.top + b.height) - top,
+    kind: a.kind,
+  };
+}
+
+// Segunda leitura: recorta o veículo, amplia até ~1000 px e lê de novo. As
+// caixas achadas no recorte voltam para a proporção da foto inteira.
+async function platesOnVehicle(jpeg: Buffer, W: number, H: number, v: BoundingBox): Promise<Box[]> {
+  const left = Math.max(0, Math.floor((v.Left ?? 0) * W));
+  const top = Math.max(0, Math.floor((v.Top ?? 0) * H));
+  const w = Math.min(W - left, Math.ceil((v.Width ?? 0) * W));
+  const h = Math.min(H - top, Math.ceil((v.Height ?? 0) * H));
+  if (w < 24 || h < 24) return [];
+  const scale = Math.min(4, Math.max(1, 1000 / Math.max(w, h)));
+  const crop = await sharp(jpeg)
+    .extract({ left, top, width: w, height: h })
+    .resize(Math.round(w * scale), Math.round(h * scale), { kernel: "lanczos3" })
+    .sharpen()
+    .jpeg({ quality: 92 })
+    .toBuffer();
+  const r = await client().send(new DetectTextCommand({ Image: { Bytes: new Uint8Array(crop) }, Filters: TEXT_FILTERS }));
+  const found = (r.TextDetections ?? []).filter((d) => looksLikePlateOnVehicle(d.DetectedText ?? ""));
+  // Se a linha inteira já é placa, as palavras dela sobram
+  const lines = found.filter((d) => d.Type === "LINE");
+  const lineIds = new Set(lines.map((d) => d.Id));
+  const pick = [...lines, ...found.filter((d) => d.Type === "WORD" && !lineIds.has(d.ParentId))];
+  return pick
+    .map((d) => toBox(d.Geometry?.BoundingBox, "plate"))
+    .filter((b): b is Box => b !== null)
+    .map((b) => ({
+      kind: "plate" as const,
+      left: (left + b.left * w) / W,
+      top: (top + b.top * h) / H,
+      width: (b.width * w) / W,
+      height: (b.height * h) / H,
+    }));
+}
+
 export async function inspect(bytes: Uint8Array): Promise<{ result: ModerationResult; boxes: Box[] }> {
   if (provider !== "rekognition") return { result: { approved: true, provider, labels: [], faces: 0, plates: 0 }, boxes: [] };
 
   const t0 = Date.now();
   // O Rekognition só lê JPEG e PNG; a foto chega em WebP. As caixas vêm em
   // proporção (0 a 1), então valem para a WebP original.
-  const Image = { Bytes: new Uint8Array(await sharp(bytes).rotate().jpeg({ quality: 88 }).toBuffer()) };
-  const [mod, faces, text] = await Promise.all([
+  const jpeg = await sharp(bytes).rotate().jpeg({ quality: 88 }).toBuffer();
+  const { width: W = 0, height: H = 0 } = await sharp(jpeg).metadata();
+  const Image = { Bytes: new Uint8Array(jpeg) };
+  const [mod, faces, text, objects] = await Promise.all([
     client().send(new DetectModerationLabelsCommand({ Image, MinConfidence: MIN_CONFIDENCE })),
     client().send(new DetectFacesCommand({ Image })),
-    client().send(new DetectTextCommand({ Image })),
+    client().send(new DetectTextCommand({ Image, Filters: TEXT_FILTERS })),
+    // Sem os veículos, a foto ainda sai: só perde a segunda leitura
+    client()
+      .send(
+        new DetectLabelsCommand({
+          Image,
+          MinConfidence: 50,
+          Settings: { GeneralLabels: { LabelInclusionFilters: VEHICLES } },
+        }),
+      )
+      .catch((e) => {
+        console.warn("veículos indisponíveis", (e as Error).name);
+        return null;
+      }),
   ]);
 
   const labels = (mod.ModerationLabels ?? []).map((l) => ({
@@ -74,13 +177,47 @@ export async function inspect(bytes: Uint8Array): Promise<{ result: ModerationRe
     .filter((f) => (f.Confidence ?? 0) >= 70)
     .map((f) => toBox(f.BoundingBox, "face"))
     .filter((b): b is Box => b !== null);
-  const plateBoxes = (text.TextDetections ?? [])
-    .filter((t) => t.Type === "LINE" && looksLikePlate(t.DetectedText ?? ""))
-    .map((t) => toBox(t.Geometry?.BoundingBox, "plate"))
+
+  const found = objects?.Labels ?? [];
+  // Placa que o Rekognition já reconhece como objeto vai direto
+  const labeledPlates = found
+    .filter((l) => l.Name === "License Plate")
+    .flatMap((l) => l.Instances ?? [])
+    .map((i) => toBox(i.BoundingBox, "plate"))
     .filter((b): b is Box => b !== null);
+  const vehicles = found
+    .filter((l) => l.Name !== "License Plate")
+    .flatMap((l) => l.Instances ?? [])
+    .map((i) => i.BoundingBox)
+    .filter((b): b is BoundingBox => Boolean(b?.Width && b?.Height && b.Width * W >= MIN_VEHICLE_PX))
+    .sort((a, b) => b.Width! * b.Height! - a.Width! * a.Height!)
+    .slice(0, MAX_VEHICLES);
+  const onVehicles =
+    approved && W && H
+      ? (await Promise.all(vehicles.map((v) => platesOnVehicle(jpeg, W, H, v).catch(() => [])))).flat()
+      : [];
+
+  const plateBoxes = dedupe([...platesInText(text.TextDetections ?? []), ...labeledPlates, ...onVehicles]);
 
   return {
     result: { approved, provider, labels, faces: faceBoxes.length, plates: plateBoxes.length, ms: Date.now() - t0 },
     boxes: [...faceBoxes, ...plateBoxes],
   };
+}
+
+// A mesma placa achada por dois caminhos vira uma caixa só
+function dedupe(boxes: Box[]) {
+  const out: Box[] = [];
+  for (const b of boxes) {
+    const same = out.findIndex((o) => overlap(o, b) > 0.5);
+    if (same === -1) out.push(b);
+    else out[same] = union(out[same], b)!;
+  }
+  return out;
+}
+
+function overlap(a: Box, b: Box) {
+  const x = Math.max(0, Math.min(a.left + a.width, b.left + b.width) - Math.max(a.left, b.left));
+  const y = Math.max(0, Math.min(a.top + a.height, b.top + b.height) - Math.max(a.top, b.top));
+  return (x * y) / Math.min(a.width * a.height, b.width * b.height);
 }

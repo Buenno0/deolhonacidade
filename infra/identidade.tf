@@ -24,10 +24,11 @@ resource "aws_iam_user_policy" "app" {
       {
         # Sem ListBucket, um HeadObject de arquivo inexistente vira 403 em vez
         # de 404; o app trata os dois como "não enviado".
-        # Moderação + rostos e placas para desfocar (três chamadas por foto)
+        # Moderação + rostos e placas para desfocar: quatro chamadas por foto
+        # e mais uma leitura de texto por veículo (até 4), recortado e ampliado
         Sid      = "Moderacao"
         Effect   = "Allow"
-        Action   = ["rekognition:DetectModerationLabels", "rekognition:DetectFaces", "rekognition:DetectText"]
+        Action   = ["rekognition:DetectModerationLabels", "rekognition:DetectFaces", "rekognition:DetectText", "rekognition:DetectLabels"]
         Resource = "*"
       },
       {
