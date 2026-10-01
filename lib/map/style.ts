@@ -216,7 +216,9 @@ export async function buildMapStyle(theme: Theme, type: MapType): Promise<StyleS
         type: "raster",
         tiles: [SATELLITE_TILES],
         tileSize: 256,
-        maxzoom: 19,
+        // Em Itapetininga a Esri só tem imagem até o z18; no z19 ela devolve
+        // o ladrilho "Map data not yet available". Acima disso, amplia o z18.
+        maxzoom: 18,
         attribution: "Imagens © Esri, Maxar, Earthstar Geographics",
       },
     },
