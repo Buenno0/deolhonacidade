@@ -4,18 +4,22 @@ import { useEffect, useRef, useState } from "react";
 import { Tag } from "@/components/ui/Tag";
 import { AccidentScene, EventScene, FloodScene } from "./scenes";
 import { useNear } from "./useNear";
+import { useT } from "./lang";
 
 // O visualizador do app (PostViewer) em miniatura: barras que enchem, cabeçalho
 // com a categoria e a legenda sobre o desfoque. Mesmas classes do globals.css.
+// os textos de cada story vêm do i18n (stories.items), na mesma ordem
 const STORIES = [
-  { Scene: AccidentScene, cat: "Acidente", color: "var(--danger)", ago: "há 4 min", caption: "Batida na Av. Peixoto Gomide, faixa da direita fechada.", meta: "8 confirmaram · some em 2:41", tag: "agora" as const },
-  { Scene: EventScene, cat: "Evento", color: "var(--accent)", ago: "há 22 min", caption: "Show começando na praça, ainda tem lugar.", meta: "23 confirmaram · 312 viram", tag: "alta" as const },
-  { Scene: FloodScene, cat: "Alagamento", color: "var(--warn)", ago: "há 9 min", caption: "Rua cheia perto da rodoviária, carro baixo não passa.", meta: "12 confirmaram · some em 5:12", tag: "agora" as const },
+  { Scene: AccidentScene, color: "var(--danger)", tag: "agora" as const },
+  { Scene: EventScene, color: "var(--accent)", tag: "alta" as const },
+  { Scene: FloodScene, color: "var(--warn)", tag: "agora" as const },
 ];
 const STORY_MS = 5000;
 
 // start: abre num story (pin do hero); onClose: mostra o X (modo sobreposição)
 export default function StoryDemo({ start = 0, onClose }: { start?: number; onClose?: () => void }) {
+  const T = useT();
+  const t = T.stories;
   const box = useRef<HTMLDivElement>(null);
   const [i, setI] = useState(start);
   const [round, setRound] = useState(0);
@@ -36,7 +40,7 @@ export default function StoryDemo({ start = 0, onClose }: { start?: number; onCl
     return () => (io.disconnect(), mo.disconnect());
   }, []);
 
-  const s = STORIES[i];
+  const s = { ...STORIES[i], ...t.items[i] };
   const go = (d: number) => {
     setI((v) => (v + d + STORIES.length) % STORIES.length);
     setRound((r) => r + 1);
@@ -46,23 +50,23 @@ export default function StoryDemo({ start = 0, onClose }: { start?: number; onCl
     <div ref={box} className="lp-fone sala-escura text-ink">
       <div ref={nearRef} className="absolute inset-0" aria-hidden="true" />
       {STORIES.map((x, k) => (
-        <div key={x.cat} className="lp-story-cena" data-on={k === i}>
+        <div key={k} className="lp-story-cena" data-on={k === i}>
           {/* só a atual e a próxima: as outras cenas não precisam existir agora */}
-          {near && (k === i || k === (i + 1) % STORIES.length) && <x.Scene className="lp-cena" title={k === i ? `Ilustração: ${x.caption}` : undefined} />}
+          {near && (k === i || k === (i + 1) % STORIES.length) && <x.Scene className="lp-cena" title={k === i ? t.scene(t.items[k].caption) : undefined} />}
         </div>
       ))}
       <div className="story-blur-topo" />
       <div className="story-blur-base" />
 
       <div className="absolute inset-0 flex">
-        <button type="button" aria-label="Story anterior" className="h-full w-2/5 cursor-w-resize" onClick={() => go(-1)} />
-        <button type="button" aria-label="Próximo story" className="h-full flex-1 cursor-e-resize" onClick={() => go(1)} />
+        <button type="button" aria-label={t.prev} className="h-full w-2/5 cursor-w-resize" onClick={() => go(-1)} />
+        <button type="button" aria-label={t.next} className="h-full flex-1 cursor-e-resize" onClick={() => go(1)} />
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col gap-3 px-3 pt-3">
         <div className="flex gap-1" aria-hidden="true">
-          {STORIES.map((x, k) => (
-            <span key={x.cat} className="story-barra">
+          {STORIES.map((_, k) => (
+            <span key={k} className="story-barra">
               {k === i ? (
                 <i
                   key={`${i}-${round}`}
@@ -85,7 +89,7 @@ export default function StoryDemo({ start = 0, onClose }: { start?: number; onCl
           {onClose && (
             <button
               type="button"
-              aria-label="Fechar story"
+              aria-label={t.close}
               onClick={onClose}
               className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-black/40 text-ink"
             >
@@ -97,13 +101,13 @@ export default function StoryDemo({ start = 0, onClose }: { start?: number; onCl
 
       <div key={`b${i}`} className="story-entra pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-2.5 px-4 pb-5">
         <div className="flex gap-2">
-          <Tag kind={s.tag} />
+          <Tag kind={s.tag} label={T.tags[s.tag]} />
         </div>
         <p className="lp-disp m-0 text-lg leading-tight [text-shadow:0_1px_10px_rgb(0_0_0/0.55)]">{s.caption}</p>
         <p className="lp-rot m-0 text-ink/85">{s.meta}</p>
         <div className="flex gap-2">
-          <span className="story-pill story-vidro flex-1 justify-center whitespace-nowrap !px-2 text-xs">Ainda está</span>
-          <span className="story-pill story-vidro flex-1 justify-center whitespace-nowrap !px-2 text-xs">Já acabou</span>
+          <span className="story-pill story-vidro flex-1 justify-center whitespace-nowrap !px-2 text-xs">{t.still}</span>
+          <span className="story-pill story-vidro flex-1 justify-center whitespace-nowrap !px-2 text-xs">{t.over}</span>
         </div>
       </div>
     </div>

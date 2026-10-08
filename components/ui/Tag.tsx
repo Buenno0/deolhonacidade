@@ -14,12 +14,13 @@ export function tagHtml(kind: TagKind) {
   return '<span class="tag tag-divulgacao pin-tag">Divulgação</span>';
 }
 
-export function Tag({ kind, rank }: { kind: TagKind; rank?: number }) {
+// label: o texto em outro idioma (a LP em inglês)
+export function Tag({ kind, rank, label }: { kind: TagKind; rank?: number; label?: string }) {
   if (kind === "agora")
     return (
       <span className="tag tag-agora">
         <span className="ping" aria-hidden="true" />
-        Agora
+        {label ?? "Agora"}
       </span>
     );
   if (kind === "alta")
@@ -31,13 +32,13 @@ export function Tag({ kind, rank }: { kind: TagKind; rank?: number }) {
             <path d="M15 7h6v6" />
           </g>
         </svg>
-        {rank ? `Em alta · ${rank}º` : "Em alta"}
+        {rank ? `${label ?? "Em alta"} · ${rank}º` : (label ?? "Em alta")}
       </span>
     );
   return (
     <span className="tag tag-divulgacao">
       <CategoryIcon category="estabelecimento" className="h-3 w-3" />
-      Divulgação
+      {label ?? "Divulgação"}
     </span>
   );
 }

@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Medal from "@/components/Medal";
-import { BADGES, TIER_COLOR, TIER_NAMES, levelName, type BadgeId } from "@/lib/progress";
+import { BADGES, TIER_COLOR, type BadgeId } from "@/lib/progress";
+import { useT } from "./lang";
 
 // A festa de conquista do app (AchievementOverlay), em loop na LP: a mesma
 // medalha, o mesmo anel fechando e as mesmas faíscas (classes do globals.css).
@@ -21,6 +22,8 @@ const SEQ: Item[] = [
 const STEP_MS = 3600;
 
 export default function AchievementShowcase() {
+  const T = useT();
+  const t = T.wins;
   const box = useRef<HTMLDivElement>(null);
   const [i, setI] = useState(0);
   const [visible, setVisible] = useState(false);
@@ -51,7 +54,7 @@ export default function AchievementShowcase() {
 
   const item = SEQ[i];
   const isBadge = item.kind === "badge";
-  const def = isBadge ? BADGES[item.badge] : null;
+  const def = isBadge ? { ...BADGES[item.badge], ...t.badges[item.badge] } : null;
   const tier = isBadge ? (def!.first ? 3 : item.tier) : 3;
   const color = isBadge && !def!.first ? TIER_COLOR[item.tier - 1] : "var(--accent)";
 
@@ -75,7 +78,7 @@ export default function AchievementShowcase() {
         type="button"
         key={`${i}-${visible}`}
         onClick={() => (swiped.current ? (swiped.current = false) : go(i + 1))}
-        aria-label="Próxima conquista"
+        aria-label={t.next}
         className={`flex cursor-pointer flex-col items-center border-0 bg-transparent p-0 text-center ${visible ? "conquista-entra" : ""}`}
       >
         <span className="relative block">
@@ -101,22 +104,22 @@ export default function AchievementShowcase() {
           )}
         </span>
         <span className="lp-rot mt-5 block" style={{ color }}>
-          {isBadge ? (def!.first ? "primeira vez" : `conquista · ${TIER_NAMES[item.tier - 1]}`) : "subiu de nível"}
+          {isBadge ? (def!.first ? t.first : t.badge(t.tiers[item.tier - 1])) : t.levelUp}
         </span>
-        <span className="lp-disp mt-1.5 block text-2xl leading-tight text-ink">{isBadge ? def!.name : levelName(item.level)}</span>
+        <span className="lp-disp mt-1.5 block text-2xl leading-tight text-ink">{isBadge ? def!.name : T.levels[item.level - 1]}</span>
         <span className="lp-muted mt-1 block min-h-[2.6em] max-w-[260px] text-sm">
-          {isBadge ? def!.tiers[Math.min(item.tier, def!.tiers.length) - 1] : `Nível ${item.level}. Continue ajudando a cidade.`}
+          {isBadge ? def!.tiers[Math.min(item.tier, def!.tiers.length) - 1] : t.levelNote(item.level)}
         </span>
       </button>
-      <div className="mt-2 flex" role="group" aria-label="Conquistas">
+      <div className="mt-2 flex" role="group" aria-label={t.group}>
         {SEQ.map((_, k) => (
           // área de toque de 28 px em volta de cada bolinha
-          <button key={k} type="button" onClick={() => go(k)} aria-label={`Conquista ${k + 1} de ${SEQ.length}`} aria-current={k === i} className="grid h-7 cursor-pointer place-items-center border-0 bg-transparent px-[3px]">
+          <button key={k} type="button" onClick={() => go(k)} aria-label={t.dot(k + 1, SEQ.length)} aria-current={k === i} className="grid h-7 cursor-pointer place-items-center border-0 bg-transparent px-[3px]">
             <span className="block h-1.5 rounded-full transition-all duration-500" style={{ width: k === i ? 18 : 6, background: k === i ? color : "var(--line)" }} />
           </button>
         ))}
       </div>
-      <span className="lp-rot mt-1 opacity-70">toque para ver a próxima</span>
+      <span className="lp-rot mt-1 opacity-70">{t.hint}</span>
     </div>
   );
 }

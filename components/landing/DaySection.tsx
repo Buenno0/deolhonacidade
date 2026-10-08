@@ -5,17 +5,19 @@ import Medal from "@/components/Medal";
 import { DayBase, DayLayer, DayZzz, dayEvent, type DayEvent } from "./scenes";
 import { lpPaused, reducedMotion } from "./time";
 import { useNear } from "./useNear";
+import { useT } from "./lang";
 
 // "Um dia em Itapetininga": arraste o sol (ou deixe o dia passar sozinho) e
 // veja o que a cidade posta em cada hora. Para ficar suave, o React só redesenha
 // a cidade quando muda o acontecimento; céu, sol, lua, janelas e postes andam a
 // cada quadro por variáveis CSS (sem render), e o relógio por ref.
-const EVENTS: Record<DayEvent, { at: string; cat: string; color: string; txt: string }> = {
-  transito: { at: "7h", cat: "Trânsito", color: "var(--warn)", txt: "Fila na avenida, saída da escola. Vai pelo outro lado." },
-  feira: { at: "10h", cat: "Evento", color: "var(--accent)", txt: "Feira cheia hoje, tem pastel saindo agora." },
-  chuva: { at: "15h", cat: "Alagamento", color: "var(--warn)", txt: "Choveu forte, a rua da rodoviária encheu de novo." },
-  show: { at: "19h", cat: "Evento", color: "var(--accent)", txt: "Show começando na praça, ainda tem lugar." },
-  apagao: { at: "23h", cat: "Falta de energia", color: "var(--warn)", txt: "Caiu a luz no bairro todo. Alguém sabe até quando?" },
+// Hora, categoria e texto de cada acontecimento vêm do i18n (day.events)
+const COLOR: Record<DayEvent, string> = {
+  transito: "var(--warn)",
+  feira: "var(--accent)",
+  chuva: "var(--warn)",
+  show: "var(--accent)",
+  apagao: "var(--warn)",
 };
 
 // A cidade fixa e os zzz não dependem de nada: desenhados uma vez
@@ -102,8 +104,10 @@ export default function DaySection() {
       hour.current = h;
       if (root.current) paintHour(root.current, h);
       if (clockRef.current) clockRef.current.textContent = fmt(h);
-      const label = h >= 18.4 || h < 6.3 ? "Arraste a lua" : "Arraste o sol";
-      if (labelRef.current && labelRef.current.textContent !== label) labelRef.current.textContent = label;
+      // os dois rótulos, já no idioma da página, moram no próprio elemento
+      const el = labelRef.current;
+      const label = el && (h >= 18.4 || h < 6.3 ? el.dataset.moon : el.dataset.sun);
+      if (el && label && el.textContent !== label) el.textContent = label;
       if (range.current && !dragging.current) range.current.value = String(h);
       const e = dayEvent(h);
       setEv((cur) => {
@@ -146,7 +150,8 @@ export default function DaySection() {
     return () => clearTimeout(id);
   }, [prev, ev]);
 
-  const e = EVENTS[ev];
+  const t = useT().day;
+  const e = { ...t.events[ev], color: COLOR[ev] };
 
   return (
     <div ref={root} className={`flex flex-wrap items-center gap-10 ${ev === "apagao" ? "lp-apagao" : ""}`}>
@@ -161,7 +166,7 @@ export default function DaySection() {
         <span className="lp-dia-sol" aria-hidden="true" />
         <span className="lp-dia-lua" aria-hidden="true" />
         {near && (
-          <svg viewBox="0 0 440 360" preserveAspectRatio="xMidYMid slice" className="lp-dia-cena" role="img" aria-label={`Ilustração: a cidade com ${e.cat.toLowerCase()}`}>
+          <svg viewBox="0 0 440 360" preserveAspectRatio="xMidYMid slice" className="lp-dia-cena" role="img" aria-label={t.scene(e.cat)}>
             <Base part="fundo" />
             {prev && prev !== ev && (
               <g key={`s-${prev}`} className="lp-ev-sai">
@@ -189,7 +194,7 @@ export default function DaySection() {
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-5">
         <label className="flex flex-col gap-3">
           <span className="flex items-baseline justify-between">
-            <span ref={labelRef} className="lp-rot">Arraste o sol</span>
+            <span ref={labelRef} className="lp-rot" data-sun={t.sun} data-moon={t.moon}>{t.sun}</span>
             <span ref={clockRef} className="lp-num text-3xl" style={{ color: "var(--accent)" }}>
               {fmt(7.5)}
             </span>
@@ -214,21 +219,20 @@ export default function DaySection() {
             onKeyUp={() => (dragging.current = false)}
             onBlur={() => (dragging.current = false)}
             className="lp-sol w-full"
-            aria-label="Hora do dia"
-            aria-valuetext={`${e.cat}, por volta das ${e.at}`}
+            aria-label={t.hour}
+            aria-valuetext={t.valueText(e.cat, e.at)}
           />
           <span className="lp-num lp-muted flex justify-between text-xs" aria-hidden="true">
-            <span>06h</span>
-            <span>12h</span>
-            <span>18h</span>
-            <span>00h</span>
+            {t.ticks.map((x) => (
+              <span key={x}>{x}</span>
+            ))}
           </span>
         </label>
 
         <div key={ev} className="lp-card lp-card-bg story-entra flex flex-col gap-2">
           <span className="flex items-center gap-2">
             <span className="lp-tag font-semibold" style={{ position: "static", color: e.color, border: `1px solid ${e.color}` }}>{e.cat}</span>
-            <span className="lp-rot">por volta das {e.at}</span>
+            <span className="lp-rot">{t.around(e.at)}</span>
           </span>
           <p className="m-0 text-[17px]">{e.txt}</p>
         </div>
@@ -237,7 +241,7 @@ export default function DaySection() {
           <div className="story-entra flex items-center gap-3">
             <Medal icon="moon" tier={3} size={48} />
             <span className="lp-muted text-sm">
-              Post confirmado de madrugada vale a conquista <strong className="text-ink">Coruja</strong>.
+              {t.owlA} <strong className="text-ink">{t.owl}</strong>.
             </span>
           </div>
         )}
