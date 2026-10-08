@@ -23,7 +23,12 @@ type QueuePost = {
   report_count: number;
   deny_count: number;
   confirm_count: number;
-  moderation: { provider?: string; approved?: boolean; labels?: { name: string; confidence: number }[] } | null;
+  moderation: {
+    provider?: string;
+    approved?: boolean;
+    labels?: { name: string; confidence: number }[];
+    claude?: { approved: boolean; reason: string; explanation: string; suggested_category?: Category };
+  } | null;
   reasons: string[] | null;
   author_posts: number;
   author_banned: boolean;
@@ -191,7 +196,9 @@ export default function Moderacao() {
                   const alive = new Date(p.expires_at).getTime() > now;
                   // "no ar" mas já vencido (a limpeza ainda não passou): mostra como vencido
                   const st = STATUS[p.status === "published" && !alive ? "expired" : p.status];
-                  const blocked = p.moderation?.approved === false;
+                  const claude = p.moderation?.claude;
+                  // Recusa do Claude tem texto próprio; o resto é do Rekognition
+                  const blocked = p.moderation?.approved === false && !(claude && !claude.approved);
                   return (
                     <li key={p.id} className="flex gap-4 rounded-xl border border-line bg-surface p-3">
                       <a href={photoUrl(p.photo_path)} target="_blank" rel="noreferrer" className="h-28 w-28 shrink-0 overflow-hidden rounded-lg bg-elev">
@@ -219,6 +226,12 @@ export default function Moderacao() {
                         {blocked && (
                           <p className="text-xs text-danger">
                             Recusado pela moderação automática: {p.moderation?.labels?.map((l) => `${l.name} ${l.confidence}%`).join(", ")}
+                          </p>
+                        )}
+                        {claude && (
+                          <p className={cx("text-xs", claude.approved ? "text-muted" : "text-danger")}>
+                            {claude.approved ? "Claude publicou" : `Claude recusou (${claude.reason.replaceAll("_", " ")})`}: {claude.explanation}
+                            {claude.suggested_category && ` · sugere ${CATEGORIES[claude.suggested_category].label}`}
                           </p>
                         )}
                         <div className="mt-1 flex flex-wrap gap-2">

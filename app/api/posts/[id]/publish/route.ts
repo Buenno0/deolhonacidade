@@ -3,6 +3,7 @@ import { after } from "next/server";
 import type { Category } from "@/lib/categories";
 import { THUMB_SUFFIX, photoUrl, thumbUrl } from "@/lib/media";
 import { blurAreas, checkImage } from "@/lib/server/blur";
+import { claudeEnabled, reviewWithClaude } from "@/lib/server/claudeReview";
 import { inspect, type ModerationResult } from "@/lib/server/moderation";
 import { notifyPost } from "@/lib/server/push";
 import { exists, originalPath, readBytes, remove, writeBytes } from "@/lib/server/storage";
@@ -12,6 +13,8 @@ import { adminClient, ownPendingPost, userFromRequest } from "@/lib/server/supab
 export const maxDuration = 60;
 
 const WITH_REKOGNITION = (process.env.MODERATION_PROVIDER ?? "none") === "rekognition";
+// Com qualquer uma das moderações, a análise roda em segundo plano
+const ASYNC = WITH_REKOGNITION || claudeEnabled;
 
 // Último passo da postagem. Com o Rekognition, a resposta volta na hora
 // ("processing") e o resto acontece em segundo plano: moderação, rostos e
@@ -27,8 +30,8 @@ export async function POST(request: Request, ctx: RouteContext<"/api/posts/[id]/
   if (!post) return Response.json({ error: "Post não encontrado" }, { status: 404 });
   if (!(await exists(originalPath(post.photo_path)))) return Response.json({ error: "A foto ainda não foi enviada" }, { status: 409 });
 
-  if (!WITH_REKOGNITION) {
-    // Local, sem AWS: publica direto
+  if (!ASYNC) {
+    // Local, sem moderação: publica direto
     const status = await finalize(id, { approved: true, provider: "none", labels: [], faces: 0, plates: 0 }, null);
     return Response.json({ status });
   }
@@ -62,6 +65,15 @@ async function processPhoto(id: string, path: string) {
     // restaurar) sem nunca ver nem publicar a original. O endereço novo é
     // aleatório, sem relação com o id do post.
     const safe = await blurAreas(bytes, boxes);
+    // O Claude vê a foto já desfocada (rostos e placas não saem daqui), e só se
+    // o Rekognition aprovou: recusada já está, não precisa pagar outra análise
+    if (claudeEnabled && result.approved) {
+      const { data: post } = await adminClient().from("posts").select("category, caption").eq("id", id).single();
+      if (post) {
+        result.claude = await reviewWithClaude(safe.photo, post as { category: Category; caption: string | null });
+        result.approved = result.claude.approved;
+      }
+    }
     const photoPath = `${path}-${randomBytes(8).toString("hex")}`;
     await Promise.all([
       writeBytes(photoPath, safe.photo, safe.photoType),

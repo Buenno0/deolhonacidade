@@ -10,6 +10,7 @@ import {
 } from "@aws-sdk/client-rekognition";
 import sharp from "sharp";
 import { awsCredentials, awsRegion } from "./aws";
+import type { ClaudeReview } from "./claudeReview";
 
 // MODERATION_PROVIDER=none (padrão, local) ou rekognition.
 // Duas rodadas, pagando só o que a foto pede (US$ 0,001 por chamada):
@@ -56,6 +57,8 @@ export type ModerationResult = {
   faces: number;
   plates: number;
   ms?: number;
+  // A segunda opinião (foto + legenda), quando CLAUDE_MODERATION=on
+  claude?: ClaudeReview;
 };
 
 let rk: RekognitionClient | undefined;
