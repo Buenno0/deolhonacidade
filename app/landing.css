@@ -252,6 +252,24 @@
 .lp-sol:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; }
 .lp-pinsobe { animation: lp-pousa 0.6s cubic-bezier(0.25, 1.5, 0.4, 1) both; }
 
+
+/* um dia na cidade: camadas que o DaySection move por variáveis a cada quadro */
+.lp-dia { position: relative; background: var(--ceu, rgb(34 50 76)); }
+.lp-dia-cena { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lp-dia .lp-janela { opacity: var(--luz, 1); }
+.lp-dia .lp-poste { opacity: calc(var(--luz, 1) * 0.4); transform-box: fill-box; transform-origin: center; animation: lp-respira 3s ease-in-out infinite; }
+.lp-dia .lp-poste-apagado { opacity: 0; }
+@keyframes lp-respira { 50% { transform: scale(1.2); } }
+.lp-dia .lp-estrelas { opacity: var(--noite, 0); }
+.lp-dia-sol, .lp-dia-lua { position: absolute; width: 7%; aspect-ratio: 1; border-radius: 50%; translate: -50% -50%; pointer-events: none; will-change: left, top; }
+.lp-dia-sol { left: var(--sol-x); top: var(--sol-y); opacity: var(--sol-o, 1); background: #f6d58c; box-shadow: 0 0 0 12px rgba(240, 196, 106, 0.16), 0 0 50px rgba(240, 196, 106, 0.5); }
+.lp-dia-lua { left: var(--lua-x); top: var(--lua-y); opacity: var(--noite, 0); box-shadow: inset -9px 4px 0 0 #f4efe4; }
+.lp-dia-quente, .lp-dia-noite { position: absolute; inset: 0; pointer-events: none; }
+.lp-dia-quente { background: #e9925a; mix-blend-mode: soft-light; opacity: var(--quente, 0); }
+.lp-dia-noite { background: #0a1230; mix-blend-mode: multiply; opacity: calc(var(--noite, 0) * 0.45); }
+.lp-troca { animation: lp-troca 0.6s ease both; }
+@keyframes lp-troca { from { opacity: 0.35; } }
+
 /* simulador e bairros */
 .lp-passa { animation: lp-passa 9s linear infinite; }
 @keyframes lp-passa { 0% { transform: translate(0, 0); opacity: 0; } 8%, 90% { opacity: 1; } 100% { transform: translate(235px, 136px); opacity: 0; } }

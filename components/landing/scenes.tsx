@@ -432,20 +432,14 @@ export function CityScene({ className, title }: SceneProps) {
 export type DayEvent = "transito" | "feira" | "chuva" | "show" | "apagao";
 export const dayEvent = (h: number): DayEvent => (h < 9 ? "transito" : h < 13 ? "feira" : h < 17 ? "chuva" : h < 21 ? "show" : "apagao");
 
-export function DayScene({ hour, className, title }: SceneProps & { hour: number }) {
+// A cena só muda quando muda o acontecimento. Céu, sol, lua, janelas e postes
+// ficam por conta do DaySection, que mexe em variáveis CSS a cada quadro
+// (--luz acende janelas e postes, --noite mostra estrelas). Fundo transparente:
+// o céu é a camada de baixo.
+export function DayScene({ ev, className, title }: SceneProps & { ev: DayEvent }) {
   const g = iso(22, 220, 112);
-  const ev = dayEvent(hour);
-  const night = hour >= 18.5 || hour < 6.5;
-  const dusk = hour >= 17 && hour < 18.5;
-  const lit = night ? 0.75 : dusk ? 0.4 : 0.08;
   const out = ev === "apagao";
-  // céu: do amanhecer ao escuro
-  const sky = hour < 8 ? "#2a2433" : hour < 16 ? "#1d2430" : hour < 18.5 ? "#33222a" : "#0b0d16";
-  // sol/lua num arco sobre a cidade
-  const a = ((Math.min(hour, 24) - 6) / 18) * Math.PI;
-  const sx = 220 - Math.cos(a) * 190;
-  const sy = 90 - Math.sin(a) * 70;
-  const rnd = rng(Math.floor(hour * 10));
+  const rnd = rng(ev.length * 7);
 
   const cars =
     ev === "transito"
@@ -476,83 +470,71 @@ export function DayScene({ hour, className, title }: SceneProps & { hour: number
       : [];
 
   const [pinX, pinY] = ev === "transito" ? g.P(4.5, 4.6, 1.6) : ev === "chuva" ? g.P(3, 5, 1.4) : ev === "apagao" ? g.P(1.6, 1.6, 4.4) : g.P(7.6, 7.2, 1.8);
-  const pinColor = ev === "chuva" || ev === "transito" || ev === "apagao" ? "#dca84a" : "#d29a44";
+  const pinColor = ev === "feira" || ev === "show" ? "#d29a44" : "#dca84a";
+  const lit = out ? 0 : 0.75;
 
   return (
-    <Frame className={className} title={title}>
-      <rect width="100%" height="100%" fill={sky} style={{ transition: "fill .6s" }} />
-      {night ? (
-        <>
-          {[40, 90, 150, 260, 320, 390, 70, 360].map((x, i) => (
-            <circle key={i} cx={x} cy={20 + ((i * 37) % 60)} r="1.2" fill="#f4efe4" className="lp-twinkle" style={{ animationDelay: `${i * 0.3}s` }} />
-          ))}
-          <circle cx={sx} cy={sy} r="12" fill="#f4efe4" opacity=".9" />
-          <circle cx={sx + 5} cy={sy - 3} r="10" fill={sky} />
-        </>
-      ) : (
-        <>
-          <circle cx={sx} cy={sy} r="26" fill="#f0c46a" opacity=".18" />
-          <circle cx={sx} cy={sy} r="13" fill="#f6d58c" />
-        </>
-      )}
+    <svg viewBox="0 0 440 360" preserveAspectRatio="xMidYMid slice" className={className} role={title ? "img" : undefined} aria-label={title} aria-hidden={title ? undefined : true}>
+      <g className="lp-estrelas">
+        {[40, 90, 150, 260, 320, 390, 70, 360, 200, 120].map((x, i) => (
+          <circle key={i} cx={x} cy={18 + ((i * 37) % 70)} r="1.2" fill="#f4efe4" className="lp-twinkle" style={{ animationDelay: `${i * 0.3}s` }} />
+        ))}
+      </g>
       <Ground g={g} />
       <Road g={g} x={0} y={4} w={10} d={1.8} />
       {g.tile(5.8, 5.8, 3.8, 3.4, "#20291f")}
-      {paint([
-        { k: 1, el: <g key="t1">{g.box(0.5, 0.5, 0, 2.2, 2.4, 3.6, C.escuro)}{g.windows(0.5, 0.5, 0, 2.2, 2.4, 3.6, out ? 0 : lit, 3)}</g> },
-        { k: 4.4, el: g.house(3.2, 0.7, 1.7, 1.8, 0.95, C.bege, "h1") },
-        { k: 6.6, el: <g key="t2">{g.box(5.4, 0.6, 0, 2, 2.2, 2.6, C.escuro)}{g.windows(5.4, 0.6, 0, 2, 2.2, 2.6, out ? 0 : lit, 8)}</g> },
-        { k: 9, el: g.house(7.8, 0.8, 1.6, 1.8, 0.85, C.verde, "h2") },
-        { k: 3.5, el: g.lamp(3.3, 3.6, "l1") },
-        { k: 8.2, el: g.lamp(7.6, 3.6, "l2") },
-        ...cars,
-        { k: 7.3, el: g.house(0.6, 6.4, 2.2, 1.6, 0.9, C.areia, "h3") },
-        { k: 9.6, el: g.tree(3.6, 6.4, 1, "a1") },
-        { k: 12.4, el: g.house(1.2, 8.3, 2, 1.4, 0.8, C.verde, "h4") },
-        ...stalls,
-        ...stage,
-        ...crowd,
-        { k: 12.2, el: g.tree(9.3, 6.0, 1, "a2") },
-        { k: 18, el: g.tree(9.2, 9.0, 1, "a3") },
-      ])}
-      {ev === "chuva" && (
-        <>
-          <g className="lp-agua-sobe">{g.tile(0, 3.7, 10, 2.4, "#2b5f86", 0.12, { opacity: 0.75 })}</g>
-          <g className="lp-chuva">
-            {Array.from({ length: 60 }, (_, i) => {
-              const x = (i * 53) % 460, y = (i * 97) % 380;
-              return <line key={i} x1={x} y1={y} x2={x - 4} y2={y + 12} stroke="#a8c6dd" strokeWidth="1" opacity=".35" />;
-            })}
-          </g>
-        </>
-      )}
-      {ev === "show" && (
-        <g>
-          {Array.from({ length: 12 }, (_, i) => {
+      <g key={ev} className="lp-troca">
+        {paint([
+          { k: 1, el: <g key="p1">{g.box(0.5, 0.5, 0, 2.2, 2.4, 3.6, C.escuro)}{g.windows(0.5, 0.5, 0, 2.2, 2.4, 3.6, lit, 3, "lp-janela")}</g> },
+          { k: 4.4, el: g.house(3.2, 0.7, 1.7, 1.8, 0.95, C.bege, "h1") },
+          { k: 6.6, el: <g key="p2">{g.box(5.4, 0.6, 0, 2, 2.2, 2.6, C.escuro)}{g.windows(5.4, 0.6, 0, 2, 2.2, 2.6, lit, 8, "lp-janela")}</g> },
+          { k: 9, el: g.house(7.8, 0.8, 1.6, 1.8, 0.85, C.verde, "h2") },
+          { k: 3.5, el: g.lamp(3.3, 3.6, "l1", out ? "lp-poste-apagado" : "lp-poste") },
+          { k: 8.2, el: g.lamp(7.6, 3.6, "l2", out ? "lp-poste-apagado" : "lp-poste") },
+          ...cars,
+          { k: 7.3, el: g.house(0.6, 6.4, 2.2, 1.6, 0.9, C.areia, "h3") },
+          { k: 9.6, el: g.tree(3.6, 6.4, 1, "a1") },
+          { k: 12.4, el: g.house(1.2, 8.3, 2, 1.4, 0.8, C.verde, "h4") },
+          ...stalls,
+          ...stage,
+          ...crowd,
+          { k: 12.2, el: g.tree(9.3, 6.0, 1, "a2") },
+          { k: 18, el: g.tree(9.2, 9.0, 1, "a3") },
+        ])}
+        {ev === "chuva" && (
+          <>
+            <g className="lp-agua-sobe">{g.tile(0, 3.7, 10, 2.4, "#2b5f86", 0.12, { opacity: 0.75 })}</g>
+            <g className="lp-chuva">
+              {Array.from({ length: 60 }, (_, i) => {
+                const x = (i * 53) % 460, y = (i * 97) % 380;
+                return <line key={i} x1={x} y1={y} x2={x - 4} y2={y + 12} stroke="#a8c6dd" strokeWidth="1" opacity=".35" />;
+              })}
+            </g>
+          </>
+        )}
+        {ev === "show" &&
+          Array.from({ length: 12 }, (_, i) => {
             const [x1, y1] = g.P(5.9, 5.9, 1.5), [x2, y2] = g.P(9.5, 5.9, 1.5);
             const t = (i + 0.5) / 12;
             return <circle key={i} cx={x1 + (x2 - x1) * t} cy={y1 + (y2 - y1) * t + Math.sin(Math.PI * t) * 8} r="2.2" fill="#f6d58c" className="lp-twinkle" style={{ animationDelay: `${(i % 4) * 0.4}s` }} />;
           })}
+        <g className="lp-pinsobe">
+          <Pin x={pinX} y={pinY - 30} color={pinColor}>
+            {ev === "transito" && <path d="M1 8h14v5H1Z M2.5 8l1.5-4h8l1.5 4" />}
+            {ev === "feira" && <path d="M1 6l2-4h10l2 4H1Z M2 6v8h12V6" />}
+            {ev === "chuva" && <path d="M8 1s5 5.5 5 9.5a5 5 0 0 1-10 0C3 6.5 8 1 8 1Z" />}
+            {ev === "show" && (
+              <>
+                <path d="M5.5 12V3l9-1.5v9" />
+                <circle cx="3.5" cy="12" r="2" />
+                <circle cx="12.5" cy="10.5" r="2" />
+              </>
+            )}
+            {ev === "apagao" && <path d="M9 1 3 9h5l-1 6 6-8H8Z" />}
+          </Pin>
         </g>
-      )}
-      {/* a luz da hora por cima de tudo */}
-      <rect width="100%" height="100%" fill={night ? "#0a1230" : dusk ? "#e08163" : hour < 8 ? "#f0c46a" : "#ffffff"} opacity={night ? 0.42 : dusk ? 0.16 : hour < 8 ? 0.08 : 0} style={{ mixBlendMode: night ? "multiply" : "soft-light", transition: "opacity .6s, fill .6s" }} />
-      <g key={ev} className="lp-pinsobe">
-        <Pin x={pinX} y={pinY - 30} color={pinColor}>
-          {ev === "transito" && <path d="M1 8h14v5H1Z M2.5 8l1.5-4h8l1.5 4" />}
-          {ev === "feira" && <path d="M1 6l2-4h10l2 4H1Z M2 6v8h12V6" />}
-          {ev === "chuva" && <path d="M8 1s5 5.5 5 9.5a5 5 0 0 1-10 0C3 6.5 8 1 8 1Z" />}
-          {ev === "show" && (
-            <>
-              <path d="M5.5 12V3l9-1.5v9" />
-              <circle cx="3.5" cy="12" r="2" />
-              <circle cx="12.5" cy="10.5" r="2" />
-            </>
-          )}
-          {ev === "apagao" && <path d="M9 1 3 9h5l-1 6 6-8H8Z" />}
-        </Pin>
       </g>
-    </Frame>
+    </svg>
   );
 }
 

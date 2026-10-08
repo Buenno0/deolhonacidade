@@ -51,15 +51,17 @@ export function iso(S: number, ox: number, oy: number) {
   };
 
   // Fileiras de janelas nas duas faces de uma caixa
-  const windows = (x: number, y: number, z: number, w: number, d: number, h: number, lit = 0.6, seed = 1) => {
+  // litClass: classe nas janelas acesas (para acender e apagar por CSS)
+  const windows = (x: number, y: number, z: number, w: number, d: number, h: number, lit = 0.6, seed = 1, litClass?: string) => {
+    const on = litClass ? { className: litClass } : undefined;
     const out: ReactNode[] = [];
     let s = seed;
     const rnd = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
     for (let zz = z + 0.35; zz < z + h - 0.3; zz += 0.55) {
       for (let u = 0.2; u < w - 0.25; u += 0.45)
-        out.push(<g key={`l${zz}${u}`}>{quad("L", x, y + d, u, u + 0.22, zz, zz + 0.28, rnd() < lit ? C.janela : C.janelaApagada)}</g>);
+        out.push(<g key={`l${zz}${u}`}>{quad("L", x, y + d, u, u + 0.22, zz, zz + 0.28, ...(rnd() < lit ? ([C.janela, on] as const) : ([C.janelaApagada, undefined] as const)))}</g>);
       for (let u = 0.2; u < d - 0.25; u += 0.45)
-        out.push(<g key={`r${zz}${u}`}>{quad("R", x + w, y, u, u + 0.22, zz, zz + 0.28, rnd() < lit * 0.7 ? C.janela : C.janelaApagada)}</g>);
+        out.push(<g key={`r${zz}${u}`}>{quad("R", x + w, y, u, u + 0.22, zz, zz + 0.28, ...(rnd() < lit * 0.7 ? ([C.janela, on] as const) : ([C.janelaApagada, undefined] as const)))}</g>);
     }
     return out;
   };
@@ -106,6 +108,17 @@ export function iso(S: number, ox: number, oy: number) {
       <g key={key}>
         <ellipse cx={sx} cy={sy} rx={0.95 * S * k} ry={0.42 * S * k} fill="#000" opacity=".35" />
         {box(x, y, 0.12 * k, w, d, 0.36 * k, color)}
+        {/* rodas na lateral visível (a face da frente da caixa), inclinadas como ela */}
+        {(along === "x" ? [0.32, 1.18] : [0.32, 1.18]).map((u) => {
+          const [wx, wy] = along === "x" ? P(x + u * k, y + d, 0.16 * k) : P(x + w, y + u * k, 0.16 * k);
+          const rot = along === "x" ? 30 : -30;
+          return (
+            <g key={u} transform={`translate(${wx.toFixed(1)} ${wy.toFixed(1)}) rotate(${rot}) scale(1 0.92)`}>
+              <ellipse rx={0.19 * S * k} ry={0.2 * S * k} fill="#17171b" />
+              <ellipse rx={0.09 * S * k} ry={0.095 * S * k} fill="#8a8f99" />
+            </g>
+          );
+        })}
         {box(cx, cy, 0.48 * k, cw, cd, 0.3 * k, ["#3b4652", "#7d93a6", "#5e7488"])}
         {along === "x" ? (
           <>
@@ -152,13 +165,14 @@ export function iso(S: number, ox: number, oy: number) {
     );
   };
 
-  const lamp = (x: number, y: number, key?: string) => {
+  // glow: classe na luz do poste (para acender e apagar por CSS)
+  const lamp = (x: number, y: number, key?: string, glow?: string) => {
     const [bx, by] = P(x, y, 0);
     const [tx, ty] = P(x, y, 1.6);
     return (
       <g key={key}>
         <line x1={bx} y1={by} x2={tx} y2={ty} stroke="#55534d" strokeWidth={0.07 * S} />
-        <circle cx={tx} cy={ty} r={0.5 * S} fill="#f0c46a" opacity=".12" className="lp-halo" />
+        <circle cx={tx} cy={ty} r={0.5 * S} fill="#f0c46a" opacity=".12" className={glow ?? "lp-halo"} />
         <circle cx={tx} cy={ty} r={0.11 * S} fill="#f6d58c" />
       </g>
     );
