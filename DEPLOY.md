@@ -16,11 +16,10 @@ No painel do projeto:
 - **Authentication > URL Configuration:** Site URL = `https://<seu-app>.vercel.app`.
 - **Login com Google** (recomendado; dispensa SMTP próprio):
   1. Em console.cloud.google.com > APIs e serviços > Credenciais, crie um "ID do cliente OAuth" do tipo **Aplicativo da Web**.
-  2. Em "URIs de redirecionamento autorizados", ponha `https://<ref>.supabase.co/auth/v1/callback`.
-  3. Na tela de consentimento, nome "De Olho na Cidade" e o domínio do app.
-  4. No Supabase, **Authentication > Providers > Google**: ligue e cole o Client ID e o Client Secret.
-  5. Na Vercel, `NEXT_PUBLIC_AUTH_GOOGLE=1`.
-- **Authentication > URL Configuration:** além do Site URL, ponha `https://<seu-app>.vercel.app/**` em Redirect URLs (a volta do Google).
+  2. Em "URIs de redirecionamento autorizados", ponha `https://<seu-dominio>/auth/google` (e `http://localhost:3000/auth/google` para testar). O login abre na mesma guia e volta para essa rota, sem passar pelo endereço do Supabase.
+  3. Na tela de consentimento, nome "Viu na Cidade", o domínio do app e a política em `/privacidade`.
+  4. No Supabase, **Authentication > Providers > Google**: ligue, cole o Client ID e o Client Secret e ponha o Client ID também em "Client IDs". Deixe "Skip nonce checks" desligado.
+  5. Na Vercel, `NEXT_PUBLIC_GOOGLE_CLIENT_ID` com o mesmo Client ID.
 - **Authentication > Email Templates:** em "Magic Link" e "Confirm signup", cole [supabase/templates/codigo-login.html](supabase/templates/codigo-login.html) e o assunto `Seu código: {{ .Token }}`.
 - **Authentication > SMTP Settings:** host, usuário e senha do SES (`tofu output smtp`, passo 3). Sem SMTP próprio, o Supabase só manda poucos e-mails por hora, e só para a equipe.
 - **Authentication > Attack Protection:** ligue o captcha com provedor Turnstile e cole a *secret key* criada em dash.cloudflare.com > Turnstile (modo "Managed"; domínio da Vercel).
@@ -52,7 +51,7 @@ vercel --prod
 | `CRON_SECRET` | `openssl rand -base64 24`, o mesmo do Vault |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | `npx web-push generate-vapid-keys`; subject = `mailto:` seu |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | a *site key* do mesmo widget do Turnstile (sem ela, o login segue sem captcha) |
-| `NEXT_PUBLIC_AUTH_GOOGLE` | `1` quando o provedor Google estiver ligado no Supabase |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Client ID do Google; liga o botão "Continuar com o Google" |
 | `NEXT_PUBLIC_MAP_STYLE` | opcional; padrão positron |
 | `NEXT_PUBLIC_SATELLITE_TILES` | URL do satélite com chave (ArcGIS ou MapTiler) |
 

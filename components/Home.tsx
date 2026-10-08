@@ -124,7 +124,9 @@ export default function Home() {
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [heatMode, setHeatMode] = useState<HeatMode>("off");
   const [heatHistory, setHeatHistory] = useState<GeoJSON.FeatureCollection | null>(null);
-  const [toast, setToast] = useState<Toast | null>(null);
+  const [toast, setToast] = useState<Toast | null>(() =>
+    params.get("login") === "erro" ? { text: "Não foi possível entrar com o Google. Tente de novo." } : null,
+  );
   const [progress, setProgress] = useState<Progress | null>(null);
   const [celebrations, setCelebrations] = useState<Celebration[]>([]);
   // O que já foi festejado nesta visita (duas buscas seguidas não repetem a festa)
@@ -459,6 +461,12 @@ export default function Home() {
         setTermsUserId(data?.accepted_terms_at ? session.user.id : null);
       });
   }, [supabase, session]);
+
+  // Volta do Google com falha (app/auth/google): o aviso já nasce no estado; aqui só limpa o endereço
+  useEffect(() => {
+    if (params.get("login") !== "erro") return;
+    window.history.replaceState(null, "", window.location.pathname);
+  }, [params]);
 
   useEffect(() => {
     if (!toast) return;
