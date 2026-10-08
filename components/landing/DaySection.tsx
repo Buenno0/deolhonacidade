@@ -61,6 +61,8 @@ function paintHour(el: HTMLElement, h: number) {
   const luz = Math.max(1 - smooth(6, 7.5, h), smooth(17.3, 19.2, h));
   el.style.setProperty("--luz", (0.12 + luz * 0.88).toFixed(3));
   el.style.setProperty("--noite", smooth(18.8, 20.3, h).toFixed(3));
+  // a cidade dorme às 22h e acorda às 6h (o dia recomeça às 6 e os zzz somem)
+  el.style.setProperty("--sono", Math.max(smooth(21.6, 22.4, h), 1 - smooth(6, 6.5, h)).toFixed(3));
   el.style.setProperty("--quente", Math.max(0.1 * (1 - smooth(6, 9, h)), 0.2 * smooth(16.5, 17.8, h) * (1 - smooth(18.2, 19.4, h))).toFixed(3));
   // sol de 6h a 18h30, lua depois; os dois num arco por cima da cidade
   const arc = (t: number) => [8 + t * 84, 30 - Math.sin(Math.PI * Math.min(1, Math.max(0, t))) * 22];

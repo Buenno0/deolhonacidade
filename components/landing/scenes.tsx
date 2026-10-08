@@ -501,6 +501,26 @@ export function DayScene({ ev, className, title }: SceneProps & { ev: DayEvent }
           { k: 12.2, el: g.tree(9.3, 6.0, 1, "a2") },
           { k: 18, el: g.tree(9.2, 9.0, 1, "a3") },
         ])}
+        {/* casas dormindo: zzz saindo dos telhados (opacidade vem de --sono) */}
+        <g className="lp-sono" aria-hidden="true">
+          {[
+            [3.2 + 0.85, 0.7 + 0.9, 1.5],
+            [7.8 + 0.8, 0.8 + 0.9, 1.4],
+            [0.6 + 1.1, 6.4 + 0.8, 1.45],
+            [1.2 + 1.0, 8.3 + 0.7, 1.35],
+          ].map(([x, y, z], n) => {
+            const [hx, hy] = g.P(x, y, z);
+            return (
+              <g key={n} transform={`translate(${hx.toFixed(1)} ${hy.toFixed(1)})`}>
+                {[0, 1, 2].map((k) => (
+                  <text key={k} className="lp-zzz" style={{ animationDelay: `${n * 0.5 + k * 0.7}s` }} fontFamily="var(--font-display)" fontWeight="700" fontSize={12 + k * 4} fill="#f4efe4">
+                    z
+                  </text>
+                ))}
+              </g>
+            );
+          })}
+        </g>
         {ev === "chuva" && (
           <>
             <g className="lp-agua-sobe">{g.tile(0, 3.7, 10, 2.4, "#2b5f86", 0.12, { opacity: 0.75 })}</g>

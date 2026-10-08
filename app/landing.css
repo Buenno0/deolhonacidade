@@ -265,6 +265,9 @@
 .lp-dia .lp-poste-apagado { opacity: 0; }
 @keyframes lp-respira { 50% { transform: scale(1.2); } }
 .lp-dia .lp-estrelas { opacity: var(--noite, 0); }
+.lp-dia .lp-sono { opacity: var(--sono, 0); }
+.lp-zzz { opacity: 0; animation: lp-zzz 2.1s ease-out infinite; }
+@keyframes lp-zzz { 0% { opacity: 0; transform: translate(0, 0); } 20% { opacity: 0.9; } 100% { opacity: 0; transform: translate(14px, -30px); } }
 .lp-dia-sol, .lp-dia-lua { position: absolute; width: 7%; aspect-ratio: 1; border-radius: 50%; translate: -50% -50%; pointer-events: none; will-change: left, top; }
 .lp-dia-sol { left: var(--sol-x); top: var(--sol-y); opacity: var(--sol-o, 1); background: #f6d58c; box-shadow: 0 0 0 12px rgba(240, 196, 106, 0.16), 0 0 50px rgba(240, 196, 106, 0.5); }
 .lp-dia-lua { left: var(--lua-x); top: var(--lua-y); opacity: var(--noite, 0); box-shadow: inset -9px 4px 0 0 #f4efe4; }
@@ -321,6 +324,7 @@
   .lp-rua { stroke-dashoffset: 0; }
   .lp-cai, .lp-chao, .lp-pinbtn, .lp-nasce, .lp-pinsobe { opacity: 1 !important; transform: none !important; }
   .lp-desfaz { opacity: 0; }
+  .lp-zzz { opacity: 0.8; }
   .lp-al-notif { opacity: 1 !important; transform: none !important; }
   .lp-al-story { clip-path: circle(0% at 50% 46%); }
   .lp-flash { opacity: 0; }
