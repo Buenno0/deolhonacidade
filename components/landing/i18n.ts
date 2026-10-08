@@ -56,6 +56,7 @@ const pt = {
     lead: "Trânsito, alagamento, show na praça, fila no posto: alguém tirou a foto agora, do lugar exato. Daqui a pouco ela some, porque já deixou de ser novidade.",
     cta: "Abrir o mapa, é grátis",
     note: "Funciona no navegador do celular · seu nome não aparece nos posts",
+    video: "Ver em 1 minuto",
   },
   problem: {
     eyebrow: "O problema",
@@ -65,6 +66,19 @@ const pt = {
       ["O grupo do zap não ajuda.", "É corrente, áudio de 3 minutos e foto de 2019."],
       ["Ninguém sabe onde foi.", "“Acidente perto do centro” pode ser em qualquer lugar."],
     ] as Card[],
+  },
+  // o vídeo de 1 minuto (components/landing/ExplainerVideo.tsx); o texto é o que aparece na tela do vídeo
+  video: {
+    eyebrow: "Em 1 minuto",
+    title: "Do “ouvi dizer” ao “viu”.",
+    label: "Viu na Cidade em 1 minuto",
+    play: "Assistir ao vídeo de 1 minuto, com som",
+    cta: "Assistir",
+    meta: "0:59 · com som",
+    again: "Ver de novo",
+    transcriptTitle: "Texto do vídeo",
+    transcript: `Uma cidade em miniatura, à noite, e pessoas da cidade usando as telas de verdade do app no celular. Bolhas de conversa: “ouvi dizer que alagou a avenida…”, “alguém sabe se tem show hoje?”, “essa foto é de hoje?”. A palavra OUVIU? perde o OU e vira VIU. O que está rolando agora em ${CITY.name}. Tire uma foto: ela aparece onde foi tirada. Só vale foto de agora, e some em até 12 h. Quem está perto confirma. Quer saber de um lugar? Alguém aí? Quem está perto pode responder com foto. Avisos do que acontece perto de você. Sem o seu nome; rostos e placas desfocados. Tem um comércio? Peça a verificação e divulgue no mapa. Funciona no navegador, sem baixar nada. Viu na Cidade, ${CITY.name} · ${CITY.uf}: viunacidade.com.br.`,
+    ldDescription: `Como funciona o Viu na Cidade em 1 minuto: fotos de agora no mapa de ${CITY.name}, confirmadas por quem está perto, que somem em até 12 horas.`,
   },
   how: {
     eyebrow: "Como funciona",
@@ -311,6 +325,7 @@ const en: Dict = {
     lead: "Traffic, flooding, a show in the square, a line at the gas station: someone just took the photo, from the exact spot. Soon it disappears, because it's no longer news.",
     cta: "Open the map, it's free",
     note: "Works in your phone's browser · your name never shows up on posts",
+    video: "Watch in 1 minute",
   },
   problem: {
     eyebrow: "The problem",
@@ -320,6 +335,18 @@ const en: Dict = {
       ["The group chat doesn't help.", "It's chain messages, 3-minute voice notes and a photo from 2019."],
       ["Nobody knows where it was.", "“Accident near downtown” could be anywhere."],
     ],
+  },
+  video: {
+    eyebrow: "In 1 minute",
+    title: "From “I heard” to “I saw”.",
+    label: "Viu na Cidade in 1 minute",
+    play: "Watch the 1-minute video, with sound (on-screen text in Portuguese)",
+    cta: "Watch",
+    meta: "0:59 · sound on · in Portuguese",
+    again: "Watch again",
+    transcriptTitle: "What the video says (translated)",
+    transcript: `A miniature city at night, and people from the city using the app's real screens on their phones. Chat bubbles: “heard the avenue flooded…”, “anyone know if there's a show today?”, “is this photo from today?”. The word OUVIU? (“heard it?”) loses its OU and becomes VIU. (“saw it.”). What's happening right now in ${CITY.name}. Take a photo: it shows up where it was taken. Only photos taken now count, and they disappear within 12 h. People nearby confirm. Want to know about a place? Anyone there? People nearby can answer with a photo. Alerts about what's happening near you. Without your name; faces and license plates blurred. Got a business? Ask for verification and promote it on the map. Works in the browser, nothing to download. Viu na Cidade, ${CITY.name} · ${CITY.uf}: viunacidade.com.br.`,
+    ldDescription: `How Viu na Cidade works in 1 minute: live photos on the ${CITY.name} map, confirmed by people nearby, that disappear within 12 hours. On-screen text in Portuguese.`,
   },
   how: {
     eyebrow: "How it works",

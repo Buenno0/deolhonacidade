@@ -11,6 +11,7 @@ import FirstInNeighborhood from "@/components/landing/FirstInNeighborhood";
 import AdSimulator from "@/components/landing/AdSimulator";
 import LazyScene from "@/components/landing/LazyScene";
 import AchievementShowcase from "@/components/landing/AchievementShowcase";
+import ExplainerVideo, { VideoLink } from "@/components/landing/ExplainerVideo";
 import { DICT, type Lang } from "@/components/landing/i18n";
 import { LangProvider } from "@/components/landing/lang";
 import { CITY } from "@/lib/city";
@@ -62,6 +63,16 @@ function jsonLd(lang: Lang) {
         offers: { "@type": "Offer", price: "0", priceCurrency: "BRL" },
       },
       {
+        "@type": "VideoObject",
+        name: t.video.label,
+        description: t.video.ldDescription,
+        thumbnailUrl: [`${SITE}/video/viu-explicativo-16x9.jpg`, `${SITE}/video/viu-explicativo-9x16.jpg`],
+        uploadDate: "2026-10-07T23:30:00-03:00",
+        duration: "PT59S",
+        contentUrl: `${SITE}/video/viu-explicativo-16x9.mp4`,
+        inLanguage: "pt-BR",
+      },
+      {
         "@type": "FAQPage",
         mainEntity: t.faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
       },
@@ -76,6 +87,14 @@ function Arrow() {
   return (
     <svg className="lp-seta" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
       <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z" />
     </svg>
   );
 }
@@ -166,6 +185,10 @@ export default function Landing({ lang }: { lang: Lang }) {
                 {t.hero.cta}
                 <Arrow />
               </a>
+              <VideoLink className="lp-btn lp-btn-s" style={{ minHeight: 52, padding: "0 22px", fontSize: 16 }}>
+                <PlayIcon />
+                {t.hero.video}
+              </VideoLink>
             </div>
             <span className="lp-fade lp-muted text-[13px]" style={{ animationDelay: "0.9s" }}>
               {t.hero.note}
@@ -206,6 +229,14 @@ export default function Landing({ lang }: { lang: Lang }) {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* Vídeo de 1 minuto: começa no "ouvi dizer", responde o problema antes do detalhe */}
+        <section id="video" aria-labelledby="h-video" className="lp-wrap lp-sec flex flex-col gap-9">
+          <SectionHead eyebrow={t.video.eyebrow} id="h-video">{t.video.title}</SectionHead>
+          <div className="lp-rv">
+            <ExplainerVideo />
           </div>
         </section>
 

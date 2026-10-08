@@ -336,6 +336,24 @@
 @keyframes lp-al-gira { 0%, 60% { transform: none; } 74%, 84% { transform: rotateY(-24deg) rotateX(6deg) rotateZ(-2deg) translateX(10px); } 96%, 100% { transform: none; } }
 .lp-anim .lp-rv:not(.lp-in) .lp-al-cena * { animation-play-state: paused; }
 
+/* vídeo de 1 minuto (ExplainerVideo.tsx): 16:9; no celular em pé, 9:16 sem passar da altura da tela */
+.lp-video { position: relative; overflow: hidden; aspect-ratio: 16 / 9; border: 1px solid var(--line); border-radius: 16px; background: var(--bg); }
+@media (max-width: 640px) and (orientation: portrait) {
+  .lp-video { aspect-ratio: 9 / 16; width: min(100%, calc(82svh * 9 / 16)); margin-inline: auto; }
+}
+.lp-video video, .lp-video img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
+.lp-video > video { object-fit: contain; background: var(--bg); }
+.lp-video-capa { position: absolute; inset: 0; display: block; padding: 0; border: 0; background: var(--bg); cursor: pointer; }
+.lp-video-capa::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgba(12, 10, 8, 0.85)); pointer-events: none; }
+.lp-video-capa:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; }
+.lp-video-acao { position: absolute; z-index: 1; left: 24px; bottom: 22px; display: flex; align-items: center; gap: 14px; }
+.lp-video-play {
+  display: grid; place-items: center; width: 64px; height: 64px; padding-left: 4px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-ink); transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.lp-video-capa:hover .lp-video-play { transform: scale(1.08); }
+.lp-video-fim { position: absolute; inset: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; padding: 20px; background: rgba(12, 10, 8, 0.78); }
+
 /* fora da tela: pausa (Reveal.tsx marca a seção) */
 .lp-fora *, .lp-fora *::before, .lp-fora *::after { animation-play-state: paused !important; }
 
