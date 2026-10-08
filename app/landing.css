@@ -251,8 +251,21 @@
 /* um dia na cidade */
 .lp-sol { appearance: none; -webkit-appearance: none; height: 8px; border-radius: 999px; cursor: pointer;
   background: linear-gradient(90deg, #f0c46a, #f6d58c 35%, #e08163 66%, #3563d9 80%, #0b0d16); }
-.lp-sol::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: #f6d58c; border: 3px solid var(--bg); box-shadow: 0 0 0 2px #f6d58c, 0 0 18px #f0c46a; }
-.lp-sol::-moz-range-thumb { width: 28px; height: 28px; border-radius: 50%; background: #f6d58c; border: 3px solid var(--bg); box-shadow: 0 0 0 2px #f6d58c, 0 0 18px #f0c46a; }
+/* o botão é o sol, e depois das 18h vira lua: o disco dourado esvazia enquanto
+   o crescente (sombra interna) cresce, e o brilho passa de dourado a azulado.
+   --lua (0..1) vem do DaySection a cada quadro. */
+.lp-sol { --l: var(--lua, 0); }
+.lp-sol::-webkit-slider-thumb { -webkit-appearance: none; width: 30px; height: 30px; border-radius: 50%; border: 3px solid var(--bg);
+  background: color-mix(in oklab, #f6d58c calc((1 - var(--l)) * 100%), #0b0d16);
+  box-shadow: inset calc(var(--l) * -9px) calc(var(--l) * 4px) 0 0 color-mix(in oklab, #f6d58c, #f4efe4 calc(var(--l) * 100%)),
+    0 0 0 2px color-mix(in oklab, #f6d58c, #b9c6ff calc(var(--l) * 100%)),
+    0 0 calc(18px + var(--l) * 6px) color-mix(in oklab, #f0c46a, #8fa6ff calc(var(--l) * 100%));
+  transform: rotate(calc(var(--l) * -25deg)); }
+.lp-sol::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; border: 3px solid var(--bg);
+  background: color-mix(in oklab, #f6d58c calc((1 - var(--l)) * 100%), #0b0d16);
+  box-shadow: inset calc(var(--l) * -8px) calc(var(--l) * 3px) 0 0 color-mix(in oklab, #f6d58c, #f4efe4 calc(var(--l) * 100%)),
+    0 0 0 2px color-mix(in oklab, #f6d58c, #b9c6ff calc(var(--l) * 100%)),
+    0 0 calc(18px + var(--l) * 6px) color-mix(in oklab, #f0c46a, #8fa6ff calc(var(--l) * 100%)); }
 .lp-sol:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; }
 .lp-pinsobe { animation: lp-pousa 0.6s cubic-bezier(0.25, 1.5, 0.4, 1) both; }
 
@@ -274,8 +287,18 @@
 .lp-dia-quente, .lp-dia-noite { position: absolute; inset: 0; pointer-events: none; }
 .lp-dia-quente { background: #e9925a; mix-blend-mode: soft-light; opacity: var(--quente, 0); }
 .lp-dia-noite { background: #0a1230; mix-blend-mode: multiply; opacity: calc(var(--noite, 0) * 0.45); }
-.lp-troca { animation: lp-troca 0.6s ease both; }
-@keyframes lp-troca { from { opacity: 0.35; } }
+/* troca de acontecimento: o antigo sai e o novo entra ao mesmo tempo */
+.lp-ev-entra { animation: lp-ev-entra 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.lp-ev-sai { animation: lp-ev-sai 0.9s ease both; pointer-events: none; }
+@keyframes lp-ev-entra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes lp-ev-sai { from { opacity: 1; } to { opacity: 0; transform: translateY(-4px); } }
+.lp-ev-pin { animation-delay: 0.25s; }
+/* gente chegando na praça cada uma no seu tempo */
+.lp-chega { animation: lp-chega 0.7s cubic-bezier(0.25, 1.4, 0.4, 1) var(--chega, 0s) both; }
+@keyframes lp-chega { from { opacity: 0; transform: translateY(-10px); } }
+/* apagão: janelas e postes se apagam devagar */
+.lp-dia .lp-luzes { transition: opacity 1.2s ease; }
+.lp-apagao .lp-dia .lp-luzes { opacity: 0.05; }
 
 /* simulador e bairros */
 .lp-passa { animation: lp-passa 9s linear infinite; }

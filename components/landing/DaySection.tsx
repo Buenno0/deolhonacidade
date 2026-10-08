@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useRef, useState } from "react";
 import Medal from "@/components/Medal";
-import { DayScene, dayEvent, type DayEvent } from "./scenes";
+import { DayBase, DayLayer, DayZzz, dayEvent, type DayEvent } from "./scenes";
 import { lpPaused, reducedMotion } from "./time";
 import { useNear } from "./useNear";
 
@@ -18,7 +18,11 @@ const EVENTS: Record<DayEvent, { at: string; cat: string; color: string; txt: st
   apagao: { at: "23h", cat: "Falta de energia", color: "var(--warn)", txt: "Caiu a luz no bairro todo. Alguém sabe até quando?" },
 };
 
-const Scene = memo(DayScene);
+// A cidade fixa e os zzz não dependem de nada: desenhados uma vez
+const Base = memo(DayBase);
+const Zzz = memo(DayZzz);
+const Layer = memo(DayLayer);
+const CROSSFADE_MS = 1100;
 const START = 6, END = 24;
 const HOURS_PER_SEC = 0.9; // o dia inteiro em ~20 s
 
@@ -61,6 +65,8 @@ function paintHour(el: HTMLElement, h: number) {
   const luz = Math.max(1 - smooth(6, 7.5, h), smooth(17.3, 19.2, h));
   el.style.setProperty("--luz", (0.12 + luz * 0.88).toFixed(3));
   el.style.setProperty("--noite", smooth(18.8, 20.3, h).toFixed(3));
+  // o botão do controle vira lua depois das 18h (e volta a sol de manhã)
+  el.style.setProperty("--lua", Math.max(smooth(17.9, 18.9, h), 1 - smooth(6, 6.6, h)).toFixed(3));
   // a cidade dorme às 22h e acorda às 6h (o dia recomeça às 6 e os zzz somem)
   el.style.setProperty("--sono", Math.max(smooth(21.6, 22.4, h), 1 - smooth(6, 6.5, h)).toFixed(3));
   el.style.setProperty("--quente", Math.max(0.1 * (1 - smooth(6, 9, h)), 0.2 * smooth(16.5, 17.8, h) * (1 - smooth(18.2, 19.4, h))).toFixed(3));
@@ -82,7 +88,11 @@ export default function DaySection() {
   // segurando o sol: o dia espera; ao soltar, continua da hora em que parou
   const dragging = useRef(false);
   const sky = useRef<HTMLDivElement | null>(null);
+  const root = useRef<HTMLDivElement>(null);
+  // o acontecimento que está saindo, para a troca ser cruzada
+  const [prev, setPrev] = useState<DayEvent | null>(null);
   const clockRef = useRef<HTMLSpanElement>(null);
+  const labelRef = useRef<HTMLSpanElement>(null);
   const range = useRef<HTMLInputElement>(null);
   const [nearRef, near] = useNear<HTMLDivElement>();
 
@@ -90,11 +100,17 @@ export default function DaySection() {
     // Aplica uma hora: estilos e relógio direto no DOM; React só se mudar o acontecimento
     const apply = (h: number) => {
       hour.current = h;
-      if (sky.current) paintHour(sky.current, h);
+      if (root.current) paintHour(root.current, h);
       if (clockRef.current) clockRef.current.textContent = fmt(h);
+      const label = h >= 18.4 || h < 6.3 ? "Arraste a lua" : "Arraste o sol";
+      if (labelRef.current && labelRef.current.textContent !== label) labelRef.current.textContent = label;
       if (range.current && !dragging.current) range.current.value = String(h);
       const e = dayEvent(h);
-      setEv((cur) => (cur === e ? cur : e));
+      setEv((cur) => {
+        if (cur === e) return cur;
+        setPrev(cur);
+        return e;
+      });
       setNight((cur) => (cur === h >= 21 ? cur : h >= 21));
     };
     applyRef.current = apply;
@@ -123,10 +139,17 @@ export default function DaySection() {
   }, []);
   const applyRef = useRef<(h: number) => void>(() => {});
 
+  // o que saiu some depois da transição
+  useEffect(() => {
+    if (!prev) return;
+    const id = setTimeout(() => setPrev(null), CROSSFADE_MS);
+    return () => clearTimeout(id);
+  }, [prev, ev]);
+
   const e = EVENTS[ev];
 
   return (
-    <div className="flex flex-wrap items-center gap-10">
+    <div ref={root} className={`flex flex-wrap items-center gap-10 ${ev === "apagao" ? "lp-apagao" : ""}`}>
       <div
         ref={(n) => {
           sky.current = n;
@@ -137,14 +160,36 @@ export default function DaySection() {
       >
         <span className="lp-dia-sol" aria-hidden="true" />
         <span className="lp-dia-lua" aria-hidden="true" />
-        {near && <Scene ev={ev} className="lp-dia-cena" title={`Ilustração: a cidade com ${e.cat.toLowerCase()}`} />}
+        {near && (
+          <svg viewBox="0 0 440 360" preserveAspectRatio="xMidYMid slice" className="lp-dia-cena" role="img" aria-label={`Ilustração: a cidade com ${e.cat.toLowerCase()}`}>
+            <Base part="fundo" />
+            {prev && prev !== ev && (
+              <g key={`s-${prev}`} className="lp-ev-sai">
+                <Layer ev={prev} />
+              </g>
+            )}
+            <g key={`e-${ev}`} className="lp-ev-entra">
+              <Layer ev={ev} />
+            </g>
+            <Base part="frente" />
+            <Zzz />
+            {prev && prev !== ev && (
+              <g key={`so-${prev}`} className="lp-ev-sai">
+                <Layer ev={prev} over />
+              </g>
+            )}
+            <g key={`eo-${ev}`} className="lp-ev-entra lp-ev-pin">
+              <Layer ev={ev} over />
+            </g>
+          </svg>
+        )}
         <span className="lp-dia-quente" aria-hidden="true" />
         <span className="lp-dia-noite" aria-hidden="true" />
       </div>
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-5">
         <label className="flex flex-col gap-3">
           <span className="flex items-baseline justify-between">
-            <span className="lp-rot">Arraste o sol</span>
+            <span ref={labelRef} className="lp-rot">Arraste o sol</span>
             <span ref={clockRef} className="lp-num text-3xl" style={{ color: "var(--accent)" }}>
               {fmt(7.5)}
             </span>

@@ -432,49 +432,30 @@ export function CityScene({ className, title }: SceneProps) {
 export type DayEvent = "transito" | "feira" | "chuva" | "show" | "apagao";
 export const dayEvent = (h: number): DayEvent => (h < 9 ? "transito" : h < 13 ? "feira" : h < 17 ? "chuva" : h < 21 ? "show" : "apagao");
 
-// A cena só muda quando muda o acontecimento. Céu, sol, lua, janelas e postes
-// ficam por conta do DaySection, que mexe em variáveis CSS a cada quadro
-// (--luz acende janelas e postes, --noite mostra estrelas). Fundo transparente:
-// o céu é a camada de baixo.
-export function DayScene({ ev, className, title }: SceneProps & { ev: DayEvent }) {
-  const g = iso(22, 220, 112);
-  const out = ev === "apagao";
-  const rnd = rng(ev.length * 7);
+// Um dia na cidade em camadas, para as trocas serem suaves:
+// - a cidade fixa (DayBase) é desenhada uma vez e nunca pisca;
+// - só o que é do acontecimento (DayLayer) entra e sai, em transição cruzada;
+// - céu, sol, lua, janelas, postes e zzz andam por variáveis CSS (DaySection).
+const dayIso = () => iso(22, 220, 112);
+const DAY_HOUSES = { h1: [3.2, 0.7, 1.7, 1.8, 0.95], h2: [7.8, 0.8, 1.6, 1.8, 0.85], h3: [0.6, 6.4, 2.2, 1.6, 0.9], h4: [1.2, 8.3, 2, 1.4, 0.8] } as const;
 
-  const cars =
-    ev === "transito"
-      ? [0, 1, 2, 3, 4].map((i) => ({ k: 4 + i * 1.6, el: g.car(0.2 + i * 1.75, 4.3, i % 2 ? CAR.branco : i % 3 ? CAR.azul : CAR.vermelho, "x", `carro${i}`) }))
-      : [{ k: 9, el: g.car(4.5, 4.3, CAR.azul, "x", "c1") }];
-  const crowd: Item[] = [];
-  if (ev === "feira" || ev === "show")
-    for (let yy = 6.9; yy < 8.9; yy += 0.55)
-      for (let xx = ev === "show" ? 6.2 : 6.4; xx < 9.4; xx += 0.6) {
-        const px = xx + (rnd() - 0.5) * 0.25, py = yy + (rnd() - 0.5) * 0.25;
-        crowd.push({ k: px + py, el: <g key={`${xx}${yy}`} className={ev === "show" && rnd() > 0.5 ? "lp-pula" : undefined} style={{ animationDelay: `${rnd()}s` }}>{g.person(px, py, SHIRTS[Math.floor(rnd() * SHIRTS.length)])}</g> });
-      }
-  const stalls =
-    ev === "feira"
-      ? [0, 1, 2].map((i) => ({
-          k: 6.4 + i,
-          el: (
-            <g key={`b${i}`}>
-              {g.box(6.3 + i * 1.05, 6.0, 0, 0.8, 0.6, 0.45, ["#5a4630", "#46372a", "#3a2d22"])}
-              {g.box(6.25 + i * 1.05, 5.95, 0.55, 0.9, 0.7, 0.08, i % 2 ? ["#f4efe4", "#e7ddc7", "#cfc3a8"] : ["#7fb79a", "#5f8778", "#4a6b5e"])}
-            </g>
-          ),
-        }))
-      : [];
-  const stage =
-    ev === "show"
-      ? [{ k: 7.2, el: <g key="palco">{g.box(6.4, 6.0, 0, 2.4, 0.8, 0.35, ["#5a4630", "#46372a", "#3a2d22"])}{g.person(7.2, 6.2, "#f4efe4", "#c98f62")}{g.person(7.9, 6.2, "#d29a44", "#8d5b3c")}</g> }]
-      : [];
-
-  const [pinX, pinY] = ev === "transito" ? g.P(4.5, 4.6, 1.6) : ev === "chuva" ? g.P(3, 5, 1.4) : ev === "apagao" ? g.P(1.6, 1.6, 4.4) : g.P(7.6, 7.2, 1.8);
-  const pinColor = ev === "feira" || ev === "show" ? "#d29a44" : "#dca84a";
-  const lit = out ? 0 : 0.75;
-
+// part: "fundo" (atrás da avenida) ou "frente" (casas e árvores da frente)
+export function DayBase({ part }: { part: "fundo" | "frente" }) {
+  const g = dayIso();
+  if (part === "frente")
+    return (
+      <>
+        {paint([
+          { k: 7.3, el: g.house(...DAY_HOUSES.h3, C.areia, "h3") },
+          { k: 9.6, el: g.tree(3.6, 6.4, 1, "a1") },
+          { k: 12.4, el: g.house(...DAY_HOUSES.h4, C.verde, "h4") },
+          { k: 12.2, el: g.tree(9.3, 6.0, 1, "a2") },
+          { k: 18, el: g.tree(9.2, 9.0, 1, "a3") },
+        ])}
+      </>
+    );
   return (
-    <svg viewBox="0 0 440 360" preserveAspectRatio="xMidYMid slice" className={className} role={title ? "img" : undefined} aria-label={title} aria-hidden={title ? undefined : true}>
+    <>
       <g className="lp-estrelas">
         {[40, 90, 150, 260, 320, 390, 70, 360, 200, 120].map((x, i) => (
           <circle key={i} cx={x} cy={18 + ((i * 37) % 70)} r="1.2" fill="#f4efe4" className="lp-twinkle" style={{ animationDelay: `${i * 0.3}s` }} />
@@ -483,54 +464,33 @@ export function DayScene({ ev, className, title }: SceneProps & { ev: DayEvent }
       <Ground g={g} />
       <Road g={g} x={0} y={4} w={10} d={1.8} />
       {g.tile(5.8, 5.8, 3.8, 3.4, "#20291f")}
-      <g key={ev} className="lp-troca">
-        {paint([
-          { k: 1, el: <g key="p1">{g.box(0.5, 0.5, 0, 2.2, 2.4, 3.6, C.escuro)}{g.windows(0.5, 0.5, 0, 2.2, 2.4, 3.6, lit, 3, "lp-janela")}</g> },
-          { k: 4.4, el: g.house(3.2, 0.7, 1.7, 1.8, 0.95, C.bege, "h1") },
-          { k: 6.6, el: <g key="p2">{g.box(5.4, 0.6, 0, 2, 2.2, 2.6, C.escuro)}{g.windows(5.4, 0.6, 0, 2, 2.2, 2.6, lit, 8, "lp-janela")}</g> },
-          { k: 9, el: g.house(7.8, 0.8, 1.6, 1.8, 0.85, C.verde, "h2") },
-          { k: 3.5, el: g.lamp(3.3, 3.6, "l1", out ? "lp-poste-apagado" : "lp-poste") },
-          { k: 8.2, el: g.lamp(7.6, 3.6, "l2", out ? "lp-poste-apagado" : "lp-poste") },
-          ...cars,
-          { k: 7.3, el: g.house(0.6, 6.4, 2.2, 1.6, 0.9, C.areia, "h3") },
-          { k: 9.6, el: g.tree(3.6, 6.4, 1, "a1") },
-          { k: 12.4, el: g.house(1.2, 8.3, 2, 1.4, 0.8, C.verde, "h4") },
-          ...stalls,
-          ...stage,
-          ...crowd,
-          { k: 12.2, el: g.tree(9.3, 6.0, 1, "a2") },
-          { k: 18, el: g.tree(9.2, 9.0, 1, "a3") },
-        ])}
-        {/* casas dormindo: zzz saindo dos telhados (opacidade vem de --sono) */}
-        <g className="lp-sono" aria-hidden="true">
-          {[
-            [3.2 + 0.85, 0.7 + 0.9, 1.5],
-            [7.8 + 0.8, 0.8 + 0.9, 1.4],
-            [0.6 + 1.1, 6.4 + 0.8, 1.45],
-            [1.2 + 1.0, 8.3 + 0.7, 1.35],
-          ].map(([x, y, z], n) => {
-            const [hx, hy] = g.P(x, y, z);
-            return (
-              <g key={n} transform={`translate(${hx.toFixed(1)} ${hy.toFixed(1)})`}>
-                {[0, 1, 2].map((k) => (
-                  <text key={k} className="lp-zzz" style={{ animationDelay: `${n * 0.5 + k * 0.7}s` }} fontFamily="var(--font-display)" fontWeight="700" fontSize={12 + k * 4} fill="#f4efe4">
-                    z
-                  </text>
-                ))}
-              </g>
-            );
-          })}
-        </g>
+      {paint([
+        { k: 1, el: <g key="p1">{g.box(0.5, 0.5, 0, 2.2, 2.4, 3.6, C.escuro)}<g className="lp-luzes">{g.windows(0.5, 0.5, 0, 2.2, 2.4, 3.6, 0.75, 3, "lp-janela")}</g></g> },
+        { k: 4.4, el: g.house(...DAY_HOUSES.h1, C.bege, "h1") },
+        { k: 6.6, el: <g key="p2">{g.box(5.4, 0.6, 0, 2, 2.2, 2.6, C.escuro)}<g className="lp-luzes">{g.windows(5.4, 0.6, 0, 2, 2.2, 2.6, 0.75, 8, "lp-janela")}</g></g> },
+        { k: 9, el: g.house(...DAY_HOUSES.h2, C.verde, "h2") },
+        { k: 3.5, el: <g key="l1" className="lp-luzes">{g.lamp(3.3, 3.6, undefined, "lp-poste")}</g> },
+        { k: 8.2, el: <g key="l2" className="lp-luzes">{g.lamp(7.6, 3.6, undefined, "lp-poste")}</g> },
+      ])}
+    </>
+  );
+}
+
+// O que é do acontecimento. over: o que fica por cima de tudo (chuva e pin)
+export function DayLayer({ ev, over }: { ev: DayEvent; over?: boolean }) {
+  const g = dayIso();
+  if (over) {
+    const [pinX, pinY] = ev === "transito" ? g.P(4.5, 4.6, 1.6) : ev === "chuva" ? g.P(3, 5, 1.4) : ev === "apagao" ? g.P(1.6, 1.6, 4.4) : g.P(7.6, 7.2, 1.8);
+    const pinColor = ev === "feira" || ev === "show" ? "#d29a44" : "#dca84a";
+    return (
+      <>
         {ev === "chuva" && (
-          <>
-            <g className="lp-agua-sobe">{g.tile(0, 3.7, 10, 2.4, "#2b5f86", 0.12, { opacity: 0.75 })}</g>
-            <g className="lp-chuva">
-              {Array.from({ length: 60 }, (_, i) => {
-                const x = (i * 53) % 460, y = (i * 97) % 380;
-                return <line key={i} x1={x} y1={y} x2={x - 4} y2={y + 12} stroke="#a8c6dd" strokeWidth="1" opacity=".35" />;
-              })}
-            </g>
-          </>
+          <g className="lp-chuva">
+            {Array.from({ length: 60 }, (_, i) => {
+              const x = (i * 53) % 460, y = (i * 97) % 380;
+              return <line key={i} x1={x} y1={y} x2={x - 4} y2={y + 12} stroke="#a8c6dd" strokeWidth="1" opacity=".35" />;
+            })}
+          </g>
         )}
         {ev === "show" &&
           Array.from({ length: 12 }, (_, i) => {
@@ -538,23 +498,70 @@ export function DayScene({ ev, className, title }: SceneProps & { ev: DayEvent }
             const t = (i + 0.5) / 12;
             return <circle key={i} cx={x1 + (x2 - x1) * t} cy={y1 + (y2 - y1) * t + Math.sin(Math.PI * t) * 8} r="2.2" fill="#f6d58c" className="lp-twinkle" style={{ animationDelay: `${(i % 4) * 0.4}s` }} />;
           })}
-        <g className="lp-pinsobe">
-          <Pin x={pinX} y={pinY - 30} color={pinColor}>
-            {ev === "transito" && <path d="M1 8h14v5H1Z M2.5 8l1.5-4h8l1.5 4" />}
-            {ev === "feira" && <path d="M1 6l2-4h10l2 4H1Z M2 6v8h12V6" />}
-            {ev === "chuva" && <path d="M8 1s5 5.5 5 9.5a5 5 0 0 1-10 0C3 6.5 8 1 8 1Z" />}
-            {ev === "show" && (
-              <>
-                <path d="M5.5 12V3l9-1.5v9" />
-                <circle cx="3.5" cy="12" r="2" />
-                <circle cx="12.5" cy="10.5" r="2" />
-              </>
-            )}
-            {ev === "apagao" && <path d="M9 1 3 9h5l-1 6 6-8H8Z" />}
-          </Pin>
-        </g>
-      </g>
-    </svg>
+        <Pin x={pinX} y={pinY - 30} color={pinColor}>
+          {ev === "transito" && <path d="M1 8h14v5H1Z M2.5 8l1.5-4h8l1.5 4" />}
+          {ev === "feira" && <path d="M1 6l2-4h10l2 4H1Z M2 6v8h12V6" />}
+          {ev === "chuva" && <path d="M8 1s5 5.5 5 9.5a5 5 0 0 1-10 0C3 6.5 8 1 8 1Z" />}
+          {ev === "show" && (
+            <>
+              <path d="M5.5 12V3l9-1.5v9" />
+              <circle cx="3.5" cy="12" r="2" />
+              <circle cx="12.5" cy="10.5" r="2" />
+            </>
+          )}
+          {ev === "apagao" && <path d="M9 1 3 9h5l-1 6 6-8H8Z" />}
+        </Pin>
+      </>
+    );
+  }
+  const rnd = rng(ev.length * 7);
+  const items: Item[] = [];
+  if (ev === "transito")
+    [0, 1, 2, 3, 4].forEach((i) => items.push({ k: 4 + i * 1.6, el: g.car(0.2 + i * 1.75, 4.3, i % 2 ? CAR.branco : i % 3 ? CAR.azul : CAR.vermelho, "x", `carro${i}`) }));
+  else items.push({ k: 9, el: g.car(4.5, 4.3, CAR.azul, "x", "c1") });
+  if (ev === "chuva") items.push({ k: 0, el: <g key="agua" className="lp-agua-sobe">{g.tile(0, 3.7, 10, 2.4, "#2b5f86", 0.12, { opacity: 0.75 })}</g> });
+  if (ev === "feira")
+    [0, 1, 2].forEach((i) =>
+      items.push({
+        k: 6.4 + i,
+        el: (
+          <g key={`b${i}`}>
+            {g.box(6.3 + i * 1.05, 6.0, 0, 0.8, 0.6, 0.45, ["#5a4630", "#46372a", "#3a2d22"])}
+            {g.box(6.25 + i * 1.05, 5.95, 0.55, 0.9, 0.7, 0.08, i % 2 ? ["#f4efe4", "#e7ddc7", "#cfc3a8"] : ["#7fb79a", "#5f8778", "#4a6b5e"])}
+          </g>
+        ),
+      }),
+    );
+  if (ev === "show")
+    items.push({ k: 7.2, el: <g key="palco">{g.box(6.4, 6.0, 0, 2.4, 0.8, 0.35, ["#5a4630", "#46372a", "#3a2d22"])}{g.person(7.2, 6.2, "#f4efe4", "#c98f62")}{g.person(7.9, 6.2, "#d29a44", "#8d5b3c")}</g> });
+  if (ev === "feira" || ev === "show")
+    for (let yy = 6.9; yy < 8.9; yy += 0.55)
+      for (let xx = ev === "show" ? 6.2 : 6.4; xx < 9.4; xx += 0.6) {
+        const px = xx + (rnd() - 0.5) * 0.25, py = yy + (rnd() - 0.5) * 0.25;
+        // cada pessoa chega num tempo diferente (--chega), e no show umas pulam
+        items.push({ k: px + py, el: <g key={`${xx}${yy}`} className="lp-chega" style={{ "--chega": `${(rnd() * 0.6).toFixed(2)}s` } as React.CSSProperties}><g className={ev === "show" && rnd() > 0.5 ? "lp-pula" : undefined} style={{ animationDelay: `${rnd()}s` }}>{g.person(px, py, SHIRTS[Math.floor(rnd() * SHIRTS.length)])}</g></g> });
+      }
+  return <>{paint(items)}</>;
+}
+
+// Zzz saindo dos telhados (a opacidade vem de --sono)
+export function DayZzz() {
+  const g = dayIso();
+  return (
+    <g className="lp-sono" aria-hidden="true">
+      {Object.values(DAY_HOUSES).map(([x, y, w, d, h], n) => {
+        const [hx, hy] = g.P(x + w / 2, y + d / 2, h + 0.55);
+        return (
+          <g key={n} transform={`translate(${hx.toFixed(1)} ${hy.toFixed(1)})`}>
+            {[0, 1, 2].map((k) => (
+              <text key={k} className="lp-zzz" style={{ animationDelay: `${n * 0.5 + k * 0.7}s` }} fontFamily="var(--font-display)" fontWeight="700" fontSize={12 + k * 4} fill="#f4efe4">
+                z
+              </text>
+            ))}
+          </g>
+        );
+      })}
+    </g>
   );
 }
 
