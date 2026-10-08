@@ -9,3 +9,6 @@ infra/terraform.tfvars
 .next
 node_modules
 tests
+# Projeto do vídeo (Remotion): só os arquivos finais vão para public/video. A barra no começo prende a regra à raiz
+# ("video" sozinho também tiraria public/video do deploy).
+/video/

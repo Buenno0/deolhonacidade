@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Worker do MapLibre copiado de node_modules
     "public/maplibre/**",
+    // Projeto do vídeo (Remotion): tem o próprio package.json e tsconfig
+    "video/**",
   ]),
 ]);
 

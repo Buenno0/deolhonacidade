@@ -6,6 +6,18 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "viu-video",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "-p", "3100"],
+      "port": 3100
+    },
+    {
+      "name": "video-teste",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8099", "--directory", "video/out"],
+      "port": 8099
     }
   ]
 }

@@ -1,0 +1,35 @@
+{
+  "name": "viu-na-cidade-video",
+  "private": true,
+  "description": "Vídeos de apresentação do Viu na Cidade (Remotion). Briefing, regras e roteiro em PROMPT.md.",
+  "type": "module",
+  "scripts": {
+    "preparar": "node scripts/preparar.mjs",
+    "studio": "npm run preparar && remotion studio",
+    "quadros": "npm run preparar && node scripts/quadros.mjs",
+    "render": "npm run preparar && node scripts/render.mjs",
+    "audio": "node scripts/audio.mjs",
+    "exportar": "npm run preparar && node scripts/exportar-ilustracoes.mjs",
+    "semear": "node scripts/semear-demo.mjs",
+    "capturar": "node scripts/capturar-telas.mjs",
+    "telas": "node scripts/semear-demo.mjs && node scripts/capturar-telas.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.533",
+    "@remotion/cli": "4.0.533",
+    "@remotion/fonts": "4.0.533",
+    "@remotion/layout-utils": "4.0.533",
+    "@remotion/renderer": "4.0.533",
+    "qrcode": "1.5.4",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "remotion": "4.0.533"
+  },
+  "devDependencies": {
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.2.0",
+    "puppeteer-core": "25.12.0",
+    "typescript": "^5.9.0"
+  }
+}

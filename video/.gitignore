@@ -1,0 +1,8 @@
+node_modules/
+out/
+.cache/
+# gerado pelos scripts (fontes copiadas, telas capturadas, ilustrações exportadas, trilha)
+public/gerado/
+# takes de voz (versão narrada, opcional)
+voz/
+.env
