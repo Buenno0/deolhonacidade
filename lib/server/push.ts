@@ -55,7 +55,7 @@ export async function notifyRequest(id: string) {
   return send(targets, (t) => ({
     title: "Alguém aí? Pedido de foto perto de você",
     body: (t as Target & { question: string }).question,
-    url: `/?pedido=${id}`,
+    url: `/mapa?pedido=${id}`,
     tag: `pedido-${id}`,
   }));
 }

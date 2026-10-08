@@ -2,10 +2,11 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "De Olho na Cidade",
-    short_name: "De Olho",
+    name: "Viu na Cidade",
+    short_name: "Viu",
     description: "O que está acontecendo agora na cidade, em fotos que somem do mapa em até 12h.",
-    start_url: "/",
+    start_url: "/mapa",
+    id: "/",
     display: "standalone",
     orientation: "portrait",
     background_color: "#0c0a08",

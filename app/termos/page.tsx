@@ -1,13 +1,13 @@
 import Link from "next/link";
 import Mark from "@/components/ui/Mark";
 
-export const metadata = { title: "Termos de uso · De Olho na Cidade" };
+export const metadata = { title: "Termos de uso · Viu na Cidade" };
 
 // Rascunho. Precisa de revisão jurídica antes de abrir ao público.
 export default function Termos() {
   return (
     <main className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
-      <Link href="/" className="rotulo text-accent">
+      <Link href="/mapa" className="rotulo text-accent">
         ← voltar ao mapa
       </Link>
       <div className="mt-6 flex items-center gap-3">

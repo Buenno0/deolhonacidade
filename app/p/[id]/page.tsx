@@ -24,7 +24,7 @@ const cityDay = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: TZ
 export async function generateMetadata({ params }: PageProps<"/p/[id]">): Promise<Metadata> {
   const { id } = await params;
   const post = await getPublicPost(id);
-  if (!post) return { title: "De Olho na Cidade" };
+  if (!post) return { title: "Viu na Cidade" };
   const label = post.business_name ?? CATEGORIES[post.category].label;
   const title = post.alive
     ? `${label} em ${CITY.name}`
@@ -35,8 +35,8 @@ export async function generateMetadata({ params }: PageProps<"/p/[id]">): Promis
     ? `${post.caption ?? "Foto de agora no mapa da cidade."} Some em ${timeLeftShort(post.expires_at)}.`
     : post.archived
       ? `${post.caption ?? "Foto guardada no histórico da cidade."} Registrado em ${registered(post.created_at)}.`
-      : "Os registros do De Olho somem em até 12 horas. Veja o que está rolando agora.";
-  return { title, description, openGraph: { title, description, type: "article", locale: "pt_BR", siteName: "De Olho na Cidade" } };
+      : "Os registros do Viu na Cidade somem em até 12 horas. Veja o que está rolando agora.";
+  return { title, description, openGraph: { title, description, type: "article", locale: "pt_BR", siteName: "Viu na Cidade" } };
 }
 
 export default async function PostPage({ params }: PageProps<"/p/[id]">) {
@@ -50,7 +50,7 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
         <Mark size={36} className="shrink-0" />
         <div>
           <p className="flex items-center gap-2 font-display text-base font-bold leading-tight">
-            De Olho <BetaTag />
+            Viu na Cidade <BetaTag />
           </p>
           <p className="rotulo">
             {CITY.name} · {CITY.uf}
@@ -91,7 +91,7 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
             {post.confirm_count > 0 && <span>{post.confirm_count} confirmaram</span>}
           </p>
           <Link
-            href={post.alive ? `/?post=${post.id}` : `/?historico=${cityDay(post.created_at)}&post=${post.id}`}
+            href={post.alive ? `/mapa?post=${post.id}` : `/mapa?historico=${cityDay(post.created_at)}&post=${post.id}`}
             className="mt-2 inline-flex items-center justify-center rounded-lg bg-accent px-5 py-3 text-base font-semibold text-accent-ink"
           >
             {post.alive ? "Ver no mapa" : "Ver no histórico"}
@@ -101,9 +101,9 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
         <section className="mt-10 flex flex-col items-center gap-3 rounded-2xl border border-line bg-surface px-6 py-8 text-center">
           <p className="font-display text-xl font-semibold">{post ? "Esse registro já sumiu" : "Registro não encontrado"}</p>
           <p className="text-sm text-muted">
-            No De Olho, cada foto mostra o que está acontecendo agora e some do mapa em até 12 horas.
+            No Viu na Cidade, cada foto mostra o que está acontecendo agora e some do mapa em até 12 horas.
           </p>
-          <Link href="/" className="mt-2 rounded-lg bg-accent px-5 py-3 text-base font-semibold text-accent-ink">
+          <Link href="/mapa" className="mt-2 rounded-lg bg-accent px-5 py-3 text-base font-semibold text-accent-ink">
             Ver o que está rolando agora
           </Link>
         </section>

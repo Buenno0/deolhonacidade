@@ -52,9 +52,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <Mark size={36} className="shrink-0" />
         <div className="flex-1">
           <p className="rotulo">painel</p>
-          <h1 className="font-display text-2xl font-bold">De Olho na Cidade</h1>
+          <h1 className="font-display text-2xl font-bold">Viu na Cidade</h1>
         </div>
-        <Link href="/" className="rotulo text-accent">
+        <Link href="/mapa" className="rotulo text-accent">
           ← mapa
         </Link>
       </header>
@@ -66,7 +66,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       )}
       {state === "sem-login" && (
         <div className="mt-10">
-          <EmptyState title="Entre para acessar o painel" action={<Link href="/" className="text-accent underline">Ir ao mapa e entrar</Link>} />
+          <EmptyState title="Entre para acessar o painel" action={<Link href="/mapa" className="text-accent underline">Ir ao mapa e entrar</Link>} />
         </div>
       )}
       {state === "negado" && (

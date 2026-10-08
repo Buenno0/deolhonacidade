@@ -56,7 +56,7 @@ import {
 // MapLibre usa window/WebGL, então só roda no navegador
 const CityMap = dynamic(() => import("./map/CityMap"), { ssr: false });
 
-type AfterLogin = "new" | "ask" | "alerts" | "account" | null;
+type AfterLogin = "new" | "ask" | "alerts" | "account" | "business" | null;
 type Panel =
   | { kind: "viewer"; ids: string[] | null; startId: string }
   | { kind: "new"; request: { id: string; question: string } | null; photo?: File | null }
@@ -144,10 +144,16 @@ export default function Home() {
   const ownPosts = useRef(new Set<string>());
   const knownIds = useRef<Set<string> | null>(null);
   const center = useRef<[number, number] | null>(null);
-  // Link direto (/?post=… vindo da página de compartilhar, /?pedido=… do alerta)
-  const deepLink = useRef({ post: params.get("post"), pedido: params.get("pedido"), historico: params.get("historico") });
+  // Link direto (/mapa?post=… vindo da página de compartilhar, /mapa?pedido=… do alerta, /mapa?comercio da LP)
+  const deepLink = useRef({
+    post: params.get("post"),
+    pedido: params.get("pedido"),
+    historico: params.get("historico"),
+    comercio: params.has("comercio"),
+    entrar: params.has("entrar"),
+  });
 
-  const clearDeepLink = () => window.history.replaceState(null, "", "/");
+  const clearDeepLink = () => window.history.replaceState(null, "", "/mapa");
 
   const loadPosts = useCallback(
     () =>
@@ -246,7 +252,7 @@ export default function Home() {
         if (deepLink.current.historico) {
           deepLink.current = { ...deepLink.current, historico: null, post: null };
           // O dia fica no endereço (dá para compartilhar); o post sai
-          window.history.replaceState(null, "", `/?historico=${historyDay}`);
+          window.history.replaceState(null, "", `/mapa?historico=${historyDay}`);
         }
         if (wanted) {
           if (list.some((f) => f.properties.id === wanted)) setPanel({ kind: "viewer", ids: null, startId: wanted });
@@ -399,7 +405,21 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      // Vindo do "Quero divulgar meu negócio" da LP: o pedido é feito aqui, com login
+      if (deepLink.current.comercio) {
+        deepLink.current.comercio = false;
+        window.history.replaceState(null, "", "/mapa");
+        setPanel(data.session ? { kind: "business" } : { kind: "auth", then: "business" });
+      }
+      // "Entrar" da LP
+      if (deepLink.current.entrar) {
+        deepLink.current.entrar = false;
+        window.history.replaceState(null, "", "/mapa");
+        if (!data.session) setPanel({ kind: "auth", then: null });
+      }
+    });
     const { data } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
     return () => data.subscription.unsubscribe();
   }, [supabase]);
@@ -431,6 +451,7 @@ export default function Home() {
             if (then === "new") setPanel({ kind: "new", request: null });
             else if (then === "alerts") setPanel({ kind: "alerts" });
             else if (then === "account") setPanel({ kind: "account" });
+            else if (then === "business") setPanel({ kind: "business" });
             else if (then === "ask") setAsking(true);
             return;
           }
@@ -597,7 +618,7 @@ export default function Home() {
           <Mark size={40} className="shrink-0" />
           <div className="min-w-0 flex-1">
             <p className="flex items-center gap-2 font-display text-base font-bold leading-tight">
-              De Olho <BetaTag />
+              Viu na Cidade <BetaTag />
             </p>
             <p className="rotulo truncate">
               {CITY.name} · {CITY.uf}
@@ -952,6 +973,7 @@ export default function Home() {
             if (then === "new") setPanel({ kind: "new", request: null });
             else if (then === "alerts") setPanel({ kind: "alerts" });
             else if (then === "account") setPanel({ kind: "account" });
+            else if (then === "business") setPanel({ kind: "business" });
             else if (then === "ask") {
               setPanel(null);
               setAsking(true);
