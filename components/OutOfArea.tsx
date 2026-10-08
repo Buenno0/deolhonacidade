@@ -38,7 +38,7 @@ export default function OutOfArea({ nearest, from, onGo, onClose }: Props) {
         <Mark size={40} className="mt-0.5 shrink-0" />
         <div>
           <p className="rotulo">fora da área</p>
-          <h2 className="font-display text-lg font-semibold leading-snug">O De Olho ainda não chegou aí</h2>
+          <h2 className="font-display text-lg font-semibold leading-snug">O Viu na Cidade ainda não chegou aí</h2>
         </div>
       </div>
       <p className="mt-3 text-sm text-muted">
@@ -53,7 +53,7 @@ export default function OutOfArea({ nearest, from, onGo, onClose }: Props) {
           <PinIcon /> Ver {nearest.name}
         </Button>
         <Button variant="secundario" onClick={want} disabled={asked}>
-          {asked ? "Anotado. Isso ajuda a escolher a próxima cidade" : "Quero o De Olho na minha cidade"}
+          {asked ? "Anotado. Isso ajuda a escolher a próxima cidade" : "Quero o Viu na Cidade aqui"}
         </Button>
       </div>
     </div>

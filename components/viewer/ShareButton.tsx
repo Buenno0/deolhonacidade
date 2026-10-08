@@ -26,7 +26,7 @@ export default function ShareButton({ post, onShared, archive = false }: { post:
     }
     if (navigator.share) {
       try {
-        await navigator.share({ title: "De Olho na Cidade", text, url });
+        await navigator.share({ title: "Viu na Cidade", text, url });
         return;
       } catch (e) {
         if ((e as DOMException).name === "AbortError") return;

@@ -53,7 +53,7 @@ export default function InstallHint({ onClose }: { onClose: () => void }) {
   return (
     <div className="pointer-events-auto mx-auto flex max-w-lg items-start gap-3 rounded-2xl border border-line bg-surface p-4">
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">Tenha o De Olho na tela de início</p>
+        <p className="text-sm font-medium">Tenha o Viu na Cidade na tela de início</p>
         {ios ? (
           <p className="mt-1 text-sm text-muted">
             Toque em <ShareIcon className="inline align-[-3px]" /> Compartilhar e depois em <span className="text-ink">Adicionar à Tela de Início</span>.

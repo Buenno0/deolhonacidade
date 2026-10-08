@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   if (!data?.length) return Response.json({ error: "página não cadastrada" }, { status: 404 });
 
   const res = await fetch(`https://pt.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, {
-    headers: { "User-Agent": "DeOlhoNaCidade/0.1 (https://github.com/; contato@deolhonacidade.com.br)" },
+    headers: { "User-Agent": "DeOlhoNaCidade/0.1 (https://github.com/; contato@viunacidade.com.br)" },
     next: { revalidate },
   });
   if (!res.ok) return Response.json({ error: "Wikipédia indisponível" }, { status: 502 });

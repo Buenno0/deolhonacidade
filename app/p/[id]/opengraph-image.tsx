@@ -10,7 +10,7 @@ import { CITY_PATH, PIN_PATH } from "@/components/ui/Mark";
 // A prévia que o WhatsApp mostra: a foto inteira, com a categoria, a legenda
 // e quanto falta para sumir. O ImageResponse não lê WebP, então a foto passa
 // pelo sharp e vira JPEG antes.
-export const alt = "Registro no De Olho na Cidade";
+export const alt = "Registro no Viu na Cidade";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -34,7 +34,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
   const post = await getPublicPost(id);
   const shown = post && (post.alive || post.archived);
   const photo = shown && post.photo_path ? await photoData(post.photo_path).catch(() => null) : null;
-  const label = post ? (post.business_name ?? CATEGORIES[post.category].label) : "De Olho na Cidade";
+  const label = post ? (post.business_name ?? CATEGORIES[post.category].label) : "Viu na Cidade";
 
   return new ImageResponse(
     (
@@ -75,7 +75,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 28 }}>
             <img src={markSvg} width={64} height={56} alt="" />
-            <div style={{ display: "flex", fontSize: 30, fontWeight: 700 }}>De Olho</div>
+            <div style={{ display: "flex", fontSize: 30, fontWeight: 700 }}>Viu na Cidade</div>
             <div style={{ display: "flex", fontSize: 24, color: "#a99a84", letterSpacing: 3 }}>{`${CITY.name.toUpperCase()} · ${CITY.uf}`}</div>
           </div>
         </div>

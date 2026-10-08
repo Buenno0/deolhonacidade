@@ -106,7 +106,7 @@ export default function AlertsSheet({ getMapCenter, onClose, onSaved }: Props) {
       <Sheet eyebrow="Alertas" title="Avisos perto de você" onClose={onClose}>
         <p className="text-sm text-muted">
           {support === "ios-instalar"
-            ? "No iPhone, os avisos só funcionam com o app na tela de início. Toque em Compartilhar no Safari, depois em \"Adicionar à Tela de Início\", e abra o De Olho por lá."
+            ? "No iPhone, os avisos só funcionam com o app na tela de início. Toque em Compartilhar no Safari, depois em \"Adicionar à Tela de Início\", e abra o Viu na Cidade por lá."
             : support === "desligado"
               ? "Os avisos ainda não estão configurados neste servidor."
               : "Este navegador não recebe notificações. Tente o Chrome ou o Safari atualizados."}
