@@ -20,7 +20,7 @@ const EVENTS: Record<DayEvent, { at: string; cat: string; color: string; txt: st
 
 const Scene = memo(DayScene);
 const START = 6, END = 24;
-const HOURS_PER_SEC = 0.45; // o dia inteiro em ~40 s
+const HOURS_PER_SEC = 0.9; // o dia inteiro em ~20 s
 
 const fmt = (h: number) => `${String(Math.floor(h) % 24).padStart(2, "0")}:${String(Math.floor((h % 1) * 60)).padStart(2, "0")}`;
 
