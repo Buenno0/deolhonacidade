@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AccidentScene, CityScene, EventScene, FloodScene, cityPins } from "./scenes";
 import StoryDemo from "./StoryDemo";
 import { clock, lpPaused, reducedMotion } from "./time";
@@ -190,11 +191,15 @@ export default function LiveMap() {
         Exemplo
       </span>
 
-      {story !== null && (
-        <div className="lp-sobre" role="dialog" aria-label="Story de exemplo" onClick={(e) => e.target === e.currentTarget && setStory(null)}>
-          <StoryDemo start={story} onClose={() => setStory(null)} />
-        </div>
-      )}
+      {/* Em tela cheia, fora do quadro do mapa: lá dentro (container-type) o
+          position: fixed ficava preso ao quadro e cortava o story no celular */}
+      {story !== null &&
+        createPortal(
+          <div className="lp-sobre" role="dialog" aria-modal="true" aria-label="Story de exemplo" onClick={(e) => e.target === e.currentTarget && setStory(null)}>
+            <StoryDemo start={story} onClose={() => setStory(null)} />
+          </div>,
+          document.querySelector(".lp") ?? document.body,
+        )}
     </div>
   );
 }
