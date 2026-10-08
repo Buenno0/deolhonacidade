@@ -239,10 +239,14 @@
 /* post que some */
 .lp-nasce { animation: lp-nasce 0.8s cubic-bezier(0.25, 1.4, 0.4, 1) both; }
 @keyframes lp-nasce { from { transform: scale(0.6) translateY(20px); opacity: 0; } }
-.lp-desfaz { animation: lp-desfaz 1.4s ease forwards; }
-@keyframes lp-desfaz { 40% { filter: blur(2px); opacity: 0.7; } to { filter: blur(14px); opacity: 0; transform: scale(1.08) translateY(-16px); } }
+.lp-desfaz { animation: lp-desfaz 0.55s cubic-bezier(0.5, 0, 0.75, 0) forwards; }
+@keyframes lp-desfaz { 0% { transform: scale(1); filter: none; } 25% { transform: scale(1.06); filter: brightness(1.6); } 100% { transform: scale(0.2) rotate(-6deg); filter: blur(10px) brightness(2); opacity: 0; } }
+.lp-urgente { border-color: var(--danger); animation: lp-treme 0.35s ease-in-out infinite; }
+@keyframes lp-treme { 0%, 100% { transform: translateX(0) rotate(0); } 25% { transform: translateX(-2px) rotate(-0.6deg); } 75% { transform: translateX(2px) rotate(0.6deg); } }
+.lp-relogio-urgente { color: var(--danger) !important; animation: lp-pisca 0.5s steps(1) infinite; }
 
-.lp-fantasma { animation: lp-in 0.8s ease 0.9s both; }
+.lp-fantasma { opacity: 0; animation: lp-fantasma 0.5s ease 0.35s both; }
+@keyframes lp-fantasma { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: none; } }
 
 /* um dia na cidade */
 .lp-sol { appearance: none; -webkit-appearance: none; height: 8px; border-radius: 999px; cursor: pointer;

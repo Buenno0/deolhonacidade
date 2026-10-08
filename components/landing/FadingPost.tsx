@@ -1,26 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EventScene } from "./scenes";
 import { clock, lpPaused, reducedMotion } from "./time";
 
-// Um post que nasce quando a página abre e some enquanto a pessoa lê:
-// a ideia do app em 90 segundos.
-const LIFE = 90;
+// Um post que nasce e some na frente da pessoa: a ideia do app em 12 segundos.
+// A contagem só começa quando o card aparece na tela (senão ninguém vê o fim);
+// nos últimos segundos o relógio fica vermelho e o card treme, e aí some.
+const LIFE = 12;
+const URGENT = 3;
 
 export default function FadingPost() {
   const [left, setLeft] = useState(LIFE);
   const [conf, setConf] = useState(1);
+  const box = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (reducedMotion()) return;
+    const el = box.current;
+    if (!el || reducedMotion()) return;
+    let visible = false;
+    const io = new IntersectionObserver(([e]) => (visible = e.isIntersecting), { threshold: 0.6 });
+    io.observe(el);
     const id = setInterval(() => {
-      if (lpPaused()) return;
-      setLeft((v) => Math.max(0, v - 1));
-      // alguém perto confirma de vez em quando
-      if (Math.random() < 0.12) setConf((c) => c + 1);
-    }, 1000);
-    return () => clearInterval(id);
+      if (!visible || lpPaused()) return;
+      setLeft((v) => Math.max(0, +(v - 0.1).toFixed(1)));
+      // gente perto confirmando enquanto ele está no ar
+      if (Math.random() < 0.06) setConf((c) => c + 1);
+    }, 100);
+    return () => (io.disconnect(), clearInterval(id));
   }, []);
 
   const gone = left === 0;
@@ -39,7 +46,7 @@ export default function FadingPost() {
               Viu? Sumiu. <span style={{ color: "var(--accent)" }}>Por isso tem que ser agora.</span>
             </>
           ) : (
-            "Ele nasceu quando você abriu esta página. Continue lendo."
+            left <= URGENT ? "Olha ele sumindo…" : "Ele acabou de nascer. Fica de olho."
           )}
         </p>
         {gone && (
@@ -50,7 +57,7 @@ export default function FadingPost() {
         )}
       </div>
 
-      <div className="relative w-[280px]" style={{ height: 196 }}>
+      <div ref={box} className="relative w-[280px]" style={{ height: 196 }}>
         {gone && (
           <div className="lp-fantasma absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-line text-center">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
@@ -58,19 +65,19 @@ export default function FadingPost() {
               <path d="M12 7v5l3 2" />
             </svg>
             <span className="lp-rot">sumiu do mapa</span>
-            <span className="lp-muted text-xs">Roda de samba · durou 1:30</span>
+            <span className="lp-muted text-xs">Roda de samba · durou 12 segundos aqui</span>
           </div>
         )}
       <article
-        className={`absolute inset-0 overflow-hidden rounded-2xl border border-line ${gone ? "lp-desfaz" : "lp-nasce"}`}
+        className={`absolute inset-0 overflow-hidden rounded-2xl border ${gone ? "lp-desfaz border-line" : left <= URGENT ? "lp-urgente" : "lp-nasce border-line"}`}
         style={{ background: "var(--surface)" }}
         aria-live="off"
       >
         <div className="relative" style={{ height: 120 }}>
           <EventScene className="lp-cena absolute inset-0" vb="80 60 280 200" />
           <span className="lp-tag font-semibold" style={{ top: 10, left: 10, color: "var(--accent)", border: "1px solid var(--accent)" }}>Evento</span>
-          <span className="lp-tag lp-num" style={{ top: 10, right: 10 }}>{clock(left)}</span>
-          <span className="absolute bottom-0 left-0" style={{ height: 3, width: `${(left / LIFE) * 100}%`, background: "var(--accent)", transition: "width 1s linear" }} />
+          <span className={`lp-tag lp-num ${left <= URGENT ? "lp-relogio-urgente" : ""}`} style={{ top: 10, right: 10 }}>{clock(Math.ceil(left))}</span>
+          <span className="absolute bottom-0 left-0" style={{ height: 3, width: `${(left / LIFE) * 100}%`, background: left <= URGENT ? "var(--danger)" : "var(--accent)", transition: "width .1s linear, background .3s" }} />
         </div>
         <div className="flex flex-col gap-1 px-3.5 py-3">
           <span className="text-sm">Roda de samba começando na praça agora.</span>

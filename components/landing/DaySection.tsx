@@ -77,7 +77,8 @@ export default function DaySection() {
   const [ev, setEv] = useState<DayEvent>(dayEvent(7.5));
   const [night, setNight] = useState(false);
   const hour = useRef(7.5);
-  const auto = useRef(true);
+  // segurando o sol: o dia espera; ao soltar, continua da hora em que parou
+  const dragging = useRef(false);
   const sky = useRef<HTMLDivElement | null>(null);
   const clockRef = useRef<HTMLSpanElement>(null);
   const range = useRef<HTMLInputElement>(null);
@@ -89,7 +90,7 @@ export default function DaySection() {
       hour.current = h;
       if (sky.current) paintHour(sky.current, h);
       if (clockRef.current) clockRef.current.textContent = fmt(h);
-      if (range.current && document.activeElement !== range.current) range.current.value = String(h);
+      if (range.current && !dragging.current) range.current.value = String(h);
       const e = dayEvent(h);
       setEv((cur) => (cur === e ? cur : e));
       setNight((cur) => (cur === h >= 21 ? cur : h >= 21));
@@ -109,7 +110,7 @@ export default function DaySection() {
     const loop = (t: number) => {
       const dt = Math.min(0.1, (t - last) / 1000);
       last = t;
-      if (visible && auto.current && !lpPaused()) {
+      if (visible && !dragging.current && !lpPaused()) {
         const next = hour.current + dt * HOURS_PER_SEC;
         apply(next >= END - 0.1 ? START : next);
       }
@@ -153,10 +154,18 @@ export default function DaySection() {
             max={END - 0.1}
             step={0.01}
             defaultValue={7.5}
+            onPointerDown={() => (dragging.current = true)}
+            onTouchStart={() => (dragging.current = true)}
             onInput={(v) => {
-              auto.current = false;
+              dragging.current = true;
               applyRef.current(Number((v.target as HTMLInputElement).value));
             }}
+            // soltou (mouse, dedo ou teclado): o dia volta a andar dali
+            onPointerUp={() => (dragging.current = false)}
+            onTouchEnd={() => (dragging.current = false)}
+            onPointerCancel={() => (dragging.current = false)}
+            onKeyUp={() => (dragging.current = false)}
+            onBlur={() => (dragging.current = false)}
             className="lp-sol w-full"
             aria-label="Hora do dia"
             aria-valuetext={`${e.cat}, por volta das ${e.at}`}
