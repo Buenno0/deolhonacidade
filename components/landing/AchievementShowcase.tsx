@@ -24,6 +24,14 @@ export default function AchievementShowcase() {
   const box = useRef<HTMLDivElement>(null);
   const [i, setI] = useState(0);
   const [visible, setVisible] = useState(false);
+  // muda quando a pessoa navega na mão: reinicia a passagem automática
+  const [round, setRound] = useState(0);
+  const go = (to: number) => {
+    setI(((to % SEQ.length) + SEQ.length) % SEQ.length);
+    setRound((r) => r + 1);
+  };
+  const swipe = useRef<number | null>(null);
+  const swiped = useRef(false); // o clique que vem depois de arrastar não conta
 
   useEffect(() => {
     const el = box.current;
@@ -39,7 +47,7 @@ export default function AchievementShowcase() {
       if (!document.querySelector(".lp-pausado")) setI((v) => (v + 1) % SEQ.length);
     }, STEP_MS);
     return () => clearInterval(id);
-  }, [visible]);
+  }, [visible, round]);
 
   const item = SEQ[i];
   const isBadge = item.kind === "badge";
@@ -48,10 +56,29 @@ export default function AchievementShowcase() {
   const color = isBadge && !def!.first ? TIER_COLOR[item.tier - 1] : "var(--accent)";
 
   return (
-    <div ref={box} className="sala-escura flex flex-col items-center py-4 text-center" aria-live="off">
+    <div
+      ref={box}
+      className="sala-escura flex touch-pan-y select-none flex-col items-center py-4 text-center"
+      aria-live="off"
+      // arrastar para os lados também passa
+      onPointerDown={(e) => (swipe.current = e.clientX)}
+      onPointerUp={(e) => {
+        if (swipe.current === null) return;
+        const dx = e.clientX - swipe.current;
+        swipe.current = null;
+        swiped.current = Math.abs(dx) > 40;
+        if (swiped.current) go(i + (dx < 0 ? 1 : -1));
+      }}
+    >
       {/* key: cada conquista remonta, e a animação de entrada roda de novo */}
-      <div key={`${i}-${visible}`} className={visible ? "conquista-entra flex flex-col items-center" : "flex flex-col items-center"}>
-        <div className="relative">
+      <button
+        type="button"
+        key={`${i}-${visible}`}
+        onClick={() => (swiped.current ? (swiped.current = false) : go(i + 1))}
+        aria-label="Próxima conquista"
+        className={`flex cursor-pointer flex-col items-center border-0 bg-transparent p-0 text-center ${visible ? "conquista-entra" : ""}`}
+      >
+        <span className="relative block">
           {visible &&
             Array.from({ length: 14 }, (_, k) => (
               <span
@@ -72,20 +99,24 @@ export default function AchievementShowcase() {
           ) : (
             <Medal label={String(item.level)} tier={3} size={120} animate={visible} />
           )}
-        </div>
-        <p className="lp-rot mt-5" style={{ color }}>
+        </span>
+        <span className="lp-rot mt-5 block" style={{ color }}>
           {isBadge ? (def!.first ? "primeira vez" : `conquista · ${TIER_NAMES[item.tier - 1]}`) : "subiu de nível"}
-        </p>
-        <p className="lp-disp mt-1.5 text-2xl leading-tight text-ink">{isBadge ? def!.name : levelName(item.level)}</p>
-        <p className="lp-muted mt-1 min-h-[2.6em] max-w-[260px] text-sm">
+        </span>
+        <span className="lp-disp mt-1.5 block text-2xl leading-tight text-ink">{isBadge ? def!.name : levelName(item.level)}</span>
+        <span className="lp-muted mt-1 block min-h-[2.6em] max-w-[260px] text-sm">
           {isBadge ? def!.tiers[Math.min(item.tier, def!.tiers.length) - 1] : `Nível ${item.level}. Continue ajudando a cidade.`}
-        </p>
-      </div>
-      <div className="mt-4 flex gap-1.5" aria-hidden="true">
+        </span>
+      </button>
+      <div className="mt-2 flex" role="group" aria-label="Conquistas">
         {SEQ.map((_, k) => (
-          <span key={k} className="h-1.5 rounded-full transition-all duration-500" style={{ width: k === i ? 18 : 6, background: k === i ? color : "var(--line)" }} />
+          // área de toque de 28 px em volta de cada bolinha
+          <button key={k} type="button" onClick={() => go(k)} aria-label={`Conquista ${k + 1} de ${SEQ.length}`} aria-current={k === i} className="grid h-7 cursor-pointer place-items-center border-0 bg-transparent px-[3px]">
+            <span className="block h-1.5 rounded-full transition-all duration-500" style={{ width: k === i ? 18 : 6, background: k === i ? color : "var(--line)" }} />
+          </button>
         ))}
       </div>
+      <span className="lp-rot mt-1 opacity-70">toque para ver a próxima</span>
     </div>
   );
 }
