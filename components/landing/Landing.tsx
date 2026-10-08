@@ -462,6 +462,7 @@ export default function Landing({ lang }: { lang: Lang }) {
           <span className="lp-disp text-base text-ink">Viu na Cidade · {CITY.name}/{CITY.uf}</span>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <a href="/termos" className="underline-offset-4 hover:underline">{t.foot.terms}</a>
+            <a href="/privacidade" className="underline-offset-4 hover:underline">{t.foot.privacy}</a>
             <PauseButton />
           </div>
         </div>

@@ -181,7 +181,7 @@ const pt = {
   },
   faqTitle: "Perguntas rápidas",
   end: { title: "A cidade está acontecendo agora.", gold: "Viu?", cta: "Abrir o mapa" },
-  foot: { terms: "Termos e privacidade", pause: "Pausar animações", resume: "Retomar animações" },
+  foot: { terms: "Termos de uso", privacy: "Política de privacidade", pause: "Pausar animações", resume: "Retomar animações" },
   tags: { agora: "Agora", alta: "Em alta", divulgacao: "Divulgação" },
   fading: {
     eyebrow: "Esse post é seu",
@@ -436,7 +436,7 @@ const en: Dict = {
   },
   faqTitle: "Quick questions",
   end: { title: "The city is happening right now.", gold: "Saw it?", cta: "Open the map" },
-  foot: { terms: "Terms and privacy", pause: "Pause animations", resume: "Resume animations" },
+  foot: { terms: "Terms of use", privacy: "Privacy policy", pause: "Pause animations", resume: "Resume animations" },
   tags: { agora: "Now", alta: "Trending", divulgacao: "Promoted" },
   fading: {
     eyebrow: "This post is yours",
