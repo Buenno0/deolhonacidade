@@ -70,7 +70,11 @@ export default function GoogleButton({ onSignedIn, onError }: { onSignedIn: (use
           context: "signin",
           callback: async ({ credential }: { credential: string }) => {
             const { data, error } = await getSupabase().auth.signInWithIdToken({ provider: "google", token: credential, nonce: raw });
-            if (error || !data.user) return latest.current.onError(error?.message ?? "Não foi possível entrar com o Google");
+            // A mensagem do Supabase vem em inglês e técnica; o detalhe fica no console
+            if (error || !data.user) {
+              if (error) console.error("signInWithIdToken", error);
+              return latest.current.onError("Não foi possível entrar com o Google. Tente de novo.");
+            }
             latest.current.onSignedIn(data.user.id);
           },
         });
