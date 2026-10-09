@@ -8,9 +8,13 @@ import { useNear } from "./useNear";
 import { useT } from "./lang";
 
 // "Um dia em Itapetininga": arraste o sol (ou deixe o dia passar sozinho) e
-// veja o que a cidade posta em cada hora. Para ficar suave, o React só redesenha
-// a cidade quando muda o acontecimento; céu, sol, lua, janelas e postes andam a
-// cada quadro por variáveis CSS (sem render), e o relógio por ref.
+// veja o que a cidade posta em cada hora.
+//
+// Desempenho (medido): o loop roda a cada quadro, então nada aqui pode mexer
+// na seção inteira. Antes, 11 variáveis CSS iam para o topo da seção; como
+// variáveis são herdadas, ~780 elementos recalculavam o estilo a cada quadro e
+// o lixo disso virava pausas de GC (a "travadinha"). Agora cada valor vai
+// direto para o elemento que o usa (~10 elementos), e só se mudou.
 // Hora, categoria e texto de cada acontecimento vêm do i18n (day.events)
 const COLOR: Record<DayEvent, string> = {
   transito: "var(--warn)",
@@ -19,8 +23,15 @@ const COLOR: Record<DayEvent, string> = {
   show: "var(--accent)",
   apagao: "var(--warn)",
 };
+// As camadas ficam sempre montadas, e só o estado delas muda (a lista vem do
+// COLOR, que o TypeScript obriga a ter todos os acontecimentos)
+const EVENTS = Object.keys(COLOR) as DayEvent[];
+// Na troca, a que sai vai logo abaixo da que entra (como na troca cruzada
+// antiga). A ordem só muda nesse instante: mover um nó no DOM reinicia as
+// animações dele, então ela não pode voltar atrás quando a que saiu some.
+const reorder = (cur: DayEvent[], out: DayEvent, into: DayEvent) => [...cur.filter((x) => x !== out && x !== into), out, into];
 
-// A cidade fixa e os zzz não dependem de nada: desenhados uma vez
+// A cidade fixa, as camadas e os zzz não dependem de nada que mude por quadro
 const Base = memo(DayBase);
 const Zzz = memo(DayZzz);
 const Layer = memo(DayLayer);
@@ -59,63 +70,127 @@ const smooth = (a: number, b: number, h: number) => {
   return t * t * (3 - 2 * t);
 };
 
+// Os elementos que a hora mexe (achados uma vez, e de novo quando o SVG monta)
+type Targets = {
+  sky: HTMLElement;
+  sol: HTMLElement | null;
+  lua: HTMLElement | null;
+  quente: HTMLElement | null;
+  noite: HTMLElement | null;
+  range: HTMLInputElement | null;
+  janelas: SVGElement[];
+  postes: SVGElement[];
+  estrelas: SVGElement[];
+  sono: SVGElement[];
+};
+const findTargets = (sky: HTMLElement, range: HTMLInputElement | null): Targets => {
+  const q = <T extends Element>(s: string) => [...sky.querySelectorAll<T & Element>(s)] as unknown as T[];
+  return {
+    sky,
+    sol: sky.querySelector(".lp-dia-sol"),
+    lua: sky.querySelector(".lp-dia-lua"),
+    quente: sky.querySelector(".lp-dia-quente"),
+    noite: sky.querySelector(".lp-dia-noite"),
+    range,
+    janelas: q<SVGElement>(".lp-janela"),
+    postes: q<SVGElement>(".lp-poste"),
+    estrelas: q<SVGElement>(".lp-estrelas"),
+    sono: q<SVGElement>(".lp-sono"),
+  };
+};
+
+// Escreve só se mudou (o último valor fica guardado por elemento e propriedade)
+const written = new WeakMap<Element, Record<string, string>>();
+function put(el: (HTMLElement | SVGElement) | null, prop: string, value: string) {
+  if (!el) return;
+  let last = written.get(el);
+  if (!last) written.set(el, (last = {}));
+  if (last[prop] === value) return;
+  last[prop] = value;
+  el.style.setProperty(prop, value);
+}
+const putAll = (els: (HTMLElement | SVGElement)[], prop: string, value: string) => els.forEach((el) => put(el, prop, value));
+
 // Tudo que depende da hora e muda a cada quadro, sem React
-function paintHour(el: HTMLElement, h: number) {
+function paintHour(t: Targets, h: number) {
   const [r, g, b] = lerpStops(SKY, h);
-  el.style.setProperty("--ceu", `rgb(${r | 0} ${g | 0} ${b | 0})`);
+  put(t.sky, "background-color", `rgb(${r | 0} ${g | 0} ${b | 0})`);
   // janelas e postes: acesos no amanhecer, apagam de dia, acendem no fim da tarde
-  const luz = Math.max(1 - smooth(6, 7.5, h), smooth(17.3, 19.2, h));
-  el.style.setProperty("--luz", (0.12 + luz * 0.88).toFixed(3));
-  el.style.setProperty("--noite", smooth(18.8, 20.3, h).toFixed(3));
-  // o botão do controle vira lua depois das 18h (e volta a sol de manhã)
-  el.style.setProperty("--lua", Math.max(smooth(17.9, 18.9, h), 1 - smooth(6, 6.6, h)).toFixed(3));
+  const luz = 0.12 + Math.max(1 - smooth(6, 7.5, h), smooth(17.3, 19.2, h)) * 0.88;
+  putAll(t.janelas, "opacity", luz.toFixed(3));
+  putAll(t.postes, "opacity", (luz * 0.4).toFixed(3));
+  const noite = smooth(18.8, 20.3, h);
+  putAll(t.estrelas, "opacity", noite.toFixed(3));
+  put(t.noite, "opacity", (noite * 0.45).toFixed(3));
   // a cidade dorme às 22h e acorda às 6h (o dia recomeça às 6 e os zzz somem)
-  el.style.setProperty("--sono", Math.max(smooth(21.6, 22.4, h), 1 - smooth(6, 6.5, h)).toFixed(3));
-  el.style.setProperty("--quente", Math.max(0.1 * (1 - smooth(6, 9, h)), 0.2 * smooth(16.5, 17.8, h) * (1 - smooth(18.2, 19.4, h))).toFixed(3));
-  // sol de 6h a 18h30, lua depois; os dois num arco por cima da cidade
-  const arc = (t: number) => [8 + t * 84, 30 - Math.sin(Math.PI * Math.min(1, Math.max(0, t))) * 22];
-  const [sx, sy] = arc((h - 6) / 12.5);
-  const [mx, my] = arc(((h - 18.5) / 5.5) * 0.7 + 0.15);
-  el.style.setProperty("--sol-x", `${sx}%`);
-  el.style.setProperty("--sol-y", `${sy}%`);
-  el.style.setProperty("--sol-o", (1 - smooth(17.8, 18.8, h)).toFixed(3));
-  el.style.setProperty("--lua-x", `${mx}%`);
-  el.style.setProperty("--lua-y", `${my}%`);
+  putAll(t.sono, "opacity", Math.max(smooth(21.6, 22.4, h), 1 - smooth(6, 6.5, h)).toFixed(3));
+  put(t.quente, "opacity", Math.max(0.1 * (1 - smooth(6, 9, h)), 0.2 * smooth(16.5, 17.8, h) * (1 - smooth(18.2, 19.4, h))).toFixed(3));
+  // o botão do controle vira lua depois das 18h (e volta a sol de manhã)
+  put(t.range, "--l", Math.max(smooth(17.9, 18.9, h), 1 - smooth(6, 6.6, h)).toFixed(3));
+  // sol de 6h a 18h30, lua depois; os dois num arco por cima da cidade.
+  // Invisíveis, não se mexem (não há por que recalcular a posição)
+  const arc = (x: number) => [8 + x * 84, 30 - Math.sin(Math.PI * Math.min(1, Math.max(0, x))) * 22];
+  const solO = 1 - smooth(17.8, 18.8, h);
+  put(t.sol, "opacity", solO.toFixed(3));
+  if (solO > 0) {
+    const [sx, sy] = arc((h - 6) / 12.5);
+    put(t.sol, "left", `${sx.toFixed(2)}%`);
+    put(t.sol, "top", `${sy.toFixed(2)}%`);
+  }
+  put(t.lua, "opacity", noite.toFixed(3));
+  if (noite > 0) {
+    const [mx, my] = arc(((h - 18.5) / 5.5) * 0.7 + 0.15);
+    put(t.lua, "left", `${mx.toFixed(2)}%`);
+    put(t.lua, "top", `${my.toFixed(2)}%`);
+  }
 }
 
 export default function DaySection() {
   const [ev, setEv] = useState<DayEvent>(dayEvent(7.5));
   const [night, setNight] = useState(false);
   const hour = useRef(7.5);
+  const evRef = useRef<DayEvent>(ev);
+  const nightRef = useRef(false);
   // segurando o sol: o dia espera; ao soltar, continua da hora em que parou
   const dragging = useRef(false);
   const sky = useRef<HTMLDivElement | null>(null);
-  const root = useRef<HTMLDivElement>(null);
+  const targets = useRef<Targets | null>(null);
   // o acontecimento que está saindo, para a troca ser cruzada
   const [prev, setPrev] = useState<DayEvent | null>(null);
+  const [layers, setLayers] = useState<DayEvent[]>(EVENTS);
   const clockRef = useRef<HTMLSpanElement>(null);
   const labelRef = useRef<HTMLSpanElement>(null);
   const range = useRef<HTMLInputElement>(null);
   const [nearRef, near] = useNear<HTMLDivElement>();
+  const applyRef = useRef<(h: number) => void>(() => {});
 
   useEffect(() => {
     // Aplica uma hora: estilos e relógio direto no DOM; React só se mudar o acontecimento
     const apply = (h: number) => {
       hour.current = h;
-      if (root.current) paintHour(root.current, h);
-      if (clockRef.current) clockRef.current.textContent = fmt(h);
+      if (!targets.current && sky.current) targets.current = findTargets(sky.current, range.current);
+      if (targets.current) paintHour(targets.current, h);
+      // o relógio troca o texto do nó (não recria o nó a cada quadro)
+      const clock = clockRef.current?.firstChild as Text | null;
+      const s = fmt(h);
+      if (clock && clock.data !== s) clock.data = s;
       // os dois rótulos, já no idioma da página, moram no próprio elemento
       const el = labelRef.current;
       const label = el && (h >= 18.4 || h < 6.3 ? el.dataset.moon : el.dataset.sun);
       if (el && label && el.textContent !== label) el.textContent = label;
       if (range.current && !dragging.current) range.current.value = String(h);
       const e = dayEvent(h);
-      setEv((cur) => {
-        if (cur === e) return cur;
-        setPrev(cur);
-        return e;
-      });
-      setNight((cur) => (cur === h >= 21 ? cur : h >= 21));
+      if (e !== evRef.current) {
+        const out = evRef.current;
+        setLayers((cur) => reorder(cur, out, e));
+        setPrev(out);
+        evRef.current = e;
+        setEv(e);
+      }
+      if (h >= 21 !== nightRef.current) {
+        nightRef.current = h >= 21;
+        setNight(nightRef.current);
+      }
     };
     applyRef.current = apply;
     apply(hour.current);
@@ -141,7 +216,13 @@ export default function DaySection() {
     raf = requestAnimationFrame(loop);
     return () => (io.disconnect(), cancelAnimationFrame(raf));
   }, []);
-  const applyRef = useRef<(h: number) => void>(() => {});
+
+  // O SVG só monta perto da tela: aí os alvos dele entram na lista
+  useEffect(() => {
+    if (!near || !sky.current) return;
+    targets.current = findTargets(sky.current, range.current);
+    applyRef.current(hour.current);
+  }, [near]);
 
   // o que saiu some depois da transição
   useEffect(() => {
@@ -152,15 +233,17 @@ export default function DaySection() {
 
   const t = useT().day;
   const e = { ...t.events[ev], color: COLOR[ev] };
+  const st = (x: DayEvent) => (x === ev ? "on" : x === prev ? "off" : "none");
 
   return (
-    <div ref={root} className={`flex flex-wrap items-center gap-10 ${ev === "apagao" ? "lp-apagao" : ""}`}>
+    <div className="flex flex-wrap items-center gap-10">
       <div
         ref={(n) => {
           sky.current = n;
           nearRef.current = n;
         }}
         className="lp-dia min-w-0 flex-[1_1_480px] overflow-hidden rounded-2xl border border-line"
+        data-apagao={ev === "apagao" || undefined}
         style={{ aspectRatio: "11 / 9" }}
       >
         <span className="lp-dia-sol" aria-hidden="true" />
@@ -168,24 +251,20 @@ export default function DaySection() {
         {near && (
           <svg viewBox="0 0 440 360" preserveAspectRatio="xMidYMid slice" className="lp-dia-cena" role="img" aria-label={t.scene(e.cat)}>
             <Base part="fundo" />
-            {prev && prev !== ev && (
-              <g key={`s-${prev}`} className="lp-ev-sai">
-                <Layer ev={prev} />
+            {/* todas as camadas montadas: trocar é só mudar data-st (nada monta nem
+                desmonta no meio do dia, então não há lixo para o GC) */}
+            {layers.map((x) => (
+              <g key={`u-${x}`} className="lp-ev" data-st={st(x)}>
+                <Layer ev={x} />
               </g>
-            )}
-            <g key={`e-${ev}`} className="lp-ev-entra">
-              <Layer ev={ev} />
-            </g>
+            ))}
             <Base part="frente" />
             <Zzz />
-            {prev && prev !== ev && (
-              <g key={`so-${prev}`} className="lp-ev-sai">
-                <Layer ev={prev} over />
+            {layers.map((x) => (
+              <g key={`o-${x}`} className="lp-ev lp-ev-pin" data-st={st(x)}>
+                <Layer ev={x} over />
               </g>
-            )}
-            <g key={`eo-${ev}`} className="lp-ev-entra lp-ev-pin">
-              <Layer ev={ev} over />
-            </g>
+            ))}
           </svg>
         )}
         <span className="lp-dia-quente" aria-hidden="true" />
@@ -195,7 +274,7 @@ export default function DaySection() {
         <label className="flex flex-col gap-3">
           <span className="flex items-baseline justify-between">
             <span ref={labelRef} className="lp-rot" data-sun={t.sun} data-moon={t.moon}>{t.sun}</span>
-            <span ref={clockRef} className="lp-num text-3xl" style={{ color: "var(--accent)" }}>
+            <span ref={clockRef} className="lp-num lp-dia-relogio text-3xl" style={{ color: "var(--accent)" }}>
               {fmt(7.5)}
             </span>
           </span>
@@ -237,14 +316,14 @@ export default function DaySection() {
           <p className="m-0 text-[17px]">{e.txt}</p>
         </div>
 
-        {night && (
-          <div className="story-entra flex items-center gap-3">
-            <Medal icon="moon" tier={3} size={48} />
-            <span className="lp-muted text-sm">
-              {t.owlA} <strong className="text-ink">{t.owl}</strong>.
-            </span>
-          </div>
-        )}
+        {/* sempre no lugar (só aparece e some): montar e desmontar mudava a
+            altura da coluna no celular e empurrava a página */}
+        <div className="lp-coruja flex items-center gap-3" data-on={night} aria-hidden={!night}>
+          <Medal icon="moon" tier={3} size={48} />
+          <span className="lp-muted text-sm">
+            {t.owlA} <strong className="text-ink">{t.owl}</strong>.
+          </span>
+        </div>
       </div>
     </div>
   );

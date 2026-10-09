@@ -435,7 +435,8 @@ export const dayEvent = (h: number): DayEvent => (h < 9 ? "transito" : h < 13 ? 
 // Um dia na cidade em camadas, para as trocas serem suaves:
 // - a cidade fixa (DayBase) é desenhada uma vez e nunca pisca;
 // - só o que é do acontecimento (DayLayer) entra e sai, em transição cruzada;
-// - céu, sol, lua, janelas, postes e zzz andam por variáveis CSS (DaySection).
+// - céu, sol, lua, janelas, postes, estrelas e zzz: o DaySection escreve a opacidade
+//   (e a posição) direto nesses elementos a cada quadro.
 const dayIso = () => iso(22, 220, 112);
 const DAY_HOUSES = { h1: [3.2, 0.7, 1.7, 1.8, 0.95], h2: [7.8, 0.8, 1.6, 1.8, 0.85], h3: [0.6, 6.4, 2.2, 1.6, 0.9], h4: [1.2, 8.3, 2, 1.4, 0.8] } as const;
 
@@ -544,7 +545,7 @@ export function DayLayer({ ev, over }: { ev: DayEvent; over?: boolean }) {
   return <>{paint(items)}</>;
 }
 
-// Zzz saindo dos telhados (a opacidade vem de --sono)
+// Zzz saindo dos telhados (a opacidade do grupo vem do DaySection)
 export function DayZzz() {
   const g = dayIso();
   return (

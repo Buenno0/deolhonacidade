@@ -50,20 +50,31 @@ export function iso(S: number, ox: number, oy: number) {
     return <polygon points={pts(...(p as [number, number][]))} fill={fill} {...extra} />;
   };
 
-  // Fileiras de janelas nas duas faces de uma caixa
-  // litClass: classe nas janelas acesas (para acender e apagar por CSS)
+  // Fileiras de janelas nas duas faces de uma caixa. litClass: as acesas vão
+  // juntas num grupo só com essa classe, para acender e apagar o grupo inteiro
+  // de uma vez (uma opacidade por prédio, não uma por janela)
   const windows = (x: number, y: number, z: number, w: number, d: number, h: number, lit = 0.6, seed = 1, litClass?: string) => {
-    const on = litClass ? { className: litClass } : undefined;
-    const out: ReactNode[] = [];
+    const off: ReactNode[] = [];
+    const on: ReactNode[] = [];
     let s = seed;
     const rnd = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
     for (let zz = z + 0.35; zz < z + h - 0.3; zz += 0.55) {
-      for (let u = 0.2; u < w - 0.25; u += 0.45)
-        out.push(<g key={`l${zz}${u}`}>{quad("L", x, y + d, u, u + 0.22, zz, zz + 0.28, ...(rnd() < lit ? ([C.janela, on] as const) : ([C.janelaApagada, undefined] as const)))}</g>);
-      for (let u = 0.2; u < d - 0.25; u += 0.45)
-        out.push(<g key={`r${zz}${u}`}>{quad("R", x + w, y, u, u + 0.22, zz, zz + 0.28, ...(rnd() < lit * 0.7 ? ([C.janela, on] as const) : ([C.janelaApagada, undefined] as const)))}</g>);
+      for (let u = 0.2; u < w - 0.25; u += 0.45) {
+        const isOn = rnd() < lit;
+        (isOn ? on : off).push(<g key={`l${zz}${u}`}>{quad("L", x, y + d, u, u + 0.22, zz, zz + 0.28, isOn ? C.janela : C.janelaApagada)}</g>);
+      }
+      for (let u = 0.2; u < d - 0.25; u += 0.45) {
+        const isOn = rnd() < lit * 0.7;
+        (isOn ? on : off).push(<g key={`r${zz}${u}`}>{quad("R", x + w, y, u, u + 0.22, zz, zz + 0.28, isOn ? C.janela : C.janelaApagada)}</g>);
+      }
     }
-    return out;
+    if (!litClass) return [...off, ...on];
+    return [
+      ...off,
+      <g key="acesas" className={litClass}>
+        {on}
+      </g>,
+    ];
   };
 
   // Casa: paredes, janela, porta e telhado de duas águas (cumeeira em x)

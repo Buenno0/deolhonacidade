@@ -253,8 +253,8 @@
   background: linear-gradient(90deg, #f0c46a, #f6d58c 35%, #e08163 66%, #3563d9 80%, #0b0d16); }
 /* o botão é o sol, e depois das 18h vira lua: o disco dourado esvazia enquanto
    o crescente (sombra interna) cresce, e o brilho passa de dourado a azulado.
-   --lua (0..1) vem do DaySection a cada quadro. */
-.lp-sol { --l: var(--lua, 0); }
+   --l (0..1) é escrito direto no input pelo DaySection a cada quadro. */
+.lp-sol { --l: 0; }
 .lp-sol::-webkit-slider-thumb { -webkit-appearance: none; width: 30px; height: 30px; border-radius: 50%; border: 3px solid var(--bg);
   background: color-mix(in oklab, #f6d58c calc((1 - var(--l)) * 100%), #0b0d16);
   box-shadow: inset calc(var(--l) * -9px) calc(var(--l) * 4px) 0 0 color-mix(in oklab, #f6d58c, #f4efe4 calc(var(--l) * 100%)),
@@ -270,35 +270,44 @@
 .lp-pinsobe { animation: lp-pousa 0.6s cubic-bezier(0.25, 1.5, 0.4, 1) both; }
 
 
-/* um dia na cidade: camadas que o DaySection move por variáveis a cada quadro */
-.lp-dia { position: relative; background: var(--ceu, rgb(34 50 76)); }
+/* um dia na cidade. O DaySection escreve a cada quadro direto nestes
+   elementos (céu, sol, lua, as duas camadas de luz, janelas, postes, estrelas,
+   zzz e o botão do controle). Os valores abaixo são o estado das 7h30, para a
+   cena já nascer certa antes do JavaScript. Não use variáveis herdadas aqui:
+   mudá-las por quadro recalculava a seção inteira (era a "travadinha"). */
+.lp-dia { position: relative; background: rgb(46 50 70); }
 .lp-dia-cena { position: absolute; inset: 0; width: 100%; height: 100%; }
-.lp-dia .lp-janela { opacity: var(--luz, 1); }
-.lp-dia .lp-poste { opacity: calc(var(--luz, 1) * 0.4); transform-box: fill-box; transform-origin: center; animation: lp-respira 3s ease-in-out infinite; }
-.lp-dia .lp-poste-apagado { opacity: 0; }
+.lp-dia .lp-janela { opacity: 0.12; }
+.lp-dia .lp-poste { opacity: 0.05; transform-box: fill-box; transform-origin: center; animation: lp-respira 3s ease-in-out infinite; }
 @keyframes lp-respira { 50% { transform: scale(1.2); } }
-.lp-dia .lp-estrelas { opacity: var(--noite, 0); }
-.lp-dia .lp-sono { opacity: var(--sono, 0); }
+.lp-dia .lp-estrelas, .lp-dia .lp-sono { opacity: 0; }
 .lp-zzz { opacity: 0; animation: lp-zzz 2.1s ease-out infinite; }
 @keyframes lp-zzz { 0% { opacity: 0; transform: translate(0, 0); } 20% { opacity: 0.9; } 100% { opacity: 0; transform: translate(14px, -30px); } }
-.lp-dia-sol, .lp-dia-lua { position: absolute; width: 7%; aspect-ratio: 1; border-radius: 50%; translate: -50% -50%; pointer-events: none; will-change: left, top; }
-.lp-dia-sol { left: var(--sol-x); top: var(--sol-y); opacity: var(--sol-o, 1); background: #f6d58c; box-shadow: 0 0 0 12px rgba(240, 196, 106, 0.16), 0 0 50px rgba(240, 196, 106, 0.5); }
-.lp-dia-lua { left: var(--lua-x); top: var(--lua-y); opacity: var(--noite, 0); box-shadow: inset -9px 4px 0 0 #f4efe4; }
+.lp-dia-sol, .lp-dia-lua { position: absolute; width: 7%; aspect-ratio: 1; border-radius: 50%; translate: -50% -50%; pointer-events: none; }
+.lp-dia-sol { left: 18%; top: 22%; background: #f6d58c; box-shadow: 0 0 0 12px rgba(240, 196, 106, 0.16), 0 0 50px rgba(240, 196, 106, 0.5); }
+.lp-dia-lua { left: 20%; top: 25%; opacity: 0; box-shadow: inset -9px 4px 0 0 #f4efe4; }
 .lp-dia-quente, .lp-dia-noite { position: absolute; inset: 0; pointer-events: none; }
-.lp-dia-quente { background: #e9925a; mix-blend-mode: soft-light; opacity: var(--quente, 0); }
-.lp-dia-noite { background: #0a1230; mix-blend-mode: multiply; opacity: calc(var(--noite, 0) * 0.45); }
-/* troca de acontecimento: o antigo sai e o novo entra ao mesmo tempo */
-.lp-ev-entra { animation: lp-ev-entra 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-.lp-ev-sai { animation: lp-ev-sai 0.9s ease both; pointer-events: none; }
+.lp-dia-quente { background: #e9925a; mix-blend-mode: soft-light; opacity: 0.05; }
+.lp-dia-noite { background: #0a1230; mix-blend-mode: multiply; opacity: 0; }
+/* o relógio troca de dígito a cada quadro: largura fixa, não mexe no resto
+   (sem contain: layout, que tiraria a linha de base e desalinharia o rótulo) */
+.lp-dia-relogio { display: inline-block; min-width: 5ch; text-align: right; }
+/* acontecimentos: todos montados; data-st diz quem entra, quem sai e quem dorme */
+.lp-ev[data-st="none"] { display: none; }
+.lp-ev[data-st="on"] { animation: lp-ev-entra 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.lp-ev[data-st="off"] { animation: lp-ev-sai 0.9s ease both; pointer-events: none; }
+.lp-ev-pin[data-st="on"] { animation-delay: 0.25s; }
 @keyframes lp-ev-entra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes lp-ev-sai { from { opacity: 1; } to { opacity: 0; transform: translateY(-4px); } }
-.lp-ev-pin { animation-delay: 0.25s; }
 /* gente chegando na praça cada uma no seu tempo */
 .lp-chega { animation: lp-chega 0.7s cubic-bezier(0.25, 1.4, 0.4, 1) var(--chega, 0s) both; }
 @keyframes lp-chega { from { opacity: 0; transform: translateY(-10px); } }
 /* apagão: janelas e postes se apagam devagar */
 .lp-dia .lp-luzes { transition: opacity 1.2s ease; }
-.lp-apagao .lp-dia .lp-luzes { opacity: 0.05; }
+.lp-dia[data-apagao] .lp-luzes { opacity: 0.05; }
+/* coruja: sempre no lugar, só aparece à noite */
+.lp-coruja { opacity: 0; transition: opacity 0.5s ease; }
+.lp-coruja[data-on="true"] { opacity: 1; }
 
 /* simulador e bairros */
 .lp-passa { animation: lp-passa 9s linear infinite; }
