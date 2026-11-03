@@ -54,6 +54,7 @@ Câmera e GPS só funcionam em HTTPS. Use um túnel (ex.: `cloudflared tunnel --
 **Privacidade e moderação**
 - As tabelas ficam fechadas por RLS e o público só lê pela função `active_posts`, que nunca devolve `user_id`.
 - Com `MODERATION_PROVIDER=rekognition`, foto com nudez explícita, violência gráfica ou símbolo de ódio não é publicada; o resultado fica em `posts.moderation`.
+- Ainda no servidor, antes de publicar, rostos e placas são desfocados ([lib/server/blur.ts](../lib/server/blur.ts)): o Rekognition detecta os rostos e os veículos, a placa é lida por OCR no recorte ampliado de cada veículo (na foto inteira ela tem uns 50 px e não sai), e o borrão cai só na área de cada um, com borda suave. A miniatura é refeita a partir da foto já desfocada.
 - Com `CLAUDE_MODERATION=on` e `ANTHROPIC_API_KEY`, o Claude ([lib/server/claudeReview.ts](../lib/server/claudeReview.ts)) revisa o que passou: a foto já desfocada, a legenda e a categoria. Recusa acusação ou ofensa a alguém, telefone e CPF expostos, propaganda fora de "estabelecimento", golpe, print e meme; na dúvida, publica. O parecer aparece na fila do admin, em `posts.moderation.claude`. Se a API falhar, o post sai normalmente.
 - 3 denúncias escondem o post automaticamente. Conta com `banned_at` preenchido não posta nem denuncia.
 - `access_logs` guarda IP, data e hora por 6 meses (Marco Civil, art. 15). Um job do `pg_cron` apaga o que passar disso.

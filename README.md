@@ -66,6 +66,9 @@ cidade mais próxima e pode registrar interesse.
   foi tirada pelo aparelho).
 - **A foto não fica guardada.** Quando o post expira, a imagem é apagada de
   verdade.
+- **Rosto e placa saem borrados.** Antes de a foto aparecer para alguém, o
+  servidor acha os rostos e as placas de veículo e desfoca cada um, só naquele
+  pedaço.
 - **Nada entra sem passar por revisão.** Toda foto é checada automaticamente
   antes de aparecer no mapa: nudez, violência gráfica, ódio, propaganda, golpe,
   print, meme e exposição de dados de alguém são barrados. Além disso, qualquer
@@ -93,7 +96,6 @@ no servidor e AWS opcional para fotos, moderação e e-mail.
 
 ## O que ainda falta
 
-- Desfoque automático de rostos e placas antes de publicar
 - Revisão jurídica dos termos de uso antes de abrir ao público
 - Tirar a foto escondida do cache do CDN na hora da denúncia (hoje leva até 10 min)
 - Ofertas do comércio local e um painel de dados para a prefeitura
