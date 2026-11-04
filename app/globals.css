@@ -752,3 +752,58 @@ body {
 :root[data-pausa-mapa="sim"] .maplibregl-marker *::after {
   animation-play-state: paused !important;
 }
+
+/* Pino da sala de situação (painel da Defesa Civil). O mapa público tem foto
+   no pino; aqui o pino é só posição e severidade, para ler dezenas de uma vez
+   sem a página ficar pesada. */
+.agency-pin {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 999px;
+  border: 3px solid var(--pin, var(--accent));
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.agency-pin.is-active {
+  transform: scale(1.45);
+  background: var(--pin, var(--accent));
+  color: var(--surface);
+}
+
+/* Ficha de ocorrência: a página existe para virar PDF pela impressão do
+   navegador. No papel o tema escuro não serve (gasta tinta e some o traço),
+   então a ficha imprime sempre em claro, sem os controles da tela. */
+@media print {
+  .ficha-oculta {
+    display: none !important;
+  }
+  .ficha {
+    max-width: none;
+    padding: 0;
+    color: #000;
+    background: #fff;
+  }
+  .ficha * {
+    color: #000 !important;
+    border-color: #999 !important;
+  }
+  .ficha img {
+    max-height: 380px !important;
+  }
+  .ficha a {
+    text-decoration: none;
+  }
+  /* Nada de quebra no meio da foto nem de uma linha da tabela */
+  .ficha figure,
+  .ficha tr {
+    break-inside: avoid;
+  }
+}

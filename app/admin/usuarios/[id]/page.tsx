@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase/client";
 import { BUSINESS_STATUS } from "@/lib/business";
 import { CATEGORIES } from "@/lib/categories";
+import { CITY } from "@/lib/city";
 import { photoUrl, thumbUrl } from "@/lib/media";
 import { BADGES, TIER_NAMES, levelName, type BadgeId } from "@/lib/progress";
 import { PROVIDER_LABEL, actionLabel, dateOnly, dateTime, fmt, plural, type AdminUserDetail } from "@/lib/admin/types";
@@ -78,6 +79,7 @@ export default function Ficha() {
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <h2 className="font-display text-xl font-semibold break-all">{u.email ?? "(sem e-mail)"}</h2>
           {u.is_admin && <span className="rotulo text-accent">moderação</span>}
+          {u.is_agent && <span className="rotulo text-ok">órgão · {u.agency_name ?? "sem nome"}</span>}
           {u.banned_at && <span className="rotulo text-danger">banido em {dateOnly(u.banned_at)}</span>}
           {self && <span className="rotulo">você</span>}
         </div>
@@ -123,6 +125,27 @@ export default function Ficha() {
               {u.is_admin ? "Tirar moderação" : "Dar moderação"}
             </Button>
           )}
+          {/* Crachá do órgão conveniado: abre /defesa-civil para esta conta, e
+              só para a cidade informada. Não dá nada da moderação. */}
+          <Button
+            variant="secundario"
+            className="px-3 py-1.5 text-xs"
+            disabled={busy}
+            onClick={() => {
+              if (u.is_agent) {
+                return act("admin_set_agent", { p_user_id: u.id, p_agent: false }, `Tirar o acesso de órgão de ${u.email ?? "esta conta"}?`);
+              }
+              const name = prompt("Nome do órgão (sai no rodapé da ficha em PDF):", "Defesa Civil de Itapetininga");
+              if (!name) return;
+              act(
+                "admin_set_agent",
+                { p_user_id: u.id, p_agent: true, p_city: CITY.id, p_agency_name: name },
+                `Dar acesso à sala de situação de ${CITY.name} para esta conta, em nome de "${name}"?`,
+              );
+            }}
+          >
+            {u.is_agent ? "Tirar acesso de órgão" : "Dar acesso de órgão"}
+          </Button>
           <Link href={`/admin/registro?user=${u.id}`} className="inline-flex items-center px-3 py-1.5 text-xs text-accent hover:underline">
             Ver todo o registro
           </Link>

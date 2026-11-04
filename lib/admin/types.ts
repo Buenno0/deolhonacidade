@@ -57,6 +57,10 @@ export type AdminUserRow = {
   reports_received: number;
   requests: number;
   business_status: BusinessStatus | null;
+  // Crachá de órgão conveniado (painel da Defesa Civil)
+  is_agent: boolean;
+  agency_city: number | null;
+  agency_name: string | null;
 };
 
 export type LogEntry = {
@@ -124,6 +128,11 @@ export const ACTION_LABELS: Record<string, string> = {
   admin_business_approved: "aprovou um estabelecimento",
   admin_business_rejected: "recusou um estabelecimento",
   admin_business_suspended: "suspendeu um estabelecimento",
+  admin_grant_agent: "deu acesso de órgão a",
+  admin_revoke_agent: "tirou o acesso de órgão de",
+  admin_set_retention: "mudou a guarda de evidência de uma cidade",
+  agency_view_event: "abriu a ficha de uma ocorrência",
+  agency_ask: "pediu foto de um ponto (órgão)",
 };
 
 export const actionLabel = (a: string) => ACTION_LABELS[a] ?? a;

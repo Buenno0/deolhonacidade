@@ -57,6 +57,29 @@ mais.
 **Pedir o app para a sua cidade.** Quem abre de fora da área atendida vê a
 cidade mais próxima e pode registrar interesse.
 
+## Para a Defesa Civil
+
+Órgãos conveniados têm uma porta separada, em `/defesa-civil`. Ela mostra só
+ocorrência (alagamento, acidente, falta de energia, obra, trânsito e
+segurança), só do município do convênio, e nada de conta ou autor.
+
+**Agora.** O que está no ar neste minuto, no mapa e em lista, com a hora de
+chegada e se alguém que estava perto confirmou.
+
+**Pedir olhos num ponto.** O agente marca um lugar no mapa e quem estiver a
+até 1 km responde com uma foto. Em vez de mandar viatura para saber se a água
+subiu, pergunta.
+
+**Registro.** A lista do período, com coordenada e confirmação, que sai em CSV.
+Cada ocorrência tem uma ficha pronta para virar PDF, que declara de onde veio a
+foto e o que foi desfocado nela.
+
+**Recorrência.** Os trechos de ~110 m onde o mesmo problema voltou, para
+priorizar obra e alimentar o Plano Diretor.
+
+Quem dá o crachá é a moderação, na ficha do usuário. O agente não vê moderação,
+custo, e-mail nem conta, e cada ficha que ele abre fica no registro de acesso.
+
 ## Sobre a sua privacidade
 
 - **Ninguém sabe quem postou.** As fotos aparecem sem nome. Um apelido público
@@ -98,4 +121,8 @@ no servidor e AWS opcional para fotos, moderação e e-mail.
 
 - Revisão jurídica dos termos de uso antes de abrir ao público
 - Tirar a foto escondida do cache do CDN na hora da denúncia (hoje leva até 10 min)
-- Ofertas do comércio local e um painel de dados para a prefeitura
+- Ofertas do comércio local
+- Ligar a guarda da evidência para o município: a sala de situação da Defesa
+  Civil já existe (`/defesa-civil`), mas só mostra o que está no ar. Guardar a
+  foto vencida como registro do município exige acertar antes os termos de uso
+  e a página de privacidade, que hoje prometem o apagamento
