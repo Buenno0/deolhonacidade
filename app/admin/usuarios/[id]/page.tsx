@@ -12,6 +12,7 @@ import { BADGES, TIER_NAMES, levelName, type BadgeId } from "@/lib/progress";
 import { PROVIDER_LABEL, actionLabel, dateOnly, dateTime, fmt, plural, type AdminUserDetail } from "@/lib/admin/types";
 import { useAdmin } from "@/components/admin/context";
 import Stat from "@/components/admin/Stat";
+import AgentSheet from "@/components/admin/AgentSheet";
 import Medal from "@/components/Medal";
 import { Button, EmptyState, Spinner, cx } from "@/components/ui";
 import { CategoryIcon } from "@/components/ui/icons";
@@ -32,6 +33,7 @@ export default function Ficha() {
   const [data, setData] = useState<AdminUserDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [cracha, setCracha] = useState(false);
   const [now] = useState(() => Date.now());
 
   const load = useCallback(async () => {
@@ -44,14 +46,20 @@ export default function Ficha() {
     Promise.resolve().then(load);
   }, [load]);
 
-  async function act(fn: string, args: Record<string, unknown>, question: string) {
-    if (!confirm(question)) return;
+  async function run(fn: string, args: Record<string, unknown>) {
     setBusy(true);
     setError(null);
     const { error } = await supabase.rpc(fn, args);
     if (error) setError(error.message);
     await load();
     setBusy(false);
+  }
+
+  // Ação destrutiva passa pelo confirm. Quem tem sheet próprio (o crachá)
+  // chama run direto: o sheet já é a confirmação.
+  async function act(fn: string, args: Record<string, unknown>, question: string) {
+    if (!confirm(question)) return;
+    await run(fn, args);
   }
 
   if (!data) {
@@ -71,6 +79,16 @@ export default function Ficha() {
 
   return (
     <div className="flex flex-col gap-6">
+      {cracha && (
+        <AgentSheet
+          email={u.email}
+          onClose={() => setCracha(false)}
+          onConfirm={(nome) => {
+            setCracha(false);
+            run("admin_set_agent", { p_user_id: u.id, p_agent: true, p_city: CITY.id, p_agency_name: nome });
+          }}
+        />
+      )}
       <Link href="/admin/usuarios" className="rotulo text-accent">
         ← usuários
       </Link>
@@ -131,18 +149,11 @@ export default function Ficha() {
             variant="secundario"
             className="px-3 py-1.5 text-xs"
             disabled={busy}
-            onClick={() => {
-              if (u.is_agent) {
-                return act("admin_set_agent", { p_user_id: u.id, p_agent: false }, `Tirar o acesso de órgão de ${u.email ?? "esta conta"}?`);
-              }
-              const name = prompt("Nome do órgão (sai no rodapé da ficha em PDF):", "Defesa Civil de Itapetininga");
-              if (!name) return;
-              act(
-                "admin_set_agent",
-                { p_user_id: u.id, p_agent: true, p_city: CITY.id, p_agency_name: name },
-                `Dar acesso à sala de situação de ${CITY.name} para esta conta, em nome de "${name}"?`,
-              );
-            }}
+            onClick={() =>
+              u.is_agent
+                ? act("admin_set_agent", { p_user_id: u.id, p_agent: false }, `Tirar o acesso de órgão de ${u.email ?? "esta conta"}?`)
+                : setCracha(true)
+            }
           >
             {u.is_agent ? "Tirar acesso de órgão" : "Dar acesso de órgão"}
           </Button>
