@@ -16,6 +16,15 @@ import { Button, EmptyState, Spinner } from "@/components/ui";
 // O que ela precisa declarar, porque vira peça de processo: de onde veio a
 // foto, que ela foi alterada (desfoque de rosto e placa) e por quê, se alguém
 // que estava perto confirmou, e até quando o município guarda o original.
+// O documento não fala a língua do servidor: "none" e "rekognition" viram
+// frase. O valor cru só aparece se surgir um provedor que ninguém traduziu.
+const CHECAGEM: Record<string, string> = {
+  none: "não informada",
+  "": "não informada",
+  formato: "recusada por formato de arquivo",
+  rekognition: "Amazon Rekognition, com revisão do Claude",
+};
+
 export default function Ficha() {
   const supabase = getSupabase();
   const { id } = useParams<{ id: string }>();
@@ -70,7 +79,7 @@ export default function Ficha() {
         ? `${fmt(blurred)} área(s) desfocada(s): ${fmt(e.faces_blurred)} rosto(s) e ${fmt(e.plates_blurred)} placa(s)`
         : "nenhum rosto ou placa detectado; imagem sem desfoque",
     ],
-    ["Checagem automática", e.checked_by ?? "não informada"],
+    ["Checagem automática", CHECAGEM[e.checked_by ?? ""] ?? e.checked_by ?? "não informada"],
     ["Alcance público", `${fmt(e.view_count)} visualizações, ${fmt(e.share_count)} compartilhamentos`],
     ["Guarda da evidência", e.agency_until ? `até ${dateTime(e.agency_until)}` : "não retida pelo município"],
     ["Identificador", <span key="i" className="font-mono text-xs">{e.id}</span>],

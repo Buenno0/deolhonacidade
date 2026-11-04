@@ -144,7 +144,7 @@ export default function Recorrencia() {
                         {s.categories.map((c) => CATEGORIES[c].label).join(" · ")}
                       </span>
                       <span className="block text-xs text-muted">
-                        em {s.days} {s.days === 1 ? "dia" : "dias"} diferentes · última em {dateTime(s.last_at)}
+                        em {s.days === 1 ? "um único dia" : `${s.days} dias diferentes`} · última em {dateTime(s.last_at)}
                       </span>
                     </span>
                     <a

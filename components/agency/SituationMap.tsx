@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MapLibreMap, Marker, setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { CITY } from "@/lib/city";
@@ -41,6 +41,10 @@ export default function SituationMap({
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<MapLibreMap | null>(null);
   const markers = useRef(new Map<string, Marker>());
+  // O mapa nasce depois do primeiro render (buildMapStyle é assíncrono). Sem
+  // este sinal, a reconciliação dos pontos roda com map.current ainda nulo e
+  // não acontece de novo: a lista mostra os trechos e o mapa fica vazio.
+  const [ready, setReady] = useState(false);
   const { theme } = useTheme();
   // handlers mudam a cada render; o mapa é montado uma vez só, então ele lê
   // sempre o par mais recente em vez de reassinar os eventos
@@ -65,10 +69,12 @@ export default function SituationMap({
       });
       m.on("click", (e) => latest.current.onPick?.(e.lngLat.lng, e.lngLat.lat));
       map.current = m;
+      setReady(true);
     })();
     const pins = markers.current;
     return () => {
       alive = false;
+      setReady(false);
       map.current?.remove();
       map.current = null;
       pins.clear();
@@ -111,14 +117,14 @@ export default function SituationMap({
       marker.remove();
       markers.current.delete(id);
     }
-  }, [spots, activeId]);
+  }, [spots, activeId, ready]);
 
   // Centraliza no ponto selecionado sem mexer no zoom de quem está lendo
   useEffect(() => {
     if (!activeId || !map.current) return;
     const s = spots.find((x) => x.id === activeId);
     if (s) map.current.easeTo({ center: [s.lng, s.lat], duration: 400 });
-  }, [activeId, spots]);
+  }, [activeId, spots, ready]);
 
   return <div ref={box} style={{ height }} className="overflow-hidden rounded-2xl border border-line" />;
 }
