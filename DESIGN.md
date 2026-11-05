@@ -119,20 +119,29 @@ terceiros:
 
 | família | onde |
 |---|---|
-| **Anton** 400 (`font-cartaz`) | título de cartaz: o herói da LP, as chamadas de seção, a legenda no visualizador |
+| **Anton** 400 (`font-cartaz`, e `font-display` aponta para ela) | todo título: o herói da LP, as chamadas de seção, o nome do app, o título de sheet, a legenda no visualizador |
 | **Instrument Serif** 400 + itálico (`font-serifa`, `.legenda`) | lugar, hora, categoria: o metadado que antes era rótulo mono |
 | pilha do sistema | corpo, botão, campo |
-| **Archivo** 600/700 (`font-display`) | em saída: o que ainda não migrou para a Anton |
-| **JetBrains Mono** 400/500 (`.rotulo`, `.num`) | em saída: `.num` fica, `.rotulo` morre |
+| **JetBrains Mono** 400/500 (`.num`, e `.rotulo` nas telas internas) | número: relógio, contagem, precisão do GPS |
 
-As duas famílias novas somam 42 KB, menos que a Archivo sozinha. O corpo
-segue na pilha do sistema de propósito: uma terceira família baixada custaria
-mais do que entrega.
+**Uma família de título só.** `--font-display` aponta para a mesma Anton do
+cartaz, e por isso a Archivo saiu do projeto: duas famílias de título seriam
+duas vozes. As duas novas somam 42 KB e a saída da Archivo devolveu 35, então
+o app ficou 7 KB mais pesado em fonte e ganhou uma serifa.
 
-- `.legenda`: serifa itálica 15px, `--muted`. É a substituta do `.rotulo`.
+O corpo segue na pilha do sistema de propósito: uma terceira família baixada
+custaria mais do que entrega.
+
+- `.legenda`: serifa itálica 15px, `--muted`. É a substituta do `.rotulo`, e
+  hoje são 64 usos no produto. Na LP ela tem dois tamanhos (`.lp-legenda` 17px
+  para chamada de seção, `.lp-legenda-p` 14px para selo sobre foto).
 - `.rotulo`: mono 10px, 500, `letter-spacing: .16em`, maiúsculo, `--muted`.
-  **Em remoção.** São 135 usos, e o mono em caixa alta espaçado era a
-  assinatura mais reconhecível do visual antigo.
+  **Saiu do produto inteiro.** Sobraram 71 usos no `/admin` e no
+  `/defesa-civil`, que são ferramentas internas: ali o mono denso em caixa alta
+  é adequado, e ninguém de fora vê. Se alguma dessas telas virar produto, ela
+  migra junto.
+- **Abaixo de 10px, mono.** A serifa itálica some em 9px, então relógio,
+  contagem e selo miúdo usam `.num`. Número é o lugar onde a mono fica.
 - `.num`: mono com `tabular-nums`, para o relógio não dançar quando o minuto vira.
 
 Corpo em 14px (`text-sm`), campos em 16px (`text-base`, evita zoom no iOS).
@@ -141,14 +150,18 @@ Corpo em 14px (`text-sm`), campos em 16px (`text-base`, evita zoom no iOS).
 
 ## 4. Forma
 
-Quanto maior a superfície, maior o raio:
+**Canto vivo é o padrão.** O raio é a exceção, não a régua:
 
-| raio | uso |
+| forma | uso |
 |---|---|
-| `rounded-lg` 8px | botão, campo |
-| `rounded-full` | chip, botão de ícone, pin, pílula de status |
-| `rounded-xl` 12px | poço da foto, caixa de localização |
-| `rounded-2xl` 16px | cabeçalho, sheet, estado vazio |
+| canto vivo | botão, campo, cartão, sheet, cabeçalho, poço da foto, estado vazio |
+| `rounded-full` | chip, botão de ícone, pin, ponto, pílula de status |
+| `14 14 14 4` | o balão do pedido (§5.3): a ponta diz de onde ele fala |
+| 11px e 7px | o azulejo do marco (§5.7): ladrilho tem canto arredondado |
+
+A régua antiga era "quanto maior a superfície, maior o raio", de 8px a 16px.
+Era o que fazia tudo parecer o mesmo card de dashboard. Agora o que separa uma
+superfície da outra é o fio ou a régua preta, não o arredondamento.
 
 Sheet: sobe de baixo no celular, centraliza a partir de `sm:`.
 
@@ -162,7 +175,7 @@ Sheet: sobe de baixo no celular, centraliza a partir de `sm:`.
 | `IconButton` | idem | 40px, borda, `aria-label` obrigatório |
 | `Chip` | idem | filtro e escolha de categoria; `aria-pressed` |
 | `Spinner`, `EmptyState` | idem | carregando / vazio |
-| `Sheet` | `components/Sheet.tsx` | eyebrow em `.rotulo` + título em Archivo; Esc fecha |
+| `Sheet` | `components/Sheet.tsx` | eyebrow em `.legenda` + título em Anton; Esc fecha |
 | `Mark` | `components/ui/Mark.tsx` | o município com o pin no centro urbano |
 | ícones | `components/ui/icons.tsx` | viewBox 24, traço 1.8, redondo, `currentColor` |
 | pin | `components/map/CityMap.tsx` + `.pin` | foto + anel de tempo + ponta |
@@ -335,13 +348,16 @@ não só no cartaz branco.
 3. **O mapa tem cores fora dos tokens** (§2.3), de propósito: legibilidade
    do mapa vence a coerência da paleta. Elas vivem em `lib/map/style.ts`, não
    em `design/tokens.mjs`, e dependem dos ids de camada do positron.
-4. **A LP ainda é dourada e sempre escura.** `app/landing.css` força `.dark`
-   no wrapper e tem cerca de trinta hexadecimais de ouro cravados nas
-   ilustrações (`#f0c46a`, `#f6d58c`, `rgba(210, 154, 68, …)`). A troca de
-   tokens não a alcança. É o próximo passo do redesign, junto com a Anton no
-   herói e a morte dos 135 `.rotulo`.
-5. **Duas tipografias convivem.** Archivo e Anton estão declaradas ao mesmo
-   tempo enquanto as telas migram. A Archivo sai quando ninguém mais a usar.
+4. **As telas internas ficaram para trás.** `/admin` e `/defesa-civil` ainda
+   têm 71 `.rotulo` e os cantos arredondados antigos. Foi decisão, não
+   esquecimento: são ferramentas internas, e ali o mono denso em caixa alta
+   serve. Se alguma delas virar produto, migra junto.
+5. **A LP ainda é isométrica.** As ilustrações (`components/landing/scenes.tsx`,
+   622 linhas, usadas por oito componentes) continuam no desenho isométrico do
+   visual antigo. No papel claro elas passaram a funcionar como blocos de foto,
+   o que comprou tempo, mas a linguagem de ilustração ainda não é a do mural.
+   O degradê de dia e noite do "um dia em Itapetininga" fica dourado de
+   propósito: ali o ouro é o sol, não a marca.
 
 ---
 

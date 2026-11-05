@@ -56,7 +56,7 @@ export function HistoryRuler({
             disabled={n === 0}
             onClick={() => onPick(d)}
             className={cx(
-              "flex shrink-0 flex-col items-center gap-0.5 rounded-xl border px-3 py-1.5 text-xs transition",
+              "flex shrink-0 flex-col items-center gap-0.5 rounded-none border px-3 py-1.5 text-xs transition",
               active ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface text-ink hover:bg-elev",
               n === 0 && "opacity-40",
             )}
@@ -82,7 +82,7 @@ export function HistoryList({ posts, onOpen }: { posts: PostFeature[]; onOpen: (
           <li key={p.id}>
             <button
               onClick={() => onOpen(p.id, ids)}
-              className="sala-escura relative block w-full overflow-hidden rounded-xl border border-line bg-black text-left"
+              className="sala-escura relative block w-full overflow-hidden rounded-none border border-line bg-black text-left"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -98,7 +98,7 @@ export function HistoryList({ posts, onOpen }: { posts: PostFeature[]; onOpen: (
                 }}
               />
               <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-2 pt-8">
-                <span className="rotulo flex items-center gap-1.5 text-ink">
+                <span className="legenda flex items-center gap-1.5 text-ink">
                   <CategoryIcon category={p.category} width="1.1em" height="1.1em" />
                   <span className="num">{hourFmt.format(new Date(p.created_at))}</span>
                 </span>

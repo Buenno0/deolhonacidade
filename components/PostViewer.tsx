@@ -274,7 +274,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
         </IconButton>
       )}
 
-      <div className="relative h-full w-full overflow-hidden sm:aspect-[9/16] sm:h-[min(92dvh,860px)] sm:w-auto sm:rounded-2xl sm:shadow-2xl">
+      <div className="relative h-full w-full overflow-hidden sm:aspect-[9/16] sm:h-[min(92dvh,860px)] sm:w-auto sm:rounded-none sm:shadow-2xl">
         <div
           ref={track}
           className="no-scrollbar relative isolate z-0 flex h-full snap-x snap-mandatory overflow-x-auto"
@@ -364,7 +364,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold [text-shadow:0_1px_6px_rgb(0_0_0/0.6)]">{promo ? (p.business_name ?? cat.label) : cat.label}</p>
-              <p className="rotulo text-ink/85 [text-shadow:0_1px_6px_rgb(0_0_0/0.7)]">
+              <p className="legenda text-ink/85 [text-shadow:0_1px_6px_rgb(0_0_0/0.7)]">
                 {archive ? (
                   <>
                     registrado em <span className="num text-ink">{registered(p.created_at)}</span>
@@ -403,7 +403,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
           {p.caption && (
             <p className="font-display text-2xl font-bold leading-tight [text-shadow:0_1px_10px_rgb(0_0_0/0.55)]">{p.caption}</p>
           )}
-          {meta.length > 0 && <p className="rotulo text-ink/85 [text-shadow:0_1px_6px_rgb(0_0_0/0.6)]">{meta.join(" · ")}</p>}
+          {meta.length > 0 && <p className="legenda text-ink/85 [text-shadow:0_1px_6px_rgb(0_0_0/0.6)]">{meta.join(" · ")}</p>}
 
           {promo ? (
             <div className="flex flex-wrap gap-2">
@@ -434,7 +434,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
           ) : (
             !archive &&
             (mine ? (
-              <p className="rotulo text-ink/70">Seu post · quem está perto confirma se ainda está rolando</p>
+              <p className="legenda text-ink/70">Seu post · quem está perto confirma se ainda está rolando</p>
             ) : (
               <StillThere
                 key={p.id}

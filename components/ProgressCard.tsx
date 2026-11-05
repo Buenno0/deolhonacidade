@@ -39,15 +39,15 @@ export default function ProgressCard({ progress, onChanged }: { progress: Progre
   return (
     <section className="flex flex-col gap-4">
       {/* Nível e XP */}
-      <div className="flex items-center gap-4 rounded-2xl border border-line bg-bg p-4">
+      <div className="flex items-center gap-4 rounded-none border border-line bg-bg p-4">
         <Medal label={String(cur.level)} tier={3} size={64} />
         <div className="min-w-0 flex-1">
-          <p className="rotulo">nível {cur.level}</p>
+          <p className="legenda">nível {cur.level}</p>
           <p className="font-display text-lg font-semibold leading-tight">{cur.name}</p>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-elev">
             <div className="h-full rounded-full bg-accent" style={{ width: `${frac * 100}%` }} />
           </div>
-          <p className="rotulo mt-1">
+          <p className="legenda mt-1">
             <span className="num text-ink">{progress.xp}</span> XP
             {next ? ` · faltam ${next.xp - progress.xp} para ${next.name}` : " · nível máximo"}
           </p>
@@ -55,16 +55,16 @@ export default function ProgressCard({ progress, onChanged }: { progress: Progre
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-xl border border-line bg-bg p-3">
-          <p className="rotulo">sequência</p>
+        <div className="rounded-none border border-line bg-bg p-3">
+          <p className="legenda">sequência</p>
           <p className="mt-1 flex items-center gap-1.5 text-base">
             <FlameIcon className={progress.streak_today ? "text-danger" : "text-muted"} />
             <span className="num">{progress.streak_days}</span> {progress.streak_days === 1 ? "dia" : "dias"}
           </p>
           <p className="text-xs text-muted">{progress.streak_today ? "Hoje já contou" : "Ajude hoje para não perder"}</p>
         </div>
-        <div className="rounded-xl border border-line bg-bg p-3">
-          <p className="rotulo">XP hoje</p>
+        <div className="rounded-none border border-line bg-bg p-3">
+          <p className="legenda">XP hoje</p>
           <p className="num mt-1 text-base">
             {progress.xp_today}/{DAILY_CAP}
           </p>
@@ -74,7 +74,7 @@ export default function ProgressCard({ progress, onChanged }: { progress: Progre
 
       {/* Conquistas */}
       <div>
-        <p className="rotulo mb-2">Conquistas</p>
+        <p className="legenda mb-2">Conquistas</p>
         <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
           {(Object.keys(BADGES) as BadgeId[]).map((id) => {
             const def = BADGES[id];
@@ -83,10 +83,10 @@ export default function ProgressCard({ progress, onChanged }: { progress: Progre
             const done = tier >= def.tiers.length;
             const h = done ? null : hint(id, nextTier, progress);
             return (
-              <li key={id} className="flex flex-col items-center gap-1 rounded-xl border border-line bg-bg p-2 text-center">
+              <li key={id} className="flex flex-col items-center gap-1 rounded-none border border-line bg-bg p-2 text-center">
                 <Medal icon={def.icon} tier={def.first ? 3 : ((tier || 1) as 1 | 2 | 3)} locked={tier === 0} size={48} />
                 <span className="text-xs font-medium leading-tight">{def.name}</span>
-                <span className="rotulo text-[9px]">
+                <span className="num text-[9px]">
                   {tier ? (def.first ? "feita" : TIER_NAMES[tier - 1]) : "trancada"}
                   {h ? ` · ${h}` : ""}
                 </span>
@@ -97,8 +97,8 @@ export default function ProgressCard({ progress, onChanged }: { progress: Progre
       </div>
 
       {/* Apelido opcional */}
-      <div className="rounded-xl border border-line bg-bg p-3">
-        <p className="rotulo mb-2">Apelido (opcional)</p>
+      <div className="rounded-none border border-line bg-bg p-3">
+        <p className="legenda mb-2">Apelido (opcional)</p>
         <div className="flex gap-2">
           <span className="grid place-items-center text-muted">@</span>
           <input
@@ -107,7 +107,7 @@ export default function ProgressCard({ progress, onChanged }: { progress: Progre
             maxLength={20}
             placeholder="ex.: olheiro_do_centro"
             aria-label="Apelido"
-            className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 py-2 text-base outline-none focus:border-accent"
+            className="min-w-0 flex-1 rounded-none border border-line bg-surface px-3 py-2 text-base outline-none focus:border-accent"
           />
         </div>
         <label className="mt-2 flex items-start gap-2 text-sm text-muted">

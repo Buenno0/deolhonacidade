@@ -306,7 +306,7 @@ export default function NewPostSheet({
             <img
               src={preview}
               alt="Prévia da foto"
-              className="h-24 w-24 shrink-0 rounded-xl border border-line object-cover"
+              className="h-24 w-24 shrink-0 rounded-none border border-line object-cover"
             />
             <div className="flex min-w-0 flex-1 flex-col gap-2 text-sm">
               {locationLine && (
@@ -336,19 +336,19 @@ export default function NewPostSheet({
             </div>
           </div>
         ) : (
-          <label className="flex aspect-[16/9] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-line bg-elev text-muted transition hover:text-ink">
+          <label className="flex aspect-[16/9] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-none border border-dashed border-line bg-elev text-muted transition hover:text-ink">
             <CameraIcon width="2em" height="2em" />
             <span className="font-display text-base font-semibold text-ink">
               Tirar foto
             </span>
-            <span className="rotulo">tem que ser de agora</span>
+            <span className="legenda">tem que ser de agora</span>
             {cameraInput}
           </label>
         )}
 
         {/* Categorias numa linha, deslizando, as mais usadas primeiro */}
         <fieldset>
-          <legend className="rotulo mb-2">O que é</legend>
+          <legend className="legenda mb-2">O que é</legend>
           <div ref={faixa} className="no-scrollbar -mx-5 flex select-none gap-2 overflow-x-auto px-5 pb-1">
             {business && !request && (
               <Chip
@@ -378,7 +378,7 @@ export default function NewPostSheet({
 
         <label className="flex flex-col gap-1.5">
           <span className="flex justify-between">
-            <span className="rotulo">Legenda (opcional)</span>
+            <span className="legenda">Legenda (opcional)</span>
             <span className="num text-[10px] text-muted">
               {caption.length}/140
             </span>
@@ -389,7 +389,7 @@ export default function NewPostSheet({
             placeholder="Conte rapidinho o que está rolando"
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
-            className="max-h-32 min-h-11 w-full resize-none rounded-lg border border-line bg-bg px-3 py-2.5 text-base outline-none transition [field-sizing:content] focus:border-accent"
+            className="max-h-32 min-h-11 w-full resize-none rounded-none border border-line bg-bg px-3 py-2.5 text-base outline-none transition [field-sizing:content] focus:border-accent"
           />
         </label>
 

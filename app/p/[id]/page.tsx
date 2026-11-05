@@ -52,7 +52,7 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
           <p className="flex items-center gap-2 font-display text-base font-bold leading-tight">
             Viu na Cidade <BetaTag />
           </p>
-          <p className="rotulo">
+          <p className="legenda">
             {CITY.name} · {CITY.uf}
           </p>
         </div>
@@ -61,7 +61,7 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
       {(post?.alive || post?.archived) && post.photo_path && cat ? (
         <article className="mt-2 flex flex-col gap-4">
           {post.alive && <RecordView id={post.id} />}
-          <div className="sala-escura relative overflow-hidden rounded-2xl border border-line bg-black">
+          <div className="sala-escura relative overflow-hidden rounded-none border border-line bg-black">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={photoUrl(post.photo_path)} alt={post.caption ?? cat.label} className="max-h-[70dvh] w-full object-contain" />
             <span
@@ -69,13 +69,13 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
               style={{ borderColor: severityVar(post.category), color: severityVar(post.category) }}
             >
               <CategoryIcon category={post.category} />
-              <span className="rotulo" style={{ color: "inherit" }}>
+              <span className="legenda" style={{ color: "inherit" }}>
                 {post.business_name ?? cat.label}
               </span>
             </span>
           </div>
           {post.caption && <h1 className="font-display text-2xl font-semibold leading-snug">{post.caption}</h1>}
-          <p className="rotulo flex flex-wrap gap-x-3 gap-y-1">
+          <p className="legenda flex flex-wrap gap-x-3 gap-y-1">
             {post.alive ? (
               <>
                 <span>{timeAgo(post.created_at)}</span>
@@ -92,18 +92,18 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
           </p>
           <Link
             href={post.alive ? `/mapa?post=${post.id}` : `/mapa?historico=${cityDay(post.created_at)}&post=${post.id}`}
-            className="mt-2 inline-flex items-center justify-center rounded-lg bg-accent px-5 py-3 text-base font-semibold text-accent-ink"
+            className="mt-2 inline-flex items-center justify-center rounded-none bg-accent px-5 py-3 text-base font-semibold text-accent-ink"
           >
             {post.alive ? "Ver no mapa" : "Ver no histórico"}
           </Link>
         </article>
       ) : (
-        <section className="mt-10 flex flex-col items-center gap-3 rounded-2xl border border-line bg-surface px-6 py-8 text-center">
+        <section className="mt-10 flex flex-col items-center gap-3 rounded-none border border-line bg-surface px-6 py-8 text-center">
           <p className="font-display text-xl font-semibold">{post ? "Esse registro já sumiu" : "Registro não encontrado"}</p>
           <p className="text-sm text-muted">
             No Viu na Cidade, cada foto mostra o que está acontecendo agora e some do mapa em até 12 horas.
           </p>
-          <Link href="/mapa" className="mt-2 rounded-lg bg-accent px-5 py-3 text-base font-semibold text-accent-ink">
+          <Link href="/mapa" className="mt-2 rounded-none bg-accent px-5 py-3 text-base font-semibold text-accent-ink">
             Ver o que está rolando agora
           </Link>
         </section>

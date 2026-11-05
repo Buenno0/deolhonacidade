@@ -48,7 +48,7 @@ export default function AchievementOverlay({ item, remaining, onNext, onSeeAll }
             <Medal label={String(item.level)} tier={3} size={148} animate />
           )}
         </div>
-        <p className="rotulo mt-6" style={{ color }}>
+        <p className="legenda mt-6" style={{ color }}>
           {isBadge ? (def!.first ? "primeira vez" : `conquista · ${TIER_NAMES[item.tier - 1]}`) : "subiu de nível"}
         </p>
         <h2 className="mt-2 font-display text-3xl font-bold leading-tight text-ink">{isBadge ? def!.name : levelName(item.level)}</h2>

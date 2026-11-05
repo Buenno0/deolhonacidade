@@ -34,11 +34,11 @@ export default function RequestSheet({ request, answers, loggedIn, onClose, onAn
   return (
     <Sheet eyebrow={`Alguém aí? · fecha em ${timeLeftShort(request.expires_at)}`} title={request.question} onClose={onClose}>
       <div className="flex flex-col gap-4">
-        <p className="rotulo">Perguntado {timeAgo(request.created_at)}</p>
+        <p className="legenda">Perguntado {timeAgo(request.created_at)}</p>
 
         {answers.length > 0 ? (
           <div>
-            <p className="rotulo mb-2">
+            <p className="legenda mb-2">
               {answers.length} {answers.length === 1 ? "resposta" : "respostas"}
             </p>
             <div ref={faixa} className="no-scrollbar flex select-none gap-2 overflow-x-auto">
@@ -46,7 +46,7 @@ export default function RequestSheet({ request, answers, loggedIn, onClose, onAn
                 <button
                   key={f.properties.id}
                   onClick={() => onOpenAnswer(f.properties.id)}
-                  className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-line bg-elev"
+                  className="h-24 w-24 shrink-0 overflow-hidden rounded-none border border-line bg-elev"
                   aria-label={`Ver resposta de ${timeAgo(f.properties.created_at)}`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}

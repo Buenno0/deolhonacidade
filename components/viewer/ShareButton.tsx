@@ -51,16 +51,16 @@ export default function ShareButton({ post, onShared, archive = false }: { post:
         <ShareIcon /> Compartilhar
       </Button>
       {open && (
-        <div className="absolute bottom-10 left-0 z-10 flex w-52 flex-col rounded-xl border border-white/15 bg-black/85 p-1.5 backdrop-blur">
+        <div className="absolute bottom-10 left-0 z-10 flex w-52 flex-col rounded-none border border-white/15 bg-black/85 p-1.5 backdrop-blur">
           <a
             href={`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink hover:bg-white/10"
+            className="flex items-center gap-2 rounded-none px-3 py-2 text-sm text-ink hover:bg-white/10"
           >
             <ChatIcon /> WhatsApp
           </a>
-          <button onClick={copy} className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-ink hover:bg-white/10">
+          <button onClick={copy} className="flex items-center gap-2 rounded-none px-3 py-2 text-left text-sm text-ink hover:bg-white/10">
             {copied ? <CheckIcon className="text-ok" /> : <LinkIcon />} {copied ? "Link copiado" : "Copiar link"}
           </button>
         </div>

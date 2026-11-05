@@ -47,7 +47,8 @@ export default function LiveStrip({ posts, onOpen, seen }: { posts: PostFeature[
                 }}
               />
             </span>
-            <span className="rotulo rounded-full bg-black/55 px-1.5 text-[9px] text-ink">{timeAgo(p.created_at)}</span>
+            {/* Tempo em mono: a serifa a 9px some, e número é o lugar onde a mono fica */}
+            <span className="num rounded-full bg-black/55 px-1.5 text-[9px] text-ink">{timeAgo(p.created_at)}</span>
           </button>
         );
       })}

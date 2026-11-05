@@ -24,7 +24,7 @@ export default function AerialView({ lng, lat, kind, name }: { lng: number; lat:
     SATELLITE_TILES.replace("{z}", String(Z)).replace("{x}", String(tx)).replace("{y}", String(ty));
 
   return (
-    <figure className="overflow-hidden rounded-xl border border-line bg-elev">
+    <figure className="overflow-hidden rounded-none border border-line bg-elev">
       <div className="relative">
         <svg viewBox={`0 0 ${W} ${H}`} className="block aspect-[4/3] w-full" role="img" aria-label={`Vista aérea de ${name}`}>
           {tiles.map((t) => (
@@ -39,7 +39,7 @@ export default function AerialView({ lng, lat, kind, name }: { lng: number; lat:
           </span>
         </span>
       </div>
-      <figcaption className="rotulo flex justify-between gap-2 px-3 py-1.5">
+      <figcaption className="legenda flex justify-between gap-2 px-3 py-1.5">
         <span className="truncate">Vista aérea · sem foto livre ainda</span>
         <span className="shrink-0">© Esri, Maxar</span>
       </figcaption>

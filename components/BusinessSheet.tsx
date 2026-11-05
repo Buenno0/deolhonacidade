@@ -14,7 +14,7 @@ type Props = {
   onSaved: (b: Business) => void;
 };
 
-const field = "w-full rounded-lg border border-line bg-bg px-3 py-2 text-base outline-none transition focus:border-accent";
+const field = "w-full rounded-none border border-line bg-bg px-3 py-2 text-base outline-none transition focus:border-accent";
 
 // O pedido do comerciante. O ponto é onde a pessoa está agora: é dali (até
 // 150 m) que as divulgações vão poder ser feitas, e a moderação confere.
@@ -23,7 +23,7 @@ export default function BusinessSheet({ business, onClose, onSaved }: Props) {
   return (
     <Sheet eyebrow="Estabelecimento" title={business?.name ?? "Divulgue seu estabelecimento"} onClose={onClose}>
       {business && (
-        <div className="mb-5 flex flex-col gap-2 rounded-xl border border-line bg-bg p-3 text-sm">
+        <div className="mb-5 flex flex-col gap-2 rounded-none border border-line bg-bg p-3 text-sm">
           <p>
             Situação: <span className={cx("font-medium", BUSINESS_STATUS[business.status].tone)}>{BUSINESS_STATUS[business.status].label}</span>
           </p>
@@ -77,29 +77,29 @@ function BusinessForm({ business, onSaved }: { business: Business | null; onSave
   return (
     <div className="flex flex-col gap-4">
       <label className="flex flex-col gap-1.5">
-        <span className="rotulo">Nome do estabelecimento</span>
+        <span className="legenda">Nome do estabelecimento</span>
         <input value={name} maxLength={60} onChange={(e) => setName(e.target.value)} className={field} />
       </label>
       <label className="flex flex-col gap-1.5">
-        <span className="rotulo">Segmento (opcional)</span>
+        <span className="legenda">Segmento (opcional)</span>
         <input value={segment} maxLength={40} placeholder="Padaria, bar, loja de roupas…" onChange={(e) => setSegment(e.target.value)} className={field} />
       </label>
       <label className="flex flex-col gap-1.5">
-        <span className="rotulo">Endereço</span>
+        <span className="legenda">Endereço</span>
         <input value={address} maxLength={120} placeholder="Rua, número" onChange={(e) => setAddress(e.target.value)} className={field} />
       </label>
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-1.5">
-          <span className="rotulo">WhatsApp (opcional)</span>
+          <span className="legenda">WhatsApp (opcional)</span>
           <input value={whatsapp} inputMode="tel" placeholder="15 99999-9999" onChange={(e) => setWhatsapp(e.target.value)} className={field} />
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="rotulo">Instagram (opcional)</span>
+          <span className="legenda">Instagram (opcional)</span>
           <input value={instagram} placeholder="@seuperfil" onChange={(e) => setInstagram(e.target.value)} className={field} />
         </label>
       </div>
 
-      <div className="flex items-start gap-3 rounded-xl border border-line bg-bg px-3 py-2.5 text-sm">
+      <div className="flex items-start gap-3 rounded-none border border-line bg-bg px-3 py-2.5 text-sm">
         <span className="mt-0.5">
           {geoError ? <AlertIcon className="text-danger" /> : position === null ? <Spinner /> : <PinIcon className={usable ? "text-ok" : "text-warn"} />}
         </span>

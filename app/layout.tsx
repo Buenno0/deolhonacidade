@@ -12,7 +12,9 @@ import "./globals.css";
 // linha em serifa itálica. O corpo segue na pilha do sistema, de propósito:
 // uma terceira família baixada custaria mais do que entrega.
 //
-// Archivo e a mono ficam enquanto as telas antigas ainda as usam.
+// A mono fica: ela é o número (relógio, contagem, GPS) e o rótulo das telas
+// internas. A Archivo saiu quando o --font-display passou a apontar para a
+// Anton: duas famílias de título seriam duas vozes.
 const cartaz = localFont({
   src: "./fonts/anton-latin.woff2",
   weight: "400",
@@ -25,12 +27,6 @@ const serifa = localFont({
     { path: "./fonts/instrument-serif-italic-latin.woff2", weight: "400", style: "italic" },
   ],
   variable: "--fonte-serifa",
-  display: "swap",
-});
-const archivo = localFont({
-  src: "./fonts/archivo-latin.woff2",
-  weight: "400 700",
-  variable: "--fonte-archivo",
   display: "swap",
 });
 const mono = localFont({
@@ -58,7 +54,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // A classe do tema entra pelo script antes da hidratação
-    <html lang="pt-BR" className={`${cartaz.variable} ${serifa.variable} ${archivo.variable} ${mono.variable} h-full`} suppressHydrationWarning>
+    <html lang="pt-BR" className={`${cartaz.variable} ${serifa.variable} ${mono.variable} h-full`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>

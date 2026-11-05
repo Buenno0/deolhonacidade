@@ -51,7 +51,7 @@ export default function InstallHint({ onClose }: { onClose: () => void }) {
 
   if (!ios && !canPrompt) return null;
   return (
-    <div className="pointer-events-auto mx-auto flex max-w-lg items-start gap-3 rounded-2xl border border-line bg-surface p-4">
+    <div className="pointer-events-auto mx-auto flex max-w-lg items-start gap-3 rounded-none border border-line bg-surface p-4">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">Tenha o Viu na Cidade na tela de início</p>
         {ios ? (

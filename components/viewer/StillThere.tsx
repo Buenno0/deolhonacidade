@@ -81,7 +81,7 @@ export default function StillThere({ post, loggedIn, onNeedLogin, onVoted }: Pro
           {answered ? "Você confirmou que ainda está rolando" : "Você disse que acabou"}
         </p>
       )}
-      <p className="rotulo text-ink/70">
+      <p className="legenda text-ink/70">
         {summary}
         {post.deny_count > 0 ? ` · ${post.deny_count} disse que acabou` : ""}
       </p>

@@ -29,7 +29,7 @@ export const PENDING_TERMS_KEY = "deolho-termos-aceitos";
 export const PENDING_THEN_KEY = "deolho-depois-do-login";
 
 const FIELD =
-  "w-full rounded-lg border border-line bg-bg px-3 py-2.5 text-base outline-none transition focus:border-accent";
+  "w-full rounded-none border border-line bg-bg px-3 py-2.5 text-base outline-none transition focus:border-accent";
 
 // Login com Google (ou código de 6 dígitos no e-mail) + aceite dos termos.
 // Se já existe sessão (ex.: fechou antes de aceitar), mostra só os termos.
@@ -132,7 +132,7 @@ export default function AuthSheet({ session, onClose, onDone, then = null }: Pro
           }}
         >
           <label className="flex flex-col gap-1.5">
-            <span className="rotulo">E-mail</span>
+            <span className="legenda">E-mail</span>
             <input
               type="email"
               required

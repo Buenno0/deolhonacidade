@@ -26,7 +26,7 @@ export default function OutOfArea({ nearest, from, onGo, onClose }: Props) {
   }
 
   return (
-    <div className="pointer-events-auto relative mx-auto w-full max-w-lg rounded-2xl border border-line bg-surface p-5">
+    <div className="pointer-events-auto relative mx-auto w-full max-w-lg rounded-none border border-line bg-surface p-5">
       <button
         aria-label="Fechar"
         onClick={onClose}
@@ -37,7 +37,7 @@ export default function OutOfArea({ nearest, from, onGo, onClose }: Props) {
       <div className="flex items-start gap-3 pr-8">
         <Mark size={40} className="mt-0.5 shrink-0" />
         <div>
-          <p className="rotulo">fora da área</p>
+          <p className="legenda">fora da área</p>
           <h2 className="font-display text-lg font-semibold leading-snug">O Viu na Cidade ainda não chegou aí</h2>
         </div>
       </div>

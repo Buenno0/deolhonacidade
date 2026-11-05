@@ -7,17 +7,17 @@ export const metadata = { title: "Termos de uso · Viu na Cidade" };
 export default function Termos() {
   return (
     <main className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
-      <Link href="/mapa" className="rotulo text-accent">
+      <Link href="/mapa" className="legenda text-accent">
         ← voltar ao mapa
       </Link>
       <div className="mt-6 flex items-center gap-3">
         <Mark size={36} />
         <div>
-          <p className="rotulo">rascunho</p>
+          <p className="legenda">rascunho</p>
           <h1 className="font-display text-2xl font-bold">Termos de uso</h1>
         </div>
       </div>
-      <ul className="mt-6 space-y-3 rounded-xl border border-line bg-surface p-5 text-sm leading-relaxed">
+      <ul className="mt-6 space-y-3 rounded-none border border-line bg-surface p-5 text-sm leading-relaxed">
         <li>Os posts aparecem no mapa sem o seu nome e saem do ar em até 12 horas depois de publicados.</li>
         <li>
           Se, ao publicar, você marcar &quot;Guardar no histórico&quot;, a foto fica visível para todos no histórico da cidade por
