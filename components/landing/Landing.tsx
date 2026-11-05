@@ -136,7 +136,10 @@ export default function Landing({ lang }: { lang: Lang }) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd(lang)) }} />
 
       <header className="lp-head">
-        <div className="lp-wrap flex flex-wrap items-center gap-x-7 gap-y-3 py-3">
+        {/* No celular tudo cabe em uma linha só: o cabeçalho é grudento, e
+            uma segunda linha comia ~55px de cada tela. "Entrar" some abaixo de
+            sm porque o mapa já leva pro login. */}
+        <div className="lp-wrap flex flex-wrap items-center gap-x-3 gap-y-3 py-3 sm:gap-x-7">
           <a href="#topo" aria-label={t.head.home} className="lp-disp flex items-center gap-2.5 text-[22px]">
             <Mark size={32} />
             Viu
@@ -150,7 +153,7 @@ export default function Landing({ lang }: { lang: Lang }) {
             <a href={t.head.switchHref} hrefLang={t.head.switchLang} lang={t.head.switchLang} aria-label={t.head.switchLabel} title={t.head.switchLabel} className="lp-num flex min-h-11 items-center px-2.5 text-sm text-muted hover:text-ink">
               {t.head.switchShort}
             </a>
-            <a href="/mapa?entrar" className="flex min-h-11 items-center px-2.5 text-sm">{t.head.signIn}</a>
+            <a href="/mapa?entrar" className="hidden min-h-11 items-center px-2.5 text-sm sm:flex">{t.head.signIn}</a>
             <a href="/mapa" className="lp-btn lp-btn-p" style={{ minHeight: 44 }}>{t.head.openMap}</a>
           </div>
         </div>
