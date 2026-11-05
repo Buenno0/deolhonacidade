@@ -116,9 +116,11 @@ function SectionHead({ eyebrow, id, children, accent }: { eyebrow: string; id: s
   );
 }
 
-function Word({ children, delay, gold }: { children: string; delay: number; gold?: boolean }) {
+// Uma palavra do título. Já teve uma versão dourada: a palavra em destaque no
+// meio da manchete era um dos tiques do visual antigo, e saiu no redesign.
+function Word({ children, delay }: { children: string; delay: number }) {
   return (
-    <span className="lp-w" style={{ animationDelay: `${delay}s`, color: gold ? "var(--accent)" : undefined }}>
+    <span className="lp-w" style={{ animationDelay: `${delay}s` }}>
       {children}
     </span>
   );
@@ -158,15 +160,15 @@ export default function Landing({ lang }: { lang: Lang }) {
         {/* Hero */}
         <section id="topo" aria-labelledby="h1" className="lp-wrap flex flex-wrap items-center gap-12 pb-16 pt-14">
           <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-[22px]">
-            <span className="lp-rot lp-fade flex items-center gap-2" style={{ color: "var(--accent)" }}>
+            <span className="lp-legenda lp-fade flex items-center gap-2.5">
               <span className="lp-ponto" />
-              {CITY.name} · {CITY.uf}
+              {CITY.name}, {CITY.uf}
             </span>
-            <h1 id="h1" className="lp-disp m-0 text-[clamp(40px,6vw,68px)] leading-[1.04]">
+            <h1 id="h1" className="lp-disp m-0 text-[clamp(44px,5.4vw,74px)] leading-[0.94]">
               {t.hero.line1.map((w, i) => (
                 <Fragment key={i}>
                   {i > 0 && " "}
-                  <Word delay={i ? 0.2 : 0.05} gold={w.gold}>{w.w}</Word>
+                  <Word delay={i ? 0.2 : 0.05}>{w}</Word>
                 </Fragment>
               ))}
               <br />

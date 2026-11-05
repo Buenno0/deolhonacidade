@@ -51,7 +51,7 @@ const pt = {
     switchLabel: "Read in English",
   },
   hero: {
-    line1: [{ w: "Viu?", gold: false }, { w: "Posta.", gold: true }],
+    line1: ["Viu?", "Posta."],
     line2: [CITY.name, "inteira", "fica", "sabendo."],
     lead: "Trânsito, alagamento, show na praça, fila no posto: alguém tirou a foto agora, do lugar exato. Daqui a pouco ela some, porque já deixou de ser novidade.",
     cta: "Abrir o mapa, é grátis",
@@ -320,7 +320,7 @@ const en: Dict = {
     switchLabel: "Ver em português",
   },
   hero: {
-    line1: [{ w: "Saw it?", gold: false }, { w: "Post it.", gold: true }],
+    line1: ["Saw it?", "Post it."],
     line2: ["All", "of", CITY.name, "finds", "out."],
     lead: "Traffic, flooding, a show in the square, a line at the gas station: someone just took the photo, from the exact spot. Soon it disappears, because it's no longer news.",
     cta: "Open the map, it's free",
