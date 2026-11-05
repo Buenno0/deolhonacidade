@@ -102,7 +102,7 @@ export default function LandmarkSheet({ landmark: l, posts, onClose, onOpenPost,
         )}
         {p?.extract && (
           <div className="rounded-none border border-line bg-bg p-3">
-            <p className="legenda mb-1.5">Da Wikipédia</p>
+            <p className="etiqueta mb-1.5">Da Wikipédia</p>
             <p className="text-sm leading-relaxed">{p.extract}</p>
             <a href={p.url} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs text-accent underline underline-offset-2">
               Ler o artigo completo
@@ -140,7 +140,7 @@ export default function LandmarkSheet({ landmark: l, posts, onClose, onOpenPost,
         )}
 
         <section>
-          <p className="legenda mb-2">Agora por aqui · {LANDMARK_RADIUS_M} m</p>
+          <p className="etiqueta mb-2">Agora por aqui · {LANDMARK_RADIUS_M} m</p>
           {nearby.length === 0 ? (
             <p className="text-sm text-muted">Nada registrado aqui agora.</p>
           ) : (

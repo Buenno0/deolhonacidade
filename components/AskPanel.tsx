@@ -37,7 +37,7 @@ export default function AskPanel({ getCenter, onCancel, onCreated }: Props) {
 
   return (
     <div className="pointer-events-auto mx-auto w-full max-w-lg rounded-none border border-line bg-surface p-4">
-      <p className="legenda">Alguém aí?</p>
+      <p className="etiqueta">Alguém aí?</p>
       <p className="mt-1 text-sm text-muted">Arraste o mapa até a mira no lugar que você quer ver.</p>
       <textarea
         autoFocus

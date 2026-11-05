@@ -434,7 +434,7 @@ export default function PostViewer({ posts, startId, userPos, loggedIn, onActive
           ) : (
             !archive &&
             (mine ? (
-              <p className="legenda text-ink/70">Seu post · quem está perto confirma se ainda está rolando</p>
+              <p className="etiqueta text-ink/70">Seu post · quem está perto confirma se ainda está rolando</p>
             ) : (
               <StillThere
                 key={p.id}

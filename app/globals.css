@@ -55,7 +55,19 @@ body {
     text-transform: uppercase;
     color: var(--muted);
   }
-  /* A legenda de jornal: lugar, hora, categoria. Substitui o .rotulo mono em
+  /* Etiqueta: o rótulo do cromo que opera o app. Rótulo de campo, status,
+     seção de menu, cabeçalho. Pilha do sistema, sem voz própria, porque
+     cromo tem que ser lido rápido e sumir da frente da foto.
+     A serifa (.legenda) não entra aqui: em itálico claro sobre o mapa ela
+     fica frágil, e "ver" em serifa parece nota de rodapé, não botão. */
+  .etiqueta {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--muted);
+  }
+  /* A legenda de jornal: só o editorial. O lugar e a hora de uma foto, o
+     crédito de uma imagem, a fonte de um texto. Substitui o .rotulo mono em
      caixa alta, que era o tique mais visível do visual antigo. */
   .legenda {
     font-family: var(--font-serifa);

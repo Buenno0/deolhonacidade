@@ -42,12 +42,12 @@ export default function ProgressCard({ progress, onChanged }: { progress: Progre
       <div className="flex items-center gap-4 rounded-none border border-line bg-bg p-4">
         <Medal label={String(cur.level)} tier={3} size={64} />
         <div className="min-w-0 flex-1">
-          <p className="legenda">nível {cur.level}</p>
+          <p className="etiqueta">nível {cur.level}</p>
           <p className="font-display text-lg font-semibold leading-tight">{cur.name}</p>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-elev">
             <div className="h-full rounded-full bg-accent" style={{ width: `${frac * 100}%` }} />
           </div>
-          <p className="legenda mt-1">
+          <p className="etiqueta mt-1">
             <span className="num text-ink">{progress.xp}</span> XP
             {next ? ` · faltam ${next.xp - progress.xp} para ${next.name}` : " · nível máximo"}
           </p>
@@ -56,7 +56,7 @@ export default function ProgressCard({ progress, onChanged }: { progress: Progre
 
       <div className="grid grid-cols-2 gap-2">
         <div className="rounded-none border border-line bg-bg p-3">
-          <p className="legenda">sequência</p>
+          <p className="etiqueta">sequência</p>
           <p className="mt-1 flex items-center gap-1.5 text-base">
             <FlameIcon className={progress.streak_today ? "text-danger" : "text-muted"} />
             <span className="num">{progress.streak_days}</span> {progress.streak_days === 1 ? "dia" : "dias"}
@@ -64,7 +64,7 @@ export default function ProgressCard({ progress, onChanged }: { progress: Progre
           <p className="text-xs text-muted">{progress.streak_today ? "Hoje já contou" : "Ajude hoje para não perder"}</p>
         </div>
         <div className="rounded-none border border-line bg-bg p-3">
-          <p className="legenda">XP hoje</p>
+          <p className="etiqueta">XP hoje</p>
           <p className="num mt-1 text-base">
             {progress.xp_today}/{DAILY_CAP}
           </p>
@@ -74,7 +74,7 @@ export default function ProgressCard({ progress, onChanged }: { progress: Progre
 
       {/* Conquistas */}
       <div>
-        <p className="legenda mb-2">Conquistas</p>
+        <p className="etiqueta mb-2">Conquistas</p>
         <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
           {(Object.keys(BADGES) as BadgeId[]).map((id) => {
             const def = BADGES[id];
@@ -98,7 +98,7 @@ export default function ProgressCard({ progress, onChanged }: { progress: Progre
 
       {/* Apelido opcional */}
       <div className="rounded-none border border-line bg-bg p-3">
-        <p className="legenda mb-2">Apelido (opcional)</p>
+        <p className="etiqueta mb-2">Apelido (opcional)</p>
         <div className="flex gap-2">
           <span className="grid place-items-center text-muted">@</span>
           <input

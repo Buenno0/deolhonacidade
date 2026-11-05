@@ -132,9 +132,18 @@ o app ficou 7 KB mais pesado em fonte e ganhou uma serifa.
 O corpo segue na pilha do sistema de propósito: uma terceira família baixada
 custaria mais do que entrega.
 
-- `.legenda`: serifa itálica 15px, `--muted`. É a substituta do `.rotulo`, e
-  hoje são 64 usos no produto. Na LP ela tem dois tamanhos (`.lp-legenda` 17px
-  para chamada de seção, `.lp-legenda-p` 14px para selo sobre foto).
+- **A serifa é editorial, não operacional.** É a regra que mais corta.
+  `.legenda` (serifa itálica 15px, `--muted`) vale para o que legenda alguma
+  coisa: o lugar e a hora de uma foto, o crédito de uma imagem, a fonte de um
+  texto, a chamada de seção da LP. São 6 usos no app.
+  `.etiqueta` (pilha do sistema, 13px, 500, `--muted`) vale para o cromo que
+  opera: rótulo de campo, status, seção de menu, cabeçalho, aviso. São 61.
+  A serifa itálica em cromo sobre mapa fica frágil, e um "ver" em serifa
+  parece nota de rodapé em vez de botão. Na LP a `.lp-legenda` (17px) e a
+  `.lp-legenda-p` (14px) são editoriais pelos dois lados, porque lá a página
+  inteira é contexto de leitura.
+- **Ação precisa de peso.** Um "ver" solto no meio de uma faixa não parece
+  tocável: leva `text-ink` e sublinhado com `underline-offset-4`.
 - `.rotulo`: mono 10px, 500, `letter-spacing: .16em`, maiúsculo, `--muted`.
   **Saiu do produto inteiro.** Sobraram 71 usos no `/admin` e no
   `/defesa-civil`, que são ferramentas internas: ali o mono denso em caixa alta

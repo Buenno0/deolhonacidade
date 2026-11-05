@@ -24,7 +24,7 @@ type Props = {
 
 function Metrics({ p }: { p: PostFeature["properties"] }) {
   return (
-    <span className="legenda flex flex-wrap items-center gap-x-3 gap-y-1">
+    <span className="etiqueta flex flex-wrap items-center gap-x-3 gap-y-1">
       <span className="inline-flex items-center gap-1">
         <EyeIcon width="1.1em" height="1.1em" /> <span className="num text-ink">{p.view_count}</span>
       </span>
@@ -108,7 +108,7 @@ export default function TrendsView({ posts, onOpen }: Props) {
                 <span className="num text-2xl font-medium text-accent">#1</span>
                 <span className="inline-flex items-center gap-1.5" style={{ color: severityVar(first.properties.category) }}>
                   <CategoryIcon category={first.properties.category} />
-                  <span className="legenda" style={{ color: "inherit" }}>
+                  <span className="etiqueta" style={{ color: "inherit" }}>
                     {CATEGORIES[first.properties.category].label}
                   </span>
                 </span>
@@ -119,7 +119,7 @@ export default function TrendsView({ posts, onOpen }: Props) {
               )}
               <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                 <Metrics p={first.properties} />
-                <span className="legenda">
+                <span className="etiqueta">
                   {timeAgo(first.properties.created_at, now)} · some em {timeLeftShort(first.properties.expires_at, now)}
                 </span>
               </div>

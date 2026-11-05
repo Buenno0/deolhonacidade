@@ -38,7 +38,7 @@ export default function Sheet({
         <div className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-5 ${footer ? "pb-4" : "pb-[max(1.25rem,env(safe-area-inset-bottom))]"}`}>
         <header className="mb-4 flex items-start justify-between gap-3">
           <div>
-            {eyebrow && <p className="legenda mb-1">{eyebrow}</p>}
+            {eyebrow && <p className="etiqueta mb-1">{eyebrow}</p>}
             <h2 className="font-display text-xl font-semibold leading-tight">{title}</h2>
           </div>
           <IconButton label="Fechar" onClick={onClose} className="h-9 w-9">

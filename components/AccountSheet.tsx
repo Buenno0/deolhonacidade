@@ -125,7 +125,7 @@ export default function AccountSheet({
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-medium">{business ? business.name : "Tem um estabelecimento?"}</span>
             {business ? (
-              <span className={cx("legenda", BUSINESS_STATUS[business.status].tone)}>{BUSINESS_STATUS[business.status].label}</span>
+              <span className={cx("etiqueta", BUSINESS_STATUS[business.status].tone)}>{BUSINESS_STATUS[business.status].label}</span>
             ) : (
               <span className="block text-xs text-muted">Divulgue no mapa, com a tag Divulgação, depois da verificação.</span>
             )}
@@ -136,7 +136,7 @@ export default function AccountSheet({
         </section>
 
         <section>
-          <p className="legenda mb-2">Meus posts · últimos 7 dias e histórico</p>
+          <p className="etiqueta mb-2">Meus posts · últimos 7 dias e histórico</p>
           {posts === null ? (
             <Spinner />
           ) : posts.length === 0 ? (
@@ -166,10 +166,10 @@ export default function AccountSheet({
                     <span className="flex items-center gap-1.5 text-xs">
                       <CategoryIcon category={p.category} width="1.1em" height="1.1em" />
                       {CATEGORIES[p.category].label}
-                      <span className={cx("legenda", STATUS[p.status].tone)}>{STATUS[p.status].label}</span>
+                      <span className={cx("etiqueta", STATUS[p.status].tone)}>{STATUS[p.status].label}</span>
                     </span>
                     {p.caption && <span className="block truncate text-sm">{p.caption}</span>}
-                    <span className="legenda mt-0.5 flex flex-wrap gap-x-3">
+                    <span className="etiqueta mt-0.5 flex flex-wrap gap-x-3">
                       <span>{timeAgo(p.created_at)}</span>
                       {p.status === "published" && <span>some em {timeLeftShort(p.expires_at)}</span>}
                       {p.archived_until && <span className="text-marco-texto">no histórico até {dayFmt.format(new Date(p.archived_until))}</span>}

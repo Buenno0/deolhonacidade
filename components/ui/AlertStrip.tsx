@@ -35,11 +35,13 @@ export default function AlertStrip({ alerts }: { alerts: CityAlert[] }) {
                   <span className="block truncate text-sm font-medium leading-tight">
                     {a.kind} · <span style={{ color: severityVar(a.severity) }}>{sev.label}</span>
                   </span>
-                  <span className="legenda truncate">
+                  <span className="etiqueta block truncate">
                     {janela(a)} · {a.source === "inmet" ? "INMET" : a.source}
                   </span>
                 </span>
-                <span className="legenda shrink-0 text-accent">ver</span>
+                {/* Sublinhado porque sem ele não parece tocável: é a única
+                    ação da faixa e some no meio do texto */}
+                <span className="etiqueta shrink-0 text-ink underline decoration-muted underline-offset-4">ver</span>
               </button>
             </li>
           );
@@ -56,7 +58,7 @@ export default function AlertStrip({ alerts }: { alerts: CityAlert[] }) {
 
           {aberto.risks.length > 0 && (
             <section className="mt-4">
-              <h3 className="legenda mb-1.5">o que pode acontecer</h3>
+              <h3 className="etiqueta mb-1.5">o que pode acontecer</h3>
               <ul className="flex flex-col gap-1.5">
                 {aberto.risks.map((r, i) => (
                   <li key={i} className="text-sm leading-relaxed">
@@ -69,7 +71,7 @@ export default function AlertStrip({ alerts }: { alerts: CityAlert[] }) {
 
           {aberto.instructions.length > 0 && (
             <section className="mt-4">
-              <h3 className="legenda mb-1.5">o que fazer</h3>
+              <h3 className="etiqueta mb-1.5">o que fazer</h3>
               <ul className="flex flex-col gap-1.5">
                 {aberto.instructions.map((r, i) => (
                   <li key={i} className="text-sm leading-relaxed">

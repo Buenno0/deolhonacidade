@@ -7,13 +7,13 @@ export const metadata = { title: "Termos de uso · Viu na Cidade" };
 export default function Termos() {
   return (
     <main className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
-      <Link href="/mapa" className="legenda text-accent">
+      <Link href="/mapa" className="etiqueta text-accent">
         ← voltar ao mapa
       </Link>
       <div className="mt-6 flex items-center gap-3">
         <Mark size={36} />
         <div>
-          <p className="legenda">rascunho</p>
+          <p className="etiqueta">rascunho</p>
           <h1 className="font-display text-2xl font-bold">Termos de uso</h1>
         </div>
       </div>

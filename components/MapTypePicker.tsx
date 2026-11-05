@@ -65,7 +65,7 @@ export default function MapTypePicker({ theme, heat, onHeat, className }: Picker
             aria-label="Tipo de mapa"
             className="absolute right-0 top-12 z-20 w-60 rounded-none border border-line bg-surface p-2"
           >
-            <p className="legenda px-2 pb-2 pt-1">Tipo de mapa</p>
+            <p className="etiqueta px-2 pb-2 pt-1">Tipo de mapa</p>
             {MAP_TYPES.map((t) => (
               <button
                 key={t.id}
@@ -89,7 +89,7 @@ export default function MapTypePicker({ theme, heat, onHeat, className }: Picker
                 </span>
               </button>
             ))}
-            <p className="legenda px-2 pb-2 pt-3">Mapa de calor</p>
+            <p className="etiqueta px-2 pb-2 pt-3">Mapa de calor</p>
             {HEAT_OPTIONS.map((h) => (
               <button
                 key={h.id}

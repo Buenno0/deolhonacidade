@@ -77,24 +77,24 @@ function BusinessForm({ business, onSaved }: { business: Business | null; onSave
   return (
     <div className="flex flex-col gap-4">
       <label className="flex flex-col gap-1.5">
-        <span className="legenda">Nome do estabelecimento</span>
+        <span className="etiqueta">Nome do estabelecimento</span>
         <input value={name} maxLength={60} onChange={(e) => setName(e.target.value)} className={field} />
       </label>
       <label className="flex flex-col gap-1.5">
-        <span className="legenda">Segmento (opcional)</span>
+        <span className="etiqueta">Segmento (opcional)</span>
         <input value={segment} maxLength={40} placeholder="Padaria, bar, loja de roupas…" onChange={(e) => setSegment(e.target.value)} className={field} />
       </label>
       <label className="flex flex-col gap-1.5">
-        <span className="legenda">Endereço</span>
+        <span className="etiqueta">Endereço</span>
         <input value={address} maxLength={120} placeholder="Rua, número" onChange={(e) => setAddress(e.target.value)} className={field} />
       </label>
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-1.5">
-          <span className="legenda">WhatsApp (opcional)</span>
+          <span className="etiqueta">WhatsApp (opcional)</span>
           <input value={whatsapp} inputMode="tel" placeholder="15 99999-9999" onChange={(e) => setWhatsapp(e.target.value)} className={field} />
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="legenda">Instagram (opcional)</span>
+          <span className="etiqueta">Instagram (opcional)</span>
           <input value={instagram} placeholder="@seuperfil" onChange={(e) => setInstagram(e.target.value)} className={field} />
         </label>
       </div>

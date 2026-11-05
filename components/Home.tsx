@@ -641,7 +641,7 @@ export default function Home() {
             <p className="flex items-center gap-2 font-display text-base font-bold leading-tight">
               Viu na Cidade <BetaTag />
             </p>
-            <p className="legenda truncate">
+            <p className="etiqueta truncate">
               {CITY.name} · {CITY.uf}
             </p>
           </div>
@@ -658,7 +658,7 @@ export default function Home() {
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-danger" />
               </span>
             )}
-            <span className="legenda hidden text-ink sm:inline">ao vivo</span>
+            <span className="etiqueta hidden text-ink sm:inline">ao vivo</span>
             <span className="num text-xs text-ink">{String(posts?.length ?? 0).padStart(2, "0")}</span>
           </div>
           <IconButton label={theme === "dark" ? "Tema claro" : "Tema escuro"} onClick={toggle}>
@@ -843,7 +843,7 @@ export default function Home() {
       ) : inHistory ? (
         <footer className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-bg via-bg/70 to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10">
           <div className="pointer-events-auto mx-auto max-w-lg">
-            <p className="legenda mb-2">Últimos 30 dias · só o que quem postou escolheu guardar</p>
+            <p className="etiqueta mb-2">Últimos 30 dias · só o que quem postou escolheu guardar</p>
             <HistoryRuler
               counts={historyCounts ?? {}}
               day={historyDay}
@@ -908,7 +908,7 @@ export default function Home() {
           >
             <span className="h-2 w-2 shrink-0 rounded-full bg-accent" />
             {toast.text}
-            {toast.postId && <span className="legenda text-accent">ver</span>}
+            {toast.postId && <span className="etiqueta text-ink underline decoration-muted underline-offset-4">ver</span>}
           </button>
         </div>
       )}

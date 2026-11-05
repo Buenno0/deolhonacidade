@@ -132,7 +132,7 @@ export default function AuthSheet({ session, onClose, onDone, then = null }: Pro
           }}
         >
           <label className="flex flex-col gap-1.5">
-            <span className="legenda">E-mail</span>
+            <span className="etiqueta">E-mail</span>
             <input
               type="email"
               required

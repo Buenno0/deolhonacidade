@@ -98,7 +98,7 @@ export function HistoryList({ posts, onOpen }: { posts: PostFeature[]; onOpen: (
                 }}
               />
               <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-2 pt-8">
-                <span className="legenda flex items-center gap-1.5 text-ink">
+                <span className="etiqueta flex items-center gap-1.5 text-ink">
                   <CategoryIcon category={p.category} width="1.1em" height="1.1em" />
                   <span className="num">{hourFmt.format(new Date(p.created_at))}</span>
                 </span>

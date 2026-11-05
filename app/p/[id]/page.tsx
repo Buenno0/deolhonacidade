@@ -52,7 +52,7 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
           <p className="flex items-center gap-2 font-display text-base font-bold leading-tight">
             Viu na Cidade <BetaTag />
           </p>
-          <p className="legenda">
+          <p className="etiqueta">
             {CITY.name} · {CITY.uf}
           </p>
         </div>
@@ -69,7 +69,7 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
               style={{ borderColor: severityVar(post.category), color: severityVar(post.category) }}
             >
               <CategoryIcon category={post.category} />
-              <span className="legenda" style={{ color: "inherit" }}>
+              <span className="etiqueta" style={{ color: "inherit" }}>
                 {post.business_name ?? cat.label}
               </span>
             </span>

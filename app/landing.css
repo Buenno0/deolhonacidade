@@ -2,6 +2,12 @@
    não cruzar com o app. Animação só com CSS: sem suporte, o conteúdo aparece
    parado, e o buscador lê tudo do HTML do servidor.
 
+   Sala escura: o que é desenhado POR CIMA das cenas escuras (a dica "toque",
+   o ponto "você está aqui", a barra do aviso no celular) usa creme cravado,
+   não var(--ink). No papel claro o --ink é quase preto, e preto sobre a cena
+   escura some. É a mesma regra do .sala-escura do app, aplicada à mão porque
+   aqui as cenas são superfícies fixas, não foto de gente.
+
    A LP não segue o tema da pessoa, de propósito: é uma vitrine, e a vitrine
    do redesign é o mural de papel. Quem entra no app leva o tema que escolheu.
    As ilustrações continuam escuras e viram blocos de "foto" sobre o papel. */
@@ -116,7 +122,7 @@
 .lp-anel { position: absolute; inset: -9px; transform: rotate(-90deg); }
 .lp-anel circle { stroke-dasharray: 170; animation: lp-esvazia 9s linear infinite; }
 @keyframes lp-esvazia { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 170; } }
-.lp-eu { position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: var(--marco); border: 3px solid var(--ink); }
+.lp-eu { position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: var(--marco); border: 3px solid #f2efe7; }
 .lp-eu::before, .lp-eu::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; background: rgba(53, 99, 217, 0.35); animation: lp-radar 3s ease-out infinite; }
 .lp-eu::after { animation-delay: 1.5s; }
 @keyframes lp-radar { from { transform: scale(1); opacity: 1; } to { transform: scale(9); opacity: 0; } }
@@ -240,7 +246,7 @@
 .lp-pinbtn .lp-pin { transition: transform 0.25s; }
 .lp-pinbtn::after { content: ""; position: absolute; left: 50%; top: 100%; width: 2px; height: 10px; translate: -50% 0; background: currentColor; opacity: 0.6; }
 @keyframes lp-pousa { from { transform: translateY(-60px); opacity: 0; } to { transform: none; opacity: 1; } }
-.lp-dica { position: absolute; white-space: nowrap; left: 50%; top: -26px; translate: -50% 0; font-family: var(--font-mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink); background: rgba(12,10,8,.8); padding: 3px 8px; border-radius: 999px; animation: lp-dica 3.5s ease-in-out infinite; pointer-events: none; }
+.lp-dica { position: absolute; white-space: nowrap; left: 50%; top: -26px; translate: -50% 0; font-family: var(--font-mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: #f2efe7; background: rgba(10,9,8,.72); padding: 3px 8px; border-radius: 999px; animation: lp-dica 3.5s ease-in-out infinite; pointer-events: none; }
 @keyframes lp-dica { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 .lp-sobre { position: fixed; inset: 0; z-index: 50; padding: 16px; display: grid; place-items: center; background: rgba(12, 10, 8, 0.72); backdrop-filter: blur(6px); animation: lp-in 0.3s ease both; }
 .lp-sobre .lp-fone { width: min(340px, 100%, calc((100dvh - 32px) * 9 / 16)); }
@@ -340,7 +346,7 @@
   transform-origin: 50% 50%; animation: lp-al-notif var(--al) cubic-bezier(0.3, 1.5, 0.5, 1) infinite both; }
 .lp-al-notif::after { content: ""; position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(244, 239, 228, 0.35); transform: scale(0); animation: lp-al-toque var(--al) ease-out infinite both; }
 .lp-al-dica { position: absolute; left: 50%; bottom: 120px; translate: -50% 0; font-family: var(--font-mono); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: #f4efe4; opacity: 0; animation: lp-al-dica var(--al) ease infinite both; }
-.lp-al-enche { display: block; height: 100%; background: var(--ink); transform-origin: left; animation: lp-al-barra var(--al) linear infinite both; }
+.lp-al-enche { display: block; height: 100%; background: #f2efe7; transform-origin: left; animation: lp-al-barra var(--al) linear infinite both; }
 @keyframes lp-al-notif {
   0%, 10% { transform: translateY(30px) scale(0.55); opacity: 0; }
   15% { transform: translateY(-6px) scale(1.2); opacity: 1; }

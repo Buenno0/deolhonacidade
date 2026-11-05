@@ -341,14 +341,14 @@ export default function NewPostSheet({
             <span className="font-display text-base font-semibold text-ink">
               Tirar foto
             </span>
-            <span className="legenda">tem que ser de agora</span>
+            <span className="etiqueta">tem que ser de agora</span>
             {cameraInput}
           </label>
         )}
 
         {/* Categorias numa linha, deslizando, as mais usadas primeiro */}
         <fieldset>
-          <legend className="legenda mb-2">O que é</legend>
+          <legend className="etiqueta mb-2">O que é</legend>
           <div ref={faixa} className="no-scrollbar -mx-5 flex select-none gap-2 overflow-x-auto px-5 pb-1">
             {business && !request && (
               <Chip
@@ -378,7 +378,7 @@ export default function NewPostSheet({
 
         <label className="flex flex-col gap-1.5">
           <span className="flex justify-between">
-            <span className="legenda">Legenda (opcional)</span>
+            <span className="etiqueta">Legenda (opcional)</span>
             <span className="num text-[10px] text-muted">
               {caption.length}/140
             </span>

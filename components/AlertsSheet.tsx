@@ -119,7 +119,7 @@ export default function AlertsSheet({ getMapCenter, onClose, onSaved }: Props) {
     <Sheet eyebrow="Alertas" title="Me avisa quando acontecer algo perto" onClose={onClose}>
       <div className="flex flex-col gap-5">
         <fieldset>
-          <legend className="legenda mb-2">Onde</legend>
+          <legend className="etiqueta mb-2">Onde</legend>
           <div className="flex flex-wrap gap-2">
             <Chip type="button" active={where === "aqui"} onClick={() => setWhere("aqui")} className="py-2 text-sm">
               <LocateIcon /> Perto de mim agora
@@ -131,7 +131,7 @@ export default function AlertsSheet({ getMapCenter, onClose, onSaved }: Props) {
         </fieldset>
 
         <fieldset>
-          <legend className="legenda mb-2">Raio</legend>
+          <legend className="etiqueta mb-2">Raio</legend>
           <div className="flex gap-2">
             {RADII.map((r) => (
               <Chip key={r} type="button" active={radius === r} onClick={() => setRadius(r)} className="num py-2 text-sm">
@@ -142,7 +142,7 @@ export default function AlertsSheet({ getMapCenter, onClose, onSaved }: Props) {
         </fieldset>
 
         <fieldset>
-          <legend className="legenda mb-2">O quê {cats.length === 0 && "· tudo"}</legend>
+          <legend className="etiqueta mb-2">O quê {cats.length === 0 && "· tudo"}</legend>
           <div className="flex flex-wrap gap-2">
             {CATEGORY_KEYS.map((c) => (
               <Chip key={c} type="button" active={cats.includes(c)} onClick={() => toggleCat(c)}>

@@ -63,9 +63,9 @@ export default function EventCard({
               {ago(event.created_at)} · {dateTime(event.created_at)}
             </span>
             {event.live ? (
-              <span className="legenda text-ok">no ar</span>
+              <span className="etiqueta text-ok">no ar</span>
             ) : (
-              <span className="legenda text-muted">encerrada</span>
+              <span className="etiqueta text-muted">encerrada</span>
             )}
           </p>
 

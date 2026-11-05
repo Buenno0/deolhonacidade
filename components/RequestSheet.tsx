@@ -34,11 +34,11 @@ export default function RequestSheet({ request, answers, loggedIn, onClose, onAn
   return (
     <Sheet eyebrow={`Alguém aí? · fecha em ${timeLeftShort(request.expires_at)}`} title={request.question} onClose={onClose}>
       <div className="flex flex-col gap-4">
-        <p className="legenda">Perguntado {timeAgo(request.created_at)}</p>
+        <p className="etiqueta">Perguntado {timeAgo(request.created_at)}</p>
 
         {answers.length > 0 ? (
           <div>
-            <p className="legenda mb-2">
+            <p className="etiqueta mb-2">
               {answers.length} {answers.length === 1 ? "resposta" : "respostas"}
             </p>
             <div ref={faixa} className="no-scrollbar flex select-none gap-2 overflow-x-auto">
