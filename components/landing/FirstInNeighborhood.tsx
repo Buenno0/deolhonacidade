@@ -67,7 +67,7 @@ export default function FirstInNeighborhood() {
               <Medal label={t.medal(result.posicao)} tier={result.posicao <= 10 ? 3 : 2} size={96} animate />
             </div>
             <div>
-              <p className="lp-rot m-0" style={{ color: "var(--accent)" }}>{t.founder}</p>
+              <p className="lp-legenda-p m-0" style={{ color: "var(--ok)" }}>{t.founder}</p>
               <p className="lp-disp m-0 text-2xl leading-tight">
                 {t.you(result.posicao, result.bairro)}
               </p>
@@ -84,7 +84,7 @@ export default function FirstInNeighborhood() {
                 onChange={(e) => setBairro(e.target.value)}
                 placeholder={t.placeholder}
                 autoComplete="off"
-                className="min-h-12 w-full rounded-lg border border-line bg-bg px-3.5 text-base text-ink outline-none transition focus:border-accent"
+                className="min-h-12 w-full rounded-none border border-line bg-bg px-3.5 text-base text-ink outline-none transition focus:border-accent"
               />
               <datalist id="lp-bairros">
                 {BAIRROS.map((b) => (
@@ -102,7 +102,7 @@ export default function FirstInNeighborhood() {
       </div>
 
       <div className="lp-card lp-card-bg flex min-w-0 flex-[1_1_320px] flex-col gap-3">
-        <span className="lp-rot">{t.ranking}</span>
+        <span className="lp-legenda-p">{t.ranking}</span>
         {counts.length === 0 ? (
           <p className="lp-muted m-0 text-sm">{t.empty}</p>
         ) : (

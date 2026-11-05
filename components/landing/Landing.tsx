@@ -110,7 +110,7 @@ function Check({ className = "", style }: { className?: string; style?: CSSPrope
 function SectionHead({ eyebrow, id, children, accent }: { eyebrow: string; id: string; children: ReactNode; accent?: boolean }) {
   return (
     <div className="lp-rv flex max-w-[640px] flex-col gap-2.5">
-      <span className="lp-rot" style={accent ? { color: "var(--accent)" } : undefined}>{eyebrow}</span>
+      <span className="lp-legenda" style={accent ? { color: "var(--accent)" } : undefined}>{eyebrow}</span>
       <h2 id={id} className="lp-disp lp-h2">{children}</h2>
     </div>
   );
@@ -130,7 +130,7 @@ export default function Landing({ lang }: { lang: Lang }) {
   const t = DICT[lang];
   return (
     <LangProvider lang={lang}>
-    <div className="dark lp min-h-screen">
+    <div className="light lp min-h-screen">
       <script dangerouslySetInnerHTML={{ __html: standaloneScript }} />
       <Reveal />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd(lang)) }} />
@@ -247,7 +247,7 @@ export default function Landing({ lang }: { lang: Lang }) {
           <SectionHead eyebrow={t.how.eyebrow} id="h-como">{t.how.title}</SectionHead>
           <ol className="lp-grid lp-rvg m-0 list-none p-0">
             <li className="lp-card flex flex-col gap-3">
-              <div className="flex items-center justify-between"><span className="lp-num text-sm" style={{ color: "var(--accent)" }}>01</span><span className="lp-rot">{t.how.steps[0].tag}</span></div>
+              <div className="flex items-center justify-between"><span className="lp-num text-sm" style={{ color: "var(--accent)" }}>01</span><span className="lp-legenda">{t.how.steps[0].tag}</span></div>
               <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
                 <g className="lp-obt"><path d="M4 8h3l2-3h6l2 3h3v11H4Z" /><circle cx="12" cy="13" r="3.5" /></g>
                 <circle className="lp-flash" cx="12" cy="13" r="10" fill="var(--ink)" stroke="none" />
@@ -256,7 +256,7 @@ export default function Landing({ lang }: { lang: Lang }) {
               <p className="lp-muted m-0">{t.how.steps[0].p}</p>
             </li>
             <li className="lp-card flex flex-col gap-3">
-              <div className="flex items-center justify-between"><span className="lp-num text-sm" style={{ color: "var(--accent)" }}>02</span><span className="lp-rot">{t.how.steps[1].tag}</span></div>
+              <div className="flex items-center justify-between"><span className="lp-num text-sm" style={{ color: "var(--accent)" }}>02</span><span className="lp-legenda">{t.how.steps[1].tag}</span></div>
               <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="9" />
                 <path className="lp-check" d="M8 12l3 3 5-6" />
@@ -265,7 +265,7 @@ export default function Landing({ lang }: { lang: Lang }) {
               <p className="lp-muted m-0">{t.how.steps[1].p}</p>
             </li>
             <li className="lp-card flex flex-col gap-3">
-              <div className="flex items-center justify-between"><span className="lp-num text-sm" style={{ color: "var(--accent)" }}>03</span><span className="lp-rot">{t.how.steps[2].tag}</span></div>
+              <div className="flex items-center justify-between"><span className="lp-num text-sm" style={{ color: "var(--accent)" }}>03</span><span className="lp-legenda">{t.how.steps[2].tag}</span></div>
               <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
                 <circle className="lp-relogio" cx="12" cy="12" r="9" transform="rotate(-90 12 12)" />
                 <path className="lp-ponteiro" d="M12 12V6" />
@@ -290,7 +290,7 @@ export default function Landing({ lang }: { lang: Lang }) {
         <section aria-labelledby="h-story" className="lp-alt">
           <div className="lp-wrap lp-sec flex flex-wrap items-center gap-12">
             <div className="lp-rv flex min-w-0 flex-[1_1_380px] flex-col gap-5">
-              <span className="lp-rot">{t.story.eyebrow}</span>
+              <span className="lp-legenda">{t.story.eyebrow}</span>
               <h2 id="h-story" className="lp-disp lp-h2">{t.story.title}</h2>
               <p className="lp-muted m-0 text-[17px]">
                 {t.story.lead}
@@ -313,7 +313,7 @@ export default function Landing({ lang }: { lang: Lang }) {
         {/* Alertas */}
         <section aria-labelledby="h-alerta" className="lp-wrap lp-sec flex flex-wrap items-center gap-12">
           <div className="lp-rv flex min-w-0 flex-[1_1_380px] flex-col gap-5">
-            <span className="lp-rot" style={{ color: "var(--accent)" }}>{t.alerts.eyebrow}</span>
+            <span className="lp-legenda">{t.alerts.eyebrow}</span>
             <h2 id="h-alerta" className="lp-disp lp-h2">{t.alerts.title}</h2>
             <p className="lp-muted m-0 text-[17px]">
               {t.alerts.lead}
@@ -349,11 +349,11 @@ export default function Landing({ lang }: { lang: Lang }) {
 
         {/* Rostos e placas */}
         <section aria-labelledby="h-borra" className="lp-wrap lp-sec flex flex-wrap items-center gap-12">
-          <div className="lp-rv min-w-0 flex-[1_1_480px] overflow-hidden rounded-2xl border border-line" style={{ aspectRatio: "11 / 9" }}>
+          <div className="lp-rv min-w-0 flex-[1_1_480px] overflow-hidden rounded-none border border-line" style={{ aspectRatio: "11 / 9" }}>
             <LazyScene kind="blur" className="h-full w-full" title={t.blur.scene} />
           </div>
           <div className="lp-rv flex min-w-0 flex-[1_1_360px] flex-col gap-5">
-            <span className="lp-rot" style={{ color: "var(--accent)" }}>{t.blur.eyebrow}</span>
+            <span className="lp-legenda">{t.blur.eyebrow}</span>
             <h2 id="h-borra" className="lp-disp lp-h2">{t.blur.title}</h2>
             <p className="lp-muted m-0 text-[17px]">
               {t.blur.lead}
@@ -375,7 +375,7 @@ export default function Landing({ lang }: { lang: Lang }) {
         <section aria-label={t.trust.label} className="lp-alt">
           <div className="lp-wrap lp-sec lp-rvg flex flex-wrap gap-6">
             <div className="lp-card lp-card-bg flex min-w-0 flex-[1_1_420px] flex-col gap-4">
-              <span className="lp-rot">{t.trust.eyebrow}</span>
+              <span className="lp-legenda">{t.trust.eyebrow}</span>
               <h2 className="lp-disp m-0 text-[32px] leading-[1.1]">{t.trust.title}</h2>
               <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
                 {t.trust.items.map((b, i) => (
@@ -387,13 +387,13 @@ export default function Landing({ lang }: { lang: Lang }) {
               </ul>
             </div>
             <div className="lp-card lp-card-bg flex min-w-0 flex-[1_1_420px] flex-col gap-4">
-              <span className="lp-rot">{t.game.eyebrow}</span>
+              <span className="lp-legenda">{t.game.eyebrow}</span>
               <h2 className="lp-disp m-0 text-[32px] leading-[1.1]">{t.game.title(t.levels[0], t.levels[5])}</h2>
               <p className="lp-muted m-0">{t.game.lead}</p>
               <AchievementShowcase />
               <div className="flex flex-col gap-1.5">
                 <div className="flex justify-between">
-                  <span className="lp-rot" style={{ color: "var(--ink)" }}>{t.game.level(2, t.levels[1])}</span>
+                  <span className="lp-legenda" style={{ color: "var(--ink)" }}>{t.game.level(2, t.levels[1])}</span>
                   <span className="lp-num lp-muted text-xs">340 / 400 XP</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full" style={{ background: "var(--elev)" }}>
@@ -421,7 +421,7 @@ export default function Landing({ lang }: { lang: Lang }) {
         {/* Comércios */}
         <section id="comercios" aria-labelledby="h-com" className="lp-wrap lp-sec flex flex-wrap items-start gap-12">
           <div className="lp-rv flex min-w-0 flex-[1_1_420px] flex-col gap-[18px]">
-            <span className="lp-rot" style={{ color: "var(--accent)" }}>{t.shops.eyebrow}</span>
+            <span className="lp-legenda">{t.shops.eyebrow}</span>
             <h2 id="h-com" className="lp-disp lp-h2">{t.shops.title}</h2>
             <p className="lp-muted m-0 text-[17px]">
               {t.shops.leadA} <strong className="text-ink">{t.shops.badge}</strong> {t.shops.leadB}
@@ -431,7 +431,7 @@ export default function Landing({ lang }: { lang: Lang }) {
             </span>
           </div>
           <div className="lp-card lp-rv flex min-w-0 flex-[1_1_420px] flex-col gap-4">
-            <span className="lp-rot">{t.shops.simulate}</span>
+            <span className="lp-legenda">{t.shops.simulate}</span>
             <AdSimulator />
             <ol className="lp-muted m-0 flex list-none flex-col gap-2 p-0 text-[15px]">
               <li className="flex gap-2.5"><span className="lp-num" style={{ color: "var(--accent)" }}>1</span>{t.shops.steps[0]}</li>

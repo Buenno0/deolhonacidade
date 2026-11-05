@@ -103,7 +103,7 @@ export default function AchievementShowcase() {
             <Medal label={String(item.level)} tier={3} size={120} animate={visible} />
           )}
         </span>
-        <span className="lp-rot mt-5 block" style={{ color }}>
+        <span className="lp-legenda-p mt-5 block" style={{ color }}>
           {isBadge ? (def!.first ? t.first : t.badge(t.tiers[item.tier - 1])) : t.levelUp}
         </span>
         <span className="lp-disp mt-1.5 block text-2xl leading-tight text-ink">{isBadge ? def!.name : T.levels[item.level - 1]}</span>
@@ -119,7 +119,7 @@ export default function AchievementShowcase() {
           </button>
         ))}
       </div>
-      <span className="lp-rot mt-1 opacity-70">{t.hint}</span>
+      <span className="lp-legenda-p mt-1 opacity-70">{t.hint}</span>
     </div>
   );
 }

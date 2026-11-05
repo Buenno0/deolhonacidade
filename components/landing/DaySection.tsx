@@ -242,7 +242,7 @@ export default function DaySection() {
           sky.current = n;
           nearRef.current = n;
         }}
-        className="lp-dia min-w-0 flex-[1_1_480px] overflow-hidden rounded-2xl border border-line"
+        className="lp-dia min-w-0 flex-[1_1_480px] overflow-hidden rounded-none border border-line"
         data-apagao={ev === "apagao" || undefined}
         style={{ aspectRatio: "11 / 9" }}
       >
@@ -273,7 +273,7 @@ export default function DaySection() {
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-5">
         <label className="flex flex-col gap-3">
           <span className="flex items-baseline justify-between">
-            <span ref={labelRef} className="lp-rot" data-sun={t.sun} data-moon={t.moon}>{t.sun}</span>
+            <span ref={labelRef} className="lp-legenda-p" data-sun={t.sun} data-moon={t.moon}>{t.sun}</span>
             <span ref={clockRef} className="lp-num lp-dia-relogio text-3xl" style={{ color: "var(--accent)" }}>
               {fmt(7.5)}
             </span>
@@ -311,7 +311,7 @@ export default function DaySection() {
         <div key={ev} className="lp-card lp-card-bg story-entra flex flex-col gap-2">
           <span className="flex items-center gap-2">
             <span className="lp-tag font-semibold" style={{ position: "static", color: e.color, border: `1px solid ${e.color}` }}>{e.cat}</span>
-            <span className="lp-rot">{t.around(e.at)}</span>
+            <span className="lp-legenda-p">{t.around(e.at)}</span>
           </span>
           <p className="m-0 text-[17px]">{e.txt}</p>
         </div>

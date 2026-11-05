@@ -84,7 +84,7 @@ export default function StoryDemo({ start = 0, onClose }: { start?: number; onCl
           <span className="h-8 w-8 shrink-0 rounded-full border-[1.5px]" style={{ borderColor: s.color, background: `color-mix(in oklab, ${s.color} 22%, transparent)` }} />
           <div className="min-w-0 flex-1">
             <p className="m-0 truncate text-sm font-semibold [text-shadow:0_1px_6px_rgb(0_0_0/0.6)]">{s.cat}</p>
-            <p className="lp-rot m-0 text-ink/85">{s.ago}</p>
+            <p className="lp-legenda-p m-0 text-ink/85">{s.ago}</p>
           </div>
           {onClose && (
             <button
@@ -104,7 +104,7 @@ export default function StoryDemo({ start = 0, onClose }: { start?: number; onCl
           <Tag kind={s.tag} label={T.tags[s.tag]} />
         </div>
         <p className="lp-disp m-0 text-lg leading-tight [text-shadow:0_1px_10px_rgb(0_0_0/0.55)]">{s.caption}</p>
-        <p className="lp-rot m-0 text-ink/85">{s.meta}</p>
+        <p className="lp-legenda-p m-0 text-ink/85">{s.meta}</p>
         <div className="flex gap-2">
           <span className="story-pill story-vidro flex-1 justify-center whitespace-nowrap !px-2 text-xs">{t.still}</span>
           <span className="story-pill story-vidro flex-1 justify-center whitespace-nowrap !px-2 text-xs">{t.over}</span>

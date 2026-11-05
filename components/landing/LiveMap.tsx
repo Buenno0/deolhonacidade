@@ -62,7 +62,7 @@ function PostCard() {
   return (
     <div
       ref={box}
-      className="lp-cartao absolute bottom-3 left-3 z-[1] overflow-hidden rounded-2xl border border-line"
+      className="lp-cartao absolute bottom-3 left-3 z-[1] overflow-hidden rounded-none border border-line"
       style={{ width: "min(290px, calc(100% - 24px))", height: 200, background: "var(--surface)" }}
     >
       {POSTS.map((p, i) => {
@@ -190,7 +190,7 @@ export default function LiveMap() {
       </div>
 
       <PostCard />
-      <span className="lp-rot absolute right-3.5 top-3.5 z-[1] flex items-center gap-2 rounded-full px-2.5 py-1.5" style={{ background: "rgba(12,10,8,.75)", color: "var(--ink)" }}>
+      <span className="lp-legenda-p absolute right-3.5 top-3.5 z-[1] flex items-center gap-2 rounded-full px-2.5 py-1.5" style={{ background: "rgba(12,10,8,.75)", color: "var(--ink)" }}>
         <span className="lp-ponto" />
         {t.example}
       </span>
