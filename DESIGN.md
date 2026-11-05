@@ -13,14 +13,20 @@ No NAS, a marca é uma máscara em ruínas e "o acervo é o herói". Aqui, **a f
 é a heroína**: o app é um mapa de coisas acontecendo agora, e a única fonte de
 cor saturada na tela é o que as pessoas fotografaram.
 
-Três decisões que se repetem em tudo:
+Quatro decisões que se repetem em tudo:
 
-- **Escuro é o padrão.** O app é usado na rua, muitas vezes à noite, e o mapa
-  em basalto deixa a foto brilhar. O claro é um tema completo, não um filtro.
-- **Pedra e areia na interface, cor só em ação e em foto.** Nenhuma categoria
-  tem cor própria. Categoria é ícone + rótulo.
+- **Papel e tinta, não pedra e ouro.** A interface é um mural de cidade:
+  papel de jornal, régua preta, fio no lugar da caixa. O escuro é o mesmo
+  papel virado do avesso, um tema completo, não um filtro.
+- **Nenhum acento colorido.** A ação primária é preta sobre papel. Nenhuma
+  categoria tem cor própria: categoria é ícone + rótulo.
+- **O vermelho é o agora.** `--danger` é a única cor que grita, e grita por
+  uma coisa só: o que está acontecendo neste minuto.
 - **O tempo é visível.** Tudo some em 12h, então o tempo restante aparece em
   todo lugar do mesmo jeito: um anel que esvazia e um relógio de missão (`11:37`).
+
+O escuro ainda é o padrão no código. Ele deixa de ser na etapa da LP: tela de
+celular no sol pede papel claro e brilho alto, não basalto.
 
 ---
 
@@ -33,14 +39,21 @@ mão em quatro lugares (a contradição nº 1 de lá); aqui não.
 
 | token | escuro | claro | uso |
 |---|---|---|---|
-| `--bg` | `#0c0a08` | `#f6f3ee` | fundo, chão do mapa |
-| `--surface` | `#16130f` | `#fdfbf7` | cabeçalho, sheets, chips |
-| `--elev` | `#211c15` | `#efe9df` | hover, poço da foto, ruas no escuro |
-| `--line` | `#40372b` | `#d0c4b1` | toda borda e divisória |
-| `--ink` | `#f4efe4` | `#241e17` | texto |
-| `--muted` | `#a99a84` | `#6b6154` | texto secundário, micro-rótulo |
-| `--accent` | `#d29a44` | `#9d5a26` | ação primária, marca, limite da cidade |
-| `--accent-ink` | `#1a1206` | `#fdfbf7` | texto sobre o acento |
+| `--bg` | `#121110` | `#efede6` | fundo, chão do mapa |
+| `--surface` | `#1b1917` | `#ffffff` | cabeçalho, sheets, chips |
+| `--elev` | `#262320` | `#e6e3da` | hover, poço da foto, ruas no escuro |
+| `--line` | `#3b3733` | `#c8c2b4` | toda borda e divisória |
+| `--ink` | `#f2efe7` | `#15130f` | texto |
+| `--muted` | `#a8a096` | `#5e584e` | texto secundário, legenda |
+| `--accent` | `#f2efe7` | `#15130f` | ação primária, limite da cidade |
+| `--accent-ink` | `#15130f` | `#efede6` | texto sobre o acento |
+
+**O acento não é uma cor.** Esta é a decisão central do redesign "mural da
+cidade": a ação primária é tinta sobre papel no claro e papel sobre tinta no
+escuro. O ouro gasto herdado do NAS era marca, botão, anel de evento e selo ao
+mesmo tempo, e por isso não destacava nada. Quem ficou com o trabalho de
+chamar atenção foi o `--danger`, que agora é **o vermelho do agora**: o que
+está acontecendo neste minuto, e só isso.
 
 **Quatro níveis de profundidade** (`bg` → `surface` → `elev` → borda) e nenhuma
 sombra. A única "elevação" do app é o `backdrop-blur` do cabeçalho sobre o mapa.
@@ -49,9 +62,9 @@ sombra. A única "elevação" do app é o `backdrop-blur` do cabeçalho sobre o 
 
 | token | escuro | claro |
 |---|---|---|
-| `--ok` | `#7fb79a` | `#2f6f52` |
-| `--warn` | `#dca84a` | `#8a5a12` |
-| `--danger` | `#e08163` | `#9c3f1d` |
+| `--ok` | `#86c0a0` | `#1f6b46` |
+| `--warn` | `#d9a24a` | `#8a5a12` |
+| `--danger` | `#e8614a` | `#c62516` |
 
 São o teto de cor. No NAS, `--ok` tinha 3 usos e era "quase uma cor solta";
 aqui ele ganhou trabalho: localização precisa, água e parque no mapa.
@@ -101,18 +114,25 @@ ou MapTiler, ambos com plano gratuito).
 
 ## 3. Tipografia
 
-As mesmas famílias do NAS, servidas pelo app (`app/fonts/`, variáveis, latin):
+Todas servidas pelo app (`app/fonts/`, subconjunto latin), sem requisição a
+terceiros:
 
 | família | onde |
 |---|---|
-| **Archivo** 600/700 (`font-display`) | nome do app, títulos de sheet, legenda no visualizador, estado vazio |
-| **JetBrains Mono** 400/500 (`.rotulo`, `.num`) | micro-rótulos, contagens, relógio, precisão do GPS |
-| pilha do sistema | corpo |
+| **Anton** 400 (`font-cartaz`) | título de cartaz: o herói da LP, as chamadas de seção, a legenda no visualizador |
+| **Instrument Serif** 400 + itálico (`font-serifa`, `.legenda`) | lugar, hora, categoria: o metadado que antes era rótulo mono |
+| pilha do sistema | corpo, botão, campo |
+| **Archivo** 600/700 (`font-display`) | em saída: o que ainda não migrou para a Anton |
+| **JetBrains Mono** 400/500 (`.rotulo`, `.num`) | em saída: `.num` fica, `.rotulo` morre |
 
-O NAS tinha a tipografia partida (Archivo só no login). Aqui a Archivo é
-usada no produto inteiro desde o início.
+As duas famílias novas somam 42 KB, menos que a Archivo sozinha. O corpo
+segue na pilha do sistema de propósito: uma terceira família baixada custaria
+mais do que entrega.
 
+- `.legenda`: serifa itálica 15px, `--muted`. É a substituta do `.rotulo`.
 - `.rotulo`: mono 10px, 500, `letter-spacing: .16em`, maiúsculo, `--muted`.
+  **Em remoção.** São 135 usos, e o mono em caixa alta espaçado era a
+  assinatura mais reconhecível do visual antigo.
 - `.num`: mono com `tabular-nums`, para o relógio não dançar quando o minuto vira.
 
 Corpo em 14px (`text-sm`), campos em 16px (`text-base`, evita zoom no iOS).
@@ -285,16 +305,22 @@ Foco: `:focus-visible` com contorno de 2px em acento.
 
 ## 8. Contraste
 
-`npm run contraste`: **37 pares, 37 passando** (escuro, claro e sala escura).
+`npm run contraste`: **43 pares, 43 passando** (escuro, claro e sala escura).
 Os destaques:
 
 | par | escuro | claro |
 |---|---|---|
-| corpo sobre fundo | 17,24:1 | 14,90:1 |
-| secundário sobre superfície | 6,74:1 | 5,87:1 |
-| botão primário / chip ativo | 7,45:1 | 5,18:1 |
-| perigo sobre superfície | 6,60:1 | 6,47:1 |
-| legenda sobre foto (degradê) | 13,20:1 | — (sala escura) |
+| corpo sobre fundo | 16,15:1 | 15,84:1 |
+| secundário sobre superfície | 6,46:1 | 7,04:1 |
+| botão primário / chip ativo | 16,15:1 | 15,84:1 |
+| perigo sobre superfície | 5,21:1 | 5,71:1 |
+| legenda sobre foto (degradê) | 13,17:1 | — (sala escura) |
+
+O botão primário saltou para 16:1 porque deixou de ser dourado. O par que
+quase reprovou foi **a borda sobre o fundo no claro**: `#d8d4ca` no papel dava
+1,26 contra um alvo de 1,4, então o fio escureceu para `#c8c2b4`. No visual
+novo o fio faz o trabalho que a sombra não faz, e precisa aparecer no papel,
+não só no cartaz branco.
 
 ---
 
@@ -309,6 +335,13 @@ Os destaques:
 3. **O mapa tem cores fora dos tokens** (§2.3), de propósito: legibilidade
    do mapa vence a coerência da paleta. Elas vivem em `lib/map/style.ts`, não
    em `design/tokens.mjs`, e dependem dos ids de camada do positron.
+4. **A LP ainda é dourada e sempre escura.** `app/landing.css` força `.dark`
+   no wrapper e tem cerca de trinta hexadecimais de ouro cravados nas
+   ilustrações (`#f0c46a`, `#f6d58c`, `rgba(210, 154, 68, …)`). A troca de
+   tokens não a alcança. É o próximo passo do redesign, junto com a Anton no
+   herói e a morte dos 135 `.rotulo`.
+5. **Duas tipografias convivem.** Archivo e Anton estão declaradas ao mesmo
+   tempo enquanto as telas migram. A Archivo sai quando ninguém mais a usar.
 
 ---
 
