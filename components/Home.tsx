@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabase/client";
+import { principal, resumo, type CityAlert } from "@/lib/alerts";
 import { waitPublished } from "@/lib/posting";
 import { markSeen, useSeen } from "@/lib/seen";
 import { locationWorkedBefore, permissionState } from "@/lib/useLocation";
@@ -24,6 +25,7 @@ import AlertsSheet from "./AlertsSheet";
 import AskPanel from "./AskPanel";
 import AuthSheet, { PENDING_TERMS_KEY, PENDING_THEN_KEY } from "./AuthSheet";
 import LiveStrip from "./LiveStrip";
+import AlertStrip from "./ui/AlertStrip";
 import MapTypePicker, { type HeatMode } from "./MapTypePicker";
 import LandmarkSheet from "./LandmarkSheet";
 import NewPostSheet from "./NewPostSheet";
@@ -102,6 +104,7 @@ export default function Home() {
   const [posts, setPosts] = useState<PostFeature[] | null>(null);
   const [requests, setRequests] = useState<RequestFeature[]>([]);
   const [landmarks, setLandmarks] = useState<Landmark[]>([]);
+  const [alerts, setAlerts] = useState<CityAlert[]>([]);
   const [filter, setFilter] = useState<Category | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [termsUserId, setTermsUserId] = useState<string | null>(null);
@@ -229,6 +232,13 @@ export default function Home() {
       ),
     [],
   );
+
+  // Avisos do tempo: não dependem de ninguém postar, então carregam sozinhos e
+  // continuam na tela mesmo com o mapa vazio. É o que o app tem a dizer num
+  // dia sem registro nenhum.
+  useEffect(() => {
+    supabase.rpc("city_alerts", { p_city_id: CITY.id }).then(({ data }) => data && setAlerts(data as CityAlert[]));
+  }, [supabase]);
 
   // Histórico: os dias com algo guardado, e os posts do dia escolhido
   useEffect(() => {
@@ -588,6 +598,9 @@ export default function Home() {
   const openRequest = panel?.kind === "request" ? requests.find((r) => r.properties.id === panel.id) : undefined;
   const answersOf = (requestId: string) => (posts ?? []).filter((f) => f.properties.request_id === requestId);
 
+  // o mais grave valendo agora; se nada vale, o mais grave que vem aí
+  const aviso = principal(alerts);
+
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-bg">
       <CityMap
@@ -704,6 +717,7 @@ export default function Home() {
             ))}
           </nav>
         )}
+        {tab === "mapa" && !asking && <AlertStrip alerts={alerts} />}
       </header>
 
       {tab === "trends" && (
@@ -774,6 +788,19 @@ export default function Home() {
                 title={`Nada de ${CATEGORIES[filter].label.toLowerCase()} agora`}
                 action={<Button variant="secundario" onClick={() => setFilter(null)}>Ver tudo</Button>}
               />
+            ) : aviso ? (
+              // Com aviso do tempo valendo, a tela vazia deixa de informar e
+              // passa a pedir: é o momento em que a pessoa tem o que fotografar.
+              <EmptyState
+                title={aviso.live ? `${aviso.kind} na cidade` : `${aviso.kind} a caminho`}
+                action={
+                  <Button variant="secundario" onClick={startAsk}>
+                    <QuestionIcon /> Perguntar o que está rolando
+                  </Button>
+                }
+              >
+                {resumo(aviso)}. Ninguém registrou nada ainda. Está vendo alguma coisa na rua?
+              </EmptyState>
             ) : (
               <EmptyState
                 title="Tudo calmo por aqui"

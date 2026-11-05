@@ -59,3 +59,32 @@ export async function notifyRequest(id: string) {
     tag: `pedido-${id}`,
   }));
 }
+
+// Aviso do tempo: não depende de ninguém postar, e por isso vai para toda a
+// cidade, sem raio e sem categoria. Quem decide se vale acordar o celular é o
+// banco (push_targets_for_alert): só perigo e grande perigo, uma vez por aviso.
+export async function notifyAlert(alert: {
+  cityId: number;
+  id: number;
+  kind: string;
+  severity: "potencial" | "perigo" | "grande_perigo";
+  live: boolean;
+}) {
+  const { data, error } = await adminClient().rpc("push_targets_for_alert", {
+    p_city_id: alert.cityId,
+    p_id: alert.id,
+  });
+  if (error) throw error;
+  const targets = (data ?? []) as Target[];
+  if (!targets.length) return { sent: 0 };
+
+  const grave = alert.severity === "grande_perigo";
+  return send(targets, () => ({
+    title: grave ? `${alert.kind}: grande perigo` : `${alert.kind} a caminho`,
+    body: alert.live
+      ? "O aviso já está valendo na cidade. Viu alguma coisa? Tire uma foto."
+      : "O aviso começa nas próximas horas. Fique de olho e registre o que vir.",
+    url: "/mapa",
+    tag: `aviso-${alert.id}`,
+  }));
+}
