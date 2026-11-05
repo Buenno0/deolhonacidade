@@ -31,7 +31,7 @@ export default function EventCard({
   return (
     <li
       className={cx(
-        "rounded-xl border bg-surface p-3 transition",
+        "rounded-none border bg-surface p-3 transition",
         active ? "border-accent" : "border-line",
       )}
     >
@@ -49,7 +49,7 @@ export default function EventCard({
             width={72}
             height={72}
             loading="lazy"
-            className="rounded-lg border-2 object-cover"
+            className="rounded-none border-2 object-cover"
             style={{ borderColor: severityVar(event.category), height: 72, width: 72 }}
           />
         </button>
@@ -63,9 +63,9 @@ export default function EventCard({
               {ago(event.created_at)} · {dateTime(event.created_at)}
             </span>
             {event.live ? (
-              <span className="rotulo text-ok">no ar</span>
+              <span className="legenda text-ok">no ar</span>
             ) : (
-              <span className="rotulo text-muted">encerrada</span>
+              <span className="legenda text-muted">encerrada</span>
             )}
           </p>
 

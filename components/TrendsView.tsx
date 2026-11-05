@@ -24,7 +24,7 @@ type Props = {
 
 function Metrics({ p }: { p: PostFeature["properties"] }) {
   return (
-    <span className="rotulo flex flex-wrap items-center gap-x-3 gap-y-1">
+    <span className="legenda flex flex-wrap items-center gap-x-3 gap-y-1">
       <span className="inline-flex items-center gap-1">
         <EyeIcon width="1.1em" height="1.1em" /> <span className="num text-ink">{p.view_count}</span>
       </span>
@@ -99,7 +99,7 @@ export default function TrendsView({ posts, onOpen }: Props) {
           {/* O primeiro lugar, grande */}
           <button
             onClick={() => onOpen(first.properties.id, ids)}
-            className="sala-escura relative overflow-hidden rounded-2xl border border-line bg-black text-left"
+            className="sala-escura relative overflow-hidden rounded-none border border-line bg-black text-left"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={photoUrl(first.properties.photo_path)} alt="" className="aspect-[16/10] w-full object-cover" />
@@ -108,7 +108,7 @@ export default function TrendsView({ posts, onOpen }: Props) {
                 <span className="num text-2xl font-medium text-accent">#1</span>
                 <span className="inline-flex items-center gap-1.5" style={{ color: severityVar(first.properties.category) }}>
                   <CategoryIcon category={first.properties.category} />
-                  <span className="rotulo" style={{ color: "inherit" }}>
+                  <span className="legenda" style={{ color: "inherit" }}>
                     {CATEGORIES[first.properties.category].label}
                   </span>
                 </span>
@@ -119,7 +119,7 @@ export default function TrendsView({ posts, onOpen }: Props) {
               )}
               <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                 <Metrics p={first.properties} />
-                <span className="rotulo">
+                <span className="legenda">
                   {timeAgo(first.properties.created_at, now)} · some em {timeLeftShort(first.properties.expires_at, now)}
                 </span>
               </div>
@@ -137,10 +137,10 @@ export default function TrendsView({ posts, onOpen }: Props) {
                   <li key={p.id}>
                     <button
                       onClick={() => onOpen(p.id, ids)}
-                      className="flex w-full items-center gap-3 rounded-xl border border-line bg-surface p-2 pr-3 text-left transition hover:bg-elev"
+                      className="flex w-full items-center gap-3 rounded-none border border-line bg-surface p-2 pr-3 text-left transition hover:bg-elev"
                     >
                       <span className="num w-7 shrink-0 text-center text-base text-muted">{i + 2}</span>
-                      <span className="sala-escura h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-elev">
+                      <span className="sala-escura h-14 w-14 shrink-0 overflow-hidden rounded-none bg-elev">
                         <Thumb path={p.photo_path} className="h-full w-full object-cover" />
                       </span>
                       <span className="min-w-0 flex-1">

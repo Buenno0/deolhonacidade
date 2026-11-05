@@ -60,10 +60,10 @@ export default function LandmarkSheet({ landmark: l, posts, onClose, onOpenPost,
         {l.photos.length > 0 ? (
           <div ref={faixaFotos} className="no-scrollbar -mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1">
             {l.photos.map((ph) => (
-              <figure key={ph.url} className="w-full shrink-0 snap-center overflow-hidden rounded-xl border border-line bg-elev">
+              <figure key={ph.url} className="w-full shrink-0 snap-center overflow-hidden rounded-none border border-line bg-elev">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={ph.url} alt={l.name} className="aspect-[4/3] w-full object-cover" />
-                <figcaption className="rotulo flex justify-between gap-2 px-3 py-1.5">
+                <figcaption className="legenda flex justify-between gap-2 px-3 py-1.5">
                   <a href={ph.page} target="_blank" rel="noreferrer" className="truncate hover:text-ink">
                     Foto: {ph.author}
                   </a>
@@ -101,8 +101,8 @@ export default function LandmarkSheet({ landmark: l, posts, onClose, onOpenPost,
           </p>
         )}
         {p?.extract && (
-          <div className="rounded-xl border border-line bg-bg p-3">
-            <p className="rotulo mb-1.5">Da Wikipédia</p>
+          <div className="rounded-none border border-line bg-bg p-3">
+            <p className="legenda mb-1.5">Da Wikipédia</p>
             <p className="text-sm leading-relaxed">{p.extract}</p>
             <a href={p.url} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs text-accent underline underline-offset-2">
               Ler o artigo completo
@@ -115,7 +115,7 @@ export default function LandmarkSheet({ landmark: l, posts, onClose, onOpenPost,
 
         {/* Sobre quem ou o que o lugar homenageia */}
         {l.about_title && (
-          <details className="group rounded-xl border border-line bg-bg">
+          <details className="group rounded-none border border-line bg-bg">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-sm font-medium">
               {l.about_label ?? "Saiba mais"}
               <span className="text-muted transition group-open:rotate-90" aria-hidden="true">
@@ -140,7 +140,7 @@ export default function LandmarkSheet({ landmark: l, posts, onClose, onOpenPost,
         )}
 
         <section>
-          <p className="rotulo mb-2">Agora por aqui · {LANDMARK_RADIUS_M} m</p>
+          <p className="legenda mb-2">Agora por aqui · {LANDMARK_RADIUS_M} m</p>
           {nearby.length === 0 ? (
             <p className="text-sm text-muted">Nada registrado aqui agora.</p>
           ) : (
@@ -151,7 +151,7 @@ export default function LandmarkSheet({ landmark: l, posts, onClose, onOpenPost,
                   onClick={() => onOpenPost(f.properties.id, nearby.map((x) => x.properties.id))}
                   className="flex shrink-0 flex-col items-center gap-1"
                 >
-                  <span className="h-20 w-20 overflow-hidden rounded-xl border border-line bg-elev">
+                  <span className="h-20 w-20 overflow-hidden rounded-none border border-line bg-elev">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={thumbUrl(f.properties.photo_path)}
@@ -166,7 +166,7 @@ export default function LandmarkSheet({ landmark: l, posts, onClose, onOpenPost,
                       }}
                     />
                   </span>
-                  <span className="rotulo text-[9px]">{timeAgo(f.properties.created_at, now)}</span>
+                  <span className="num text-[9px]">{timeAgo(f.properties.created_at, now)}</span>
                 </button>
               ))}
             </div>
@@ -185,14 +185,14 @@ export default function LandmarkSheet({ landmark: l, posts, onClose, onOpenPost,
               href={`https://www.google.com/maps/dir/?api=1&destination=${l.lat},${l.lng}`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium text-ink transition hover:bg-elev"
+              className="inline-flex items-center justify-center gap-2 rounded-none border border-line bg-surface px-4 py-2 text-sm font-medium text-ink transition hover:bg-elev"
             >
               <PinIcon /> Como chegar
             </a>
           </div>
         </div>
 
-        <p className="rotulo leading-relaxed">
+        <p className="legenda leading-relaxed">
           Fontes:{" "}
           {wikidata.map((q, i) => (
             <a key={q} href={`https://www.wikidata.org/wiki/${q}`} target="_blank" rel="noreferrer" className="hover:text-ink">

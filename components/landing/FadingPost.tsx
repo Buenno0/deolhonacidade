@@ -42,7 +42,7 @@ export default function FadingPost() {
   return (
     <div className="lp-wrap flex flex-wrap items-center justify-center gap-x-12 gap-y-6 pb-16">
       <div className="flex w-full max-w-[380px] flex-col gap-2 text-center sm:text-left">
-        <span className="lp-rot" style={{ color: "var(--accent)" }}>{t.eyebrow}</span>
+        <span className="lp-legenda">{t.eyebrow}</span>
         <p className="lp-disp m-0 text-2xl leading-tight">
           {gone ? (
             <>
@@ -62,17 +62,17 @@ export default function FadingPost() {
 
       <div ref={box} className="relative w-[280px]" style={{ height: 196 }}>
         {gone && (
-          <div className="lp-fantasma absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-line text-center">
+          <div className="lp-fantasma absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-none border border-dashed border-line text-center">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
               <circle cx="12" cy="12" r="9" strokeDasharray="3 3" />
               <path d="M12 7v5l3 2" />
             </svg>
-            <span className="lp-rot">{t.gone}</span>
+            <span className="lp-legenda-p">{t.gone}</span>
             <span className="lp-muted text-xs">{t.goneNote}</span>
           </div>
         )}
       <article
-        className={`absolute inset-0 overflow-hidden rounded-2xl border ${gone ? "lp-desfaz border-line" : left <= URGENT ? "lp-urgente" : "lp-nasce border-line"}`}
+        className={`absolute inset-0 overflow-hidden rounded-none border ${gone ? "lp-desfaz border-line" : left <= URGENT ? "lp-urgente" : "lp-nasce border-line"}`}
         style={{ background: "var(--surface)" }}
         aria-live="off"
       >

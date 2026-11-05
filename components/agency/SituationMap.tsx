@@ -126,5 +126,5 @@ export default function SituationMap({
     if (s) map.current.easeTo({ center: [s.lng, s.lat], duration: 400 });
   }, [activeId, spots, ready]);
 
-  return <div ref={box} style={{ height }} className="overflow-hidden rounded-2xl border border-line" />;
+  return <div ref={box} style={{ height }} className="overflow-hidden rounded-none border border-line" />;
 }

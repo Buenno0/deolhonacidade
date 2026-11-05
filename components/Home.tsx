@@ -635,13 +635,13 @@ export default function Home() {
       {/* Sem pointer-events-none aqui: no iPhone, rolagem horizontal dentro de um
           elemento com esse ancestral não rola (a barra de filtros travava) */}
       <header className="absolute inset-x-0 top-0 z-10 px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <div className="pointer-events-auto mx-auto flex max-w-lg items-center gap-3 rounded-2xl border border-line bg-surface/90 py-2 pl-3 pr-2 backdrop-blur">
+        <div className="pointer-events-auto mx-auto flex max-w-lg items-center gap-3 rounded-none border border-line bg-surface/90 py-2 pl-3 pr-2 backdrop-blur">
           <Mark size={40} className="shrink-0" />
           <div className="min-w-0 flex-1">
             <p className="flex items-center gap-2 font-display text-base font-bold leading-tight">
               Viu na Cidade <BetaTag />
             </p>
-            <p className="rotulo truncate">
+            <p className="legenda truncate">
               {CITY.name} · {CITY.uf}
             </p>
           </div>
@@ -658,7 +658,7 @@ export default function Home() {
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-danger" />
               </span>
             )}
-            <span className="rotulo hidden text-ink sm:inline">ao vivo</span>
+            <span className="legenda hidden text-ink sm:inline">ao vivo</span>
             <span className="num text-xs text-ink">{String(posts?.length ?? 0).padStart(2, "0")}</span>
           </div>
           <IconButton label={theme === "dark" ? "Tema claro" : "Tema escuro"} onClick={toggle}>
@@ -843,7 +843,7 @@ export default function Home() {
       ) : inHistory ? (
         <footer className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-bg via-bg/70 to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10">
           <div className="pointer-events-auto mx-auto max-w-lg">
-            <p className="rotulo mb-2">Últimos 30 dias · só o que quem postou escolheu guardar</p>
+            <p className="legenda mb-2">Últimos 30 dias · só o que quem postou escolheu guardar</p>
             <HistoryRuler
               counts={historyCounts ?? {}}
               day={historyDay}
@@ -908,7 +908,7 @@ export default function Home() {
           >
             <span className="h-2 w-2 shrink-0 rounded-full bg-accent" />
             {toast.text}
-            {toast.postId && <span className="rotulo text-accent">ver</span>}
+            {toast.postId && <span className="legenda text-accent">ver</span>}
           </button>
         </div>
       )}

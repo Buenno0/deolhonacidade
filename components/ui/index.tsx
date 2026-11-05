@@ -22,7 +22,7 @@ export function Button({
   return (
     <button
       className={cx(
-        "inline-flex items-center justify-center gap-2 rounded-lg transition active:translate-y-px disabled:opacity-50 disabled:pointer-events-none",
+        "inline-flex items-center justify-center gap-2 rounded-none transition active:translate-y-px disabled:opacity-50 disabled:pointer-events-none",
         size === "lg" ? "px-5 py-3 text-base" : "px-4 py-2 text-sm",
         VARIANTS[variant],
         className,
@@ -76,7 +76,7 @@ export function Spinner({ className }: { className?: string }) {
 
 export function EmptyState({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-2xl border border-line bg-surface px-6 py-5 text-center">
+    <div className="flex flex-col items-center gap-2 rounded-none border border-line bg-surface px-6 py-5 text-center">
       <p className="font-display text-lg font-semibold">{title}</p>
       {children && <p className="text-sm text-muted">{children}</p>}
       {action && <div className="mt-2">{action}</div>}

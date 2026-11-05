@@ -13,14 +13,20 @@ No NAS, a marca é uma máscara em ruínas e "o acervo é o herói". Aqui, **a f
 é a heroína**: o app é um mapa de coisas acontecendo agora, e a única fonte de
 cor saturada na tela é o que as pessoas fotografaram.
 
-Três decisões que se repetem em tudo:
+Quatro decisões que se repetem em tudo:
 
-- **Escuro é o padrão.** O app é usado na rua, muitas vezes à noite, e o mapa
-  em basalto deixa a foto brilhar. O claro é um tema completo, não um filtro.
-- **Pedra e areia na interface, cor só em ação e em foto.** Nenhuma categoria
-  tem cor própria. Categoria é ícone + rótulo.
+- **Papel e tinta, não pedra e ouro.** A interface é um mural de cidade:
+  papel de jornal, régua preta, fio no lugar da caixa. O escuro é o mesmo
+  papel virado do avesso, um tema completo, não um filtro.
+- **Nenhum acento colorido.** A ação primária é preta sobre papel. Nenhuma
+  categoria tem cor própria: categoria é ícone + rótulo.
+- **O vermelho é o agora.** `--danger` é a única cor que grita, e grita por
+  uma coisa só: o que está acontecendo neste minuto.
 - **O tempo é visível.** Tudo some em 12h, então o tempo restante aparece em
   todo lugar do mesmo jeito: um anel que esvazia e um relógio de missão (`11:37`).
+
+O escuro ainda é o padrão no código. Ele deixa de ser na etapa da LP: tela de
+celular no sol pede papel claro e brilho alto, não basalto.
 
 ---
 
@@ -33,14 +39,21 @@ mão em quatro lugares (a contradição nº 1 de lá); aqui não.
 
 | token | escuro | claro | uso |
 |---|---|---|---|
-| `--bg` | `#0c0a08` | `#f6f3ee` | fundo, chão do mapa |
-| `--surface` | `#16130f` | `#fdfbf7` | cabeçalho, sheets, chips |
-| `--elev` | `#211c15` | `#efe9df` | hover, poço da foto, ruas no escuro |
-| `--line` | `#40372b` | `#d0c4b1` | toda borda e divisória |
-| `--ink` | `#f4efe4` | `#241e17` | texto |
-| `--muted` | `#a99a84` | `#6b6154` | texto secundário, micro-rótulo |
-| `--accent` | `#d29a44` | `#9d5a26` | ação primária, marca, limite da cidade |
-| `--accent-ink` | `#1a1206` | `#fdfbf7` | texto sobre o acento |
+| `--bg` | `#121110` | `#efede6` | fundo, chão do mapa |
+| `--surface` | `#1b1917` | `#ffffff` | cabeçalho, sheets, chips |
+| `--elev` | `#262320` | `#e6e3da` | hover, poço da foto, ruas no escuro |
+| `--line` | `#3b3733` | `#c8c2b4` | toda borda e divisória |
+| `--ink` | `#f2efe7` | `#15130f` | texto |
+| `--muted` | `#a8a096` | `#5e584e` | texto secundário, legenda |
+| `--accent` | `#f2efe7` | `#15130f` | ação primária, limite da cidade |
+| `--accent-ink` | `#15130f` | `#efede6` | texto sobre o acento |
+
+**O acento não é uma cor.** Esta é a decisão central do redesign "mural da
+cidade": a ação primária é tinta sobre papel no claro e papel sobre tinta no
+escuro. O ouro gasto herdado do NAS era marca, botão, anel de evento e selo ao
+mesmo tempo, e por isso não destacava nada. Quem ficou com o trabalho de
+chamar atenção foi o `--danger`, que agora é **o vermelho do agora**: o que
+está acontecendo neste minuto, e só isso.
 
 **Quatro níveis de profundidade** (`bg` → `surface` → `elev` → borda) e nenhuma
 sombra. A única "elevação" do app é o `backdrop-blur` do cabeçalho sobre o mapa.
@@ -49,9 +62,9 @@ sombra. A única "elevação" do app é o `backdrop-blur` do cabeçalho sobre o 
 
 | token | escuro | claro |
 |---|---|---|
-| `--ok` | `#7fb79a` | `#2f6f52` |
-| `--warn` | `#dca84a` | `#8a5a12` |
-| `--danger` | `#e08163` | `#9c3f1d` |
+| `--ok` | `#86c0a0` | `#1f6b46` |
+| `--warn` | `#d9a24a` | `#8a5a12` |
+| `--danger` | `#e8614a` | `#c62516` |
 
 São o teto de cor. No NAS, `--ok` tinha 3 usos e era "quase uma cor solta";
 aqui ele ganhou trabalho: localização precisa, água e parque no mapa.
@@ -101,18 +114,34 @@ ou MapTiler, ambos com plano gratuito).
 
 ## 3. Tipografia
 
-As mesmas famílias do NAS, servidas pelo app (`app/fonts/`, variáveis, latin):
+Todas servidas pelo app (`app/fonts/`, subconjunto latin), sem requisição a
+terceiros:
 
 | família | onde |
 |---|---|
-| **Archivo** 600/700 (`font-display`) | nome do app, títulos de sheet, legenda no visualizador, estado vazio |
-| **JetBrains Mono** 400/500 (`.rotulo`, `.num`) | micro-rótulos, contagens, relógio, precisão do GPS |
-| pilha do sistema | corpo |
+| **Anton** 400 (`font-cartaz`, e `font-display` aponta para ela) | todo título: o herói da LP, as chamadas de seção, o nome do app, o título de sheet, a legenda no visualizador |
+| **Instrument Serif** 400 + itálico (`font-serifa`, `.legenda`) | lugar, hora, categoria: o metadado que antes era rótulo mono |
+| pilha do sistema | corpo, botão, campo |
+| **JetBrains Mono** 400/500 (`.num`, e `.rotulo` nas telas internas) | número: relógio, contagem, precisão do GPS |
 
-O NAS tinha a tipografia partida (Archivo só no login). Aqui a Archivo é
-usada no produto inteiro desde o início.
+**Uma família de título só.** `--font-display` aponta para a mesma Anton do
+cartaz, e por isso a Archivo saiu do projeto: duas famílias de título seriam
+duas vozes. As duas novas somam 42 KB e a saída da Archivo devolveu 35, então
+o app ficou 7 KB mais pesado em fonte e ganhou uma serifa.
 
+O corpo segue na pilha do sistema de propósito: uma terceira família baixada
+custaria mais do que entrega.
+
+- `.legenda`: serifa itálica 15px, `--muted`. É a substituta do `.rotulo`, e
+  hoje são 64 usos no produto. Na LP ela tem dois tamanhos (`.lp-legenda` 17px
+  para chamada de seção, `.lp-legenda-p` 14px para selo sobre foto).
 - `.rotulo`: mono 10px, 500, `letter-spacing: .16em`, maiúsculo, `--muted`.
+  **Saiu do produto inteiro.** Sobraram 71 usos no `/admin` e no
+  `/defesa-civil`, que são ferramentas internas: ali o mono denso em caixa alta
+  é adequado, e ninguém de fora vê. Se alguma dessas telas virar produto, ela
+  migra junto.
+- **Abaixo de 10px, mono.** A serifa itálica some em 9px, então relógio,
+  contagem e selo miúdo usam `.num`. Número é o lugar onde a mono fica.
 - `.num`: mono com `tabular-nums`, para o relógio não dançar quando o minuto vira.
 
 Corpo em 14px (`text-sm`), campos em 16px (`text-base`, evita zoom no iOS).
@@ -121,14 +150,18 @@ Corpo em 14px (`text-sm`), campos em 16px (`text-base`, evita zoom no iOS).
 
 ## 4. Forma
 
-Quanto maior a superfície, maior o raio:
+**Canto vivo é o padrão.** O raio é a exceção, não a régua:
 
-| raio | uso |
+| forma | uso |
 |---|---|
-| `rounded-lg` 8px | botão, campo |
-| `rounded-full` | chip, botão de ícone, pin, pílula de status |
-| `rounded-xl` 12px | poço da foto, caixa de localização |
-| `rounded-2xl` 16px | cabeçalho, sheet, estado vazio |
+| canto vivo | botão, campo, cartão, sheet, cabeçalho, poço da foto, estado vazio |
+| `rounded-full` | chip, botão de ícone, pin, ponto, pílula de status |
+| `14 14 14 4` | o balão do pedido (§5.3): a ponta diz de onde ele fala |
+| 11px e 7px | o azulejo do marco (§5.7): ladrilho tem canto arredondado |
+
+A régua antiga era "quanto maior a superfície, maior o raio", de 8px a 16px.
+Era o que fazia tudo parecer o mesmo card de dashboard. Agora o que separa uma
+superfície da outra é o fio ou a régua preta, não o arredondamento.
 
 Sheet: sobe de baixo no celular, centraliza a partir de `sm:`.
 
@@ -142,7 +175,7 @@ Sheet: sobe de baixo no celular, centraliza a partir de `sm:`.
 | `IconButton` | idem | 40px, borda, `aria-label` obrigatório |
 | `Chip` | idem | filtro e escolha de categoria; `aria-pressed` |
 | `Spinner`, `EmptyState` | idem | carregando / vazio |
-| `Sheet` | `components/Sheet.tsx` | eyebrow em `.rotulo` + título em Archivo; Esc fecha |
+| `Sheet` | `components/Sheet.tsx` | eyebrow em `.legenda` + título em Anton; Esc fecha |
 | `Mark` | `components/ui/Mark.tsx` | o município com o pin no centro urbano |
 | ícones | `components/ui/icons.tsx` | viewBox 24, traço 1.8, redondo, `currentColor` |
 | pin | `components/map/CityMap.tsx` + `.pin` | foto + anel de tempo + ponta |
@@ -285,16 +318,22 @@ Foco: `:focus-visible` com contorno de 2px em acento.
 
 ## 8. Contraste
 
-`npm run contraste`: **37 pares, 37 passando** (escuro, claro e sala escura).
+`npm run contraste`: **43 pares, 43 passando** (escuro, claro e sala escura).
 Os destaques:
 
 | par | escuro | claro |
 |---|---|---|
-| corpo sobre fundo | 17,24:1 | 14,90:1 |
-| secundário sobre superfície | 6,74:1 | 5,87:1 |
-| botão primário / chip ativo | 7,45:1 | 5,18:1 |
-| perigo sobre superfície | 6,60:1 | 6,47:1 |
-| legenda sobre foto (degradê) | 13,20:1 | — (sala escura) |
+| corpo sobre fundo | 16,15:1 | 15,84:1 |
+| secundário sobre superfície | 6,46:1 | 7,04:1 |
+| botão primário / chip ativo | 16,15:1 | 15,84:1 |
+| perigo sobre superfície | 5,21:1 | 5,71:1 |
+| legenda sobre foto (degradê) | 13,17:1 | — (sala escura) |
+
+O botão primário saltou para 16:1 porque deixou de ser dourado. O par que
+quase reprovou foi **a borda sobre o fundo no claro**: `#d8d4ca` no papel dava
+1,26 contra um alvo de 1,4, então o fio escureceu para `#c8c2b4`. No visual
+novo o fio faz o trabalho que a sombra não faz, e precisa aparecer no papel,
+não só no cartaz branco.
 
 ---
 
@@ -309,6 +348,16 @@ Os destaques:
 3. **O mapa tem cores fora dos tokens** (§2.3), de propósito: legibilidade
    do mapa vence a coerência da paleta. Elas vivem em `lib/map/style.ts`, não
    em `design/tokens.mjs`, e dependem dos ids de camada do positron.
+4. **As telas internas ficaram para trás.** `/admin` e `/defesa-civil` ainda
+   têm 71 `.rotulo` e os cantos arredondados antigos. Foi decisão, não
+   esquecimento: são ferramentas internas, e ali o mono denso em caixa alta
+   serve. Se alguma delas virar produto, migra junto.
+5. **A LP ainda é isométrica.** As ilustrações (`components/landing/scenes.tsx`,
+   622 linhas, usadas por oito componentes) continuam no desenho isométrico do
+   visual antigo. No papel claro elas passaram a funcionar como blocos de foto,
+   o que comprou tempo, mas a linguagem de ilustração ainda não é a do mural.
+   O degradê de dia e noite do "um dia em Itapetininga" fica dourado de
+   propósito: ali o ouro é o sol, não a marca.
 
 ---
 

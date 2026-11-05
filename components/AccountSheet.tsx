@@ -118,14 +118,14 @@ export default function AccountSheet({
       <div className="flex flex-col gap-5">
         {progress ? <ProgressCard progress={progress} onChanged={onProgressChanged} /> : <Spinner />}
 
-        <section className="flex items-center gap-3 rounded-xl border border-line bg-bg p-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-elev text-ink">
+        <section className="flex items-center gap-3 rounded-none border border-line bg-bg p-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-none bg-elev text-ink">
             <CategoryIcon category="estabelecimento" />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-medium">{business ? business.name : "Tem um estabelecimento?"}</span>
             {business ? (
-              <span className={cx("rotulo", BUSINESS_STATUS[business.status].tone)}>{BUSINESS_STATUS[business.status].label}</span>
+              <span className={cx("legenda", BUSINESS_STATUS[business.status].tone)}>{BUSINESS_STATUS[business.status].label}</span>
             ) : (
               <span className="block text-xs text-muted">Divulgue no mapa, com a tag Divulgação, depois da verificação.</span>
             )}
@@ -136,7 +136,7 @@ export default function AccountSheet({
         </section>
 
         <section>
-          <p className="rotulo mb-2">Meus posts · últimos 7 dias e histórico</p>
+          <p className="legenda mb-2">Meus posts · últimos 7 dias e histórico</p>
           {posts === null ? (
             <Spinner />
           ) : posts.length === 0 ? (
@@ -144,8 +144,8 @@ export default function AccountSheet({
           ) : (
             <ul className="flex flex-col gap-2">
               {posts.map((p) => (
-                <li key={p.id} className="flex items-center gap-3 rounded-xl border border-line bg-bg p-2 pr-3">
-                  <span className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-elev">
+                <li key={p.id} className="flex items-center gap-3 rounded-none border border-line bg-bg p-2 pr-3">
+                  <span className="h-12 w-12 shrink-0 overflow-hidden rounded-none bg-elev">
                     {p.photo_path && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -166,10 +166,10 @@ export default function AccountSheet({
                     <span className="flex items-center gap-1.5 text-xs">
                       <CategoryIcon category={p.category} width="1.1em" height="1.1em" />
                       {CATEGORIES[p.category].label}
-                      <span className={cx("rotulo", STATUS[p.status].tone)}>{STATUS[p.status].label}</span>
+                      <span className={cx("legenda", STATUS[p.status].tone)}>{STATUS[p.status].label}</span>
                     </span>
                     {p.caption && <span className="block truncate text-sm">{p.caption}</span>}
-                    <span className="rotulo mt-0.5 flex flex-wrap gap-x-3">
+                    <span className="legenda mt-0.5 flex flex-wrap gap-x-3">
                       <span>{timeAgo(p.created_at)}</span>
                       {p.status === "published" && <span>some em {timeLeftShort(p.expires_at)}</span>}
                       {p.archived_until && <span className="text-marco-texto">no histórico até {dayFmt.format(new Date(p.archived_until))}</span>}
@@ -202,7 +202,7 @@ export default function AccountSheet({
           Sair da conta
         </Button>
 
-        <section className="rounded-xl border border-line p-3">
+        <section className="rounded-none border border-line p-3">
           {!deleting ? (
             <Button variant="perigo" onClick={() => setDeleting(true)} className="w-full">
               Excluir minha conta
@@ -218,7 +218,7 @@ export default function AccountSheet({
                 onChange={(e) => setConfirmText(e.target.value)}
                 autoCapitalize="characters"
                 aria-label="Digite EXCLUIR para confirmar"
-                className="rounded-lg border border-line bg-bg px-3 py-2 text-base outline-none focus:border-danger"
+                className="rounded-none border border-line bg-bg px-3 py-2 text-base outline-none focus:border-danger"
               />
               <div className="flex gap-2">
                 <Button variant="secundario" className="flex-1" onClick={() => setDeleting(false)}>

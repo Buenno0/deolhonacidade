@@ -57,3 +57,8 @@ infra/.terraform.lock.hcl.bak
 
 # Planos do tofu levam uma cópia do estado (com segredos): nunca no git
 infra/*.tfplan
+
+# skills instaladas por `npx skills add` (trazem node_modules próprio)
+/.agents/
+/.claude/skills/
+/skills-lock.json

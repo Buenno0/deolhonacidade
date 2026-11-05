@@ -49,20 +49,20 @@ export default function AdSimulator() {
             setTouched(true);
             setOffer(e.target.value);
           }}
-          className="min-h-12 w-full rounded-lg border border-line bg-bg px-3.5 text-base text-ink outline-none transition focus:border-accent"
+          className="min-h-12 w-full rounded-none border border-line bg-bg px-3.5 text-base text-ink outline-none transition focus:border-accent"
         />
       </label>
 
-      <div ref={nearRef} className="relative overflow-hidden rounded-xl border border-line" style={{ aspectRatio: "16 / 10" }}>
+      <div ref={nearRef} className="relative overflow-hidden rounded-none border border-line" style={{ aspectRatio: "16 / 10" }}>
         {near && <ShopScene kind={kind} className="lp-cena" title={t.scene(t.kinds[kind])} />}
-        <span className="lp-viram lp-rot absolute bottom-10 left-3 rounded-full px-2.5 py-1" style={{ background: "rgba(12,10,8,.8)", color: "var(--ok)" }}>
+        <span className="lp-viram lp-legenda-p absolute bottom-10 left-3 rounded-full px-2.5 py-1" style={{ background: "rgba(12,10,8,.8)", color: "var(--ok)" }}>
           {t.seen}
         </span>
       </div>
-      <div key={kind + offer} className="story-entra sala-escura -mt-8 mx-3 relative flex flex-col gap-2 rounded-xl border border-line p-3" style={{ background: "rgba(12,10,8,.9)", backdropFilter: "blur(6px)" }}>
+      <div key={kind + offer} className="story-entra sala-escura -mt-8 mx-3 relative flex flex-col gap-2 rounded-none border border-line p-3" style={{ background: "rgba(12,10,8,.9)", backdropFilter: "blur(6px)" }}>
           <span className="flex items-center gap-2">
             <Tag kind="divulgacao" label={T.tags.divulgacao} />
-            <span className="lp-rot whitespace-nowrap">{t.distance}</span>
+            <span className="lp-legenda-p whitespace-nowrap">{t.distance}</span>
           </span>
           <p className="lp-disp m-0 text-lg leading-tight text-ink">{offer || t.placeholder}</p>
           <span className="flex gap-2">

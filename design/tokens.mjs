@@ -1,6 +1,11 @@
-// Fonte única da paleta do De Olho. Herdada do design system do NAS
-// (~/nas/DESIGN.md): basalto à noite, papel morno de dia, ouro gasto e
-// terracota como acento, e três semânticas que são o teto de cor.
+// Fonte única da paleta do De Olho. Redesign "mural da cidade": papel de
+// jornal de dia, o mesmo papel virado do avesso à noite, e nenhum acento
+// colorido. A ação é preta sobre papel (creme sobre tinta no escuro), e o
+// vermelho fica reservado ao que está acontecendo agora.
+//
+// O que saiu daqui foi o ouro gasto herdado do NAS: um acento dourado que era
+// marca, botão, anel de evento e selo ao mesmo tempo, e por isso não destacava
+// nada. Agora cada cor tem um trabalho só.
 //
 // Tudo que precisa de cor lê daqui:
 //   - app/tokens.css         gerado por scripts/gerar-tokens.mjs (npm run tokens)
@@ -11,36 +16,36 @@
 
 export const tema = {
   escuro: {
-    bg: "#0c0a08", // basalto: a pedra à noite
-    surface: "#16130f",
-    elev: "#211c15",
-    line: "#40372b",
-    ink: "#f4efe4",
-    muted: "#a99a84",
-    accent: "#d29a44", // ouro gasto
-    accentInk: "#1a1206",
-    ok: "#7fb79a", // pátina de bronze
-    warn: "#dca84a", // ocre
-    danger: "#e08163", // óxido
+    bg: "#121110", // o papel virado do avesso
+    surface: "#1b1917",
+    elev: "#262320",
+    line: "#3b3733",
+    ink: "#f2efe7",
+    muted: "#a8a096",
+    accent: "#f2efe7", // a ação é o contrário do fundo, não uma cor
+    accentInk: "#15130f",
+    ok: "#86c0a0",
+    warn: "#d9a24a", // ocre: só severidade, nunca a marca
+    danger: "#e8614a", // o vermelho do agora
     marco: "#3563d9", // azul azulejo: só os marcos da cidade
-    marcoInk: "#f4efe4",
+    marcoInk: "#f2efe7",
     marcoTexto: "#8fb0f5",
   },
   claro: {
-    bg: "#f6f3ee", // papel morno
-    surface: "#fdfbf7",
-    elev: "#efe9df",
-    line: "#d0c4b1",
-    ink: "#241e17",
-    muted: "#6b6154",
-    accent: "#9d5a26", // terracota
-    accentInk: "#fdfbf7",
-    ok: "#2f6f52",
+    bg: "#efede6", // papel de jornal
+    surface: "#ffffff", // o cartaz colado no poste
+    elev: "#e6e3da", // o chão do mapa
+    line: "#c8c2b4", // o fio precisa aparecer no papel, não só no cartaz branco
+    ink: "#15130f",
+    muted: "#5e584e",
+    accent: "#15130f", // o botão principal é preto
+    accentInk: "#efede6",
+    ok: "#1f6b46",
     warn: "#8a5a12",
-    danger: "#9c3f1d",
-    marco: "#3563d9",
-    marcoInk: "#f4efe4",
-    marcoTexto: "#2f5fd0",
+    danger: "#c62516", // o vermelho do agora
+    marco: "#1b3fa8",
+    marcoInk: "#f2efe7",
+    marcoTexto: "#1b3fa8",
   },
 };
 

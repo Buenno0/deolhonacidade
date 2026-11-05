@@ -63,9 +63,9 @@ export default function MapTypePicker({ theme, heat, onHeat, className }: Picker
           <div
             role="menu"
             aria-label="Tipo de mapa"
-            className="absolute right-0 top-12 z-20 w-60 rounded-2xl border border-line bg-surface p-2"
+            className="absolute right-0 top-12 z-20 w-60 rounded-none border border-line bg-surface p-2"
           >
-            <p className="rotulo px-2 pb-2 pt-1">Tipo de mapa</p>
+            <p className="legenda px-2 pb-2 pt-1">Tipo de mapa</p>
             {MAP_TYPES.map((t) => (
               <button
                 key={t.id}
@@ -76,11 +76,11 @@ export default function MapTypePicker({ theme, heat, onHeat, className }: Picker
                   setOpen(false);
                 }}
                 className={cx(
-                  "flex w-full items-center gap-3 rounded-xl border p-1.5 pr-3 text-left transition",
+                  "flex w-full items-center gap-3 rounded-none border p-1.5 pr-3 text-left transition",
                   current === t.id ? "border-accent bg-elev" : "border-transparent hover:bg-elev",
                 )}
               >
-                <span className="h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-line">
+                <span className="h-11 w-11 shrink-0 overflow-hidden rounded-none border border-line">
                   <Thumb type={t.id} theme={theme} />
                 </span>
                 <span className="min-w-0">
@@ -89,7 +89,7 @@ export default function MapTypePicker({ theme, heat, onHeat, className }: Picker
                 </span>
               </button>
             ))}
-            <p className="rotulo px-2 pb-2 pt-3">Mapa de calor</p>
+            <p className="legenda px-2 pb-2 pt-3">Mapa de calor</p>
             {HEAT_OPTIONS.map((h) => (
               <button
                 key={h.id}
@@ -97,11 +97,11 @@ export default function MapTypePicker({ theme, heat, onHeat, className }: Picker
                 aria-checked={heat === h.id}
                 onClick={() => onHeat(heat === h.id ? "off" : h.id)}
                 className={cx(
-                  "flex w-full items-center gap-3 rounded-xl border p-2 pr-3 text-left transition",
+                  "flex w-full items-center gap-3 rounded-none border p-2 pr-3 text-left transition",
                   heat === h.id ? "border-accent bg-elev" : "border-transparent hover:bg-elev",
                 )}
               >
-                <span className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-line", heat === h.id ? "text-danger" : "text-muted")}>
+                <span className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-none border border-line", heat === h.id ? "text-danger" : "text-muted")}>
                   <FlameIcon />
                 </span>
                 <span className="min-w-0">

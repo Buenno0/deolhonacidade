@@ -1,6 +1,10 @@
-/* LP (raiz). Sempre no escuro (.dark no wrapper) e com prefixo lp- para não
-   cruzar com o app. Animação só com CSS: sem suporte, o conteúdo aparece
-   parado, e o buscador lê tudo do HTML do servidor. */
+/* LP (raiz). Sempre no papel claro (.light no wrapper) e com prefixo lp- para
+   não cruzar com o app. Animação só com CSS: sem suporte, o conteúdo aparece
+   parado, e o buscador lê tudo do HTML do servidor.
+
+   A LP não segue o tema da pessoa, de propósito: é uma vitrine, e a vitrine
+   do redesign é o mural de papel. Quem entra no app leva o tema que escolheu.
+   As ilustrações continuam escuras e viram blocos de "foto" sobre o papel. */
 
 .lp {
   background: var(--bg);
@@ -10,8 +14,13 @@
   overflow-x: clip;
 }
 .lp a { color: inherit; text-decoration: none; }
-.lp-disp { font-family: var(--font-display); letter-spacing: -0.02em; font-weight: 700; }
-.lp-rot { font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+/* Título de cartaz. A Anton só tem um peso e já é condensada e pesada, então
+   aqui não há font-weight nem aperto de letra: ela vem apertada de fábrica. */
+.lp-disp { font-family: var(--font-cartaz); letter-spacing: -0.005em; font-weight: 400; }
+/* A legenda de jornal, no lugar do rótulo mono: a chamada de seção em 17px e
+   a variante pequena para selo, chip e metadado sobre foto. */
+.lp-legenda { font-family: var(--font-serifa); font-style: italic; font-size: 17px; line-height: 1.3; color: var(--muted); }
+.lp-legenda-p { font-family: var(--font-serifa); font-style: italic; font-size: 14px; line-height: 1.25; color: var(--muted); }
 .lp-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .lp-wrap { max-width: 1200px; margin: 0 auto; padding-left: 20px; padding-right: 20px; }
 .lp-sec { padding-top: 88px; padding-bottom: 88px; }
@@ -23,14 +32,14 @@
 /* botões */
 .lp-btn {
   position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-  min-height: 48px; padding: 0 22px; border-radius: 8px; font-weight: 600; font-size: 15px;
+  min-height: 48px; padding: 0 22px; border-radius: 0; font-weight: 600; font-size: 15px;
   transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.25s, border-color 0.25s;
 }
 .lp-btn:hover { transform: translateY(-2px); }
 .lp-btn:active { transform: translateY(0) scale(0.98); }
 .lp-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .lp-btn-p { background: var(--accent); color: var(--accent-ink) !important; }
-.lp-btn-p:hover { background: #e0ab58; }
+.lp-btn-p:hover { background: color-mix(in oklab, var(--accent) 88%, var(--accent-ink)); }
 .lp-btn-p::after {
   content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
   background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent);
@@ -44,7 +53,7 @@
 
 /* cards */
 .lp-card {
-  background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 0; padding: 24px;
   transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.35s;
 }
 .lp-card:hover { transform: translateY(-6px); border-color: var(--accent); }
@@ -81,14 +90,15 @@
 @keyframes lp-par { from { transform: translateY(40px); } to { transform: translateY(-40px); } }
 
 /* cabeçalho */
-.lp-head { position: sticky; top: 0; z-index: 10; background: rgba(12, 10, 8, 0.82); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+/* Cabeçalho de jornal: papel e uma régua preta embaixo, não um fio. */
+.lp-head { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter: blur(12px); border-bottom: 2px solid var(--ink); }
 
 /* ponto ao vivo */
 .lp-ponto { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); animation: lp-pisca 1.4s ease-in-out infinite; flex: none; }
 @keyframes lp-pisca { 50% { opacity: 0.25; } }
 
 /* mapa do hero */
-.lp-mapa { position: relative; height: clamp(380px, 62vw, 560px); border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: #15171b; }
+.lp-mapa { position: relative; height: clamp(380px, 62vw, 560px); border-radius: 0; overflow: hidden; border: 1px solid var(--line); background: #15171b; }
 .lp-rua { stroke-dasharray: 900; stroke-dashoffset: 900; animation: lp-draw 2.4s cubic-bezier(0.6, 0, 0.2, 1) forwards; }
 @keyframes lp-draw { to { stroke-dashoffset: 0; } }
 .lp-agua { animation: lp-agua 6s ease-in-out infinite alternate; }
@@ -144,7 +154,7 @@
 @property --lp-a { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
 .lp-viva { position: relative; }
 .lp-viva::before {
-  content: ""; position: absolute; inset: -1px; border-radius: 17px; padding: 1px; pointer-events: none;
+  content: ""; position: absolute; inset: -1px; border-radius: 0; padding: 1px; pointer-events: none;
   background: conic-gradient(from var(--lp-a), transparent 70%, var(--accent) 85%, transparent);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude; animation: lp-roda 5s linear infinite;
@@ -190,7 +200,7 @@
 .lp-etapa[data-on="true"] { opacity: 1; color: var(--ink); }
 
 /* story */
-.lp-fone { position: relative; width: min(300px, 100%); aspect-ratio: 9 / 16; border-radius: 28px; overflow: hidden; border: 8px solid #211c15; background: #000; box-shadow: 0 30px 80px -30px rgba(210, 154, 68, 0.35); }
+.lp-fone { position: relative; width: min(300px, 100%); aspect-ratio: 9 / 16; border-radius: 28px; overflow: hidden; border: 8px solid #211c15; background: #000; box-shadow: 0 30px 80px -30px rgba(21, 19, 15, 0.35); }
 .lp-story-cena { position: absolute; inset: 0; transition: opacity 0.5s, transform 6s linear; }
 .lp-story-cena[data-on="false"] { opacity: 0; }
 .lp-story-cena[data-on="true"] { transform: scale(1.12); }
@@ -322,7 +332,7 @@
 /* alerta (referência: vídeo do BeReal). Ciclo de 9 s: parado, o alerta salta
    maior que o celular e assenta, toque, a tela vira o story e o celular gira. */
 .lp-al-cena { position: relative; width: min(360px, 100%); height: 580px; margin: 0 auto; perspective: 1200px; --al: 9s; }
-.lp-al-fone { position: absolute; left: 50%; top: 10px; width: 262px; height: 548px; margin-left: -131px; border-radius: 44px; border: 9px solid #1d1915; background: #000; overflow: hidden; box-shadow: 0 40px 90px -40px rgba(210, 154, 68, 0.45); transform-style: preserve-3d; animation: lp-al-gira var(--al) cubic-bezier(0.5, 0, 0.2, 1) infinite both; }
+.lp-al-fone { position: absolute; left: 50%; top: 10px; width: 262px; height: 548px; margin-left: -131px; border-radius: 44px; border: 9px solid #1d1915; background: #000; overflow: hidden; box-shadow: 0 40px 90px -40px rgba(21, 19, 15, 0.4); transform-style: preserve-3d; animation: lp-al-gira var(--al) cubic-bezier(0.5, 0, 0.2, 1) infinite both; }
 .lp-al-bloqueio, .lp-al-story { position: absolute; inset: 0; }
 .lp-al-story { clip-path: circle(0% at 50% 46%); animation: lp-al-abre var(--al) cubic-bezier(0.6, 0, 0.2, 1) infinite both; }
 .lp-al-notif { position: absolute; left: 50%; top: 255px; width: 330px; margin-left: -165px; display: flex; gap: 10px; align-items: flex-start; padding: 11px 13px; border-radius: 20px; color: #f4efe4;
@@ -346,7 +356,7 @@
 .lp-anim .lp-rv:not(.lp-in) .lp-al-cena * { animation-play-state: paused; }
 
 /* vídeo de 1 minuto (ExplainerVideo.tsx): 16:9; no celular em pé, 9:16 sem passar da altura da tela */
-.lp-video { position: relative; overflow: hidden; aspect-ratio: 16 / 9; border: 1px solid var(--line); border-radius: 16px; background: var(--bg); }
+.lp-video { position: relative; overflow: hidden; aspect-ratio: 16 / 9; border: 1px solid var(--line); border-radius: 0; background: var(--bg); }
 @media (max-width: 640px) and (orientation: portrait) {
   .lp-video { aspect-ratio: 9 / 16; width: min(100%, calc(82svh * 9 / 16)); margin-inline: auto; }
 }

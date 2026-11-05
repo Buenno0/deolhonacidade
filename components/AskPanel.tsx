@@ -36,8 +36,8 @@ export default function AskPanel({ getCenter, onCancel, onCreated }: Props) {
   }
 
   return (
-    <div className="pointer-events-auto mx-auto w-full max-w-lg rounded-2xl border border-line bg-surface p-4">
-      <p className="rotulo">Alguém aí?</p>
+    <div className="pointer-events-auto mx-auto w-full max-w-lg rounded-none border border-line bg-surface p-4">
+      <p className="legenda">Alguém aí?</p>
       <p className="mt-1 text-sm text-muted">Arraste o mapa até a mira no lugar que você quer ver.</p>
       <textarea
         autoFocus
@@ -46,7 +46,7 @@ export default function AskPanel({ getCenter, onCancel, onCreated }: Props) {
         value={question}
         onChange={(e) => setQuestion(e.target.value)}
         placeholder="Ex.: Como está a fila do posto? A ponte alagou?"
-        className="mt-3 w-full resize-none rounded-lg border border-line bg-bg px-3 py-2 text-base outline-none transition focus:border-accent"
+        className="mt-3 w-full resize-none rounded-none border border-line bg-bg px-3 py-2 text-base outline-none transition focus:border-accent"
       />
       <div className="mt-3 flex gap-2">
         <Button variant="secundario" onClick={onCancel} className="flex-1">
